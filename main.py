@@ -84,4 +84,5 @@ def run_pipeline(config: PipelineConfig | None = None) -> None:
 
 
 if __name__ == "__main__":
-    run_pipeline()
+    config = PipelineConfig.from_env(Path(__file__).resolve().parent)
+    run_pipeline(config)
