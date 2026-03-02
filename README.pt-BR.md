@@ -49,6 +49,7 @@ A Revenue Intelligence Platform é um sistema de decisão comercial de ponta a p
 - Camada de ML: churn e nova compra
 - Motor de recomendação de próxima melhor ação
 - Dashboard executivo com governança e exportação
+  (`Executive Overview`, `Risk & Growth`, `Action List`)
 
 ## Arquitetura
 
@@ -115,6 +116,11 @@ python main.py
 python -m streamlit run .\app\streamlit_app.py
 ```
 
+Sobrescritas via ambiente:
+- `RIP_DATA_DIR`
+- `RIP_SEED`
+- `RIP_LOG_LEVEL`
+
 ## CLI
 
 ```powershell
@@ -148,6 +154,10 @@ docker run -p 8501:8501 revenue-intelligence
 - `data/processed/unit_economics.csv`
 - `data/processed/metrics_report.json`
 - `data/processed/executive_report.json`
+- `data/processed/dim_customers.csv`
+- `data/processed/dim_date.csv`
+- `data/processed/dim_channel.csv`
+- `data/processed/fact_orders.csv`
 
 
 

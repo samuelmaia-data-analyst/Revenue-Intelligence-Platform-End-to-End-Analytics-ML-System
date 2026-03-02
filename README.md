@@ -54,6 +54,7 @@ This version includes a mature layered data architecture (`raw -> bronze -> silv
 - ML layer: churn + next purchase prediction
 - Recommendation engine for next best action
 - Executive Streamlit dashboard with governance and exports
+  (`Executive Overview`, `Risk & Growth`, `Action List`)
 - Structured SQL domains (`ddl/` and `analytics/`)
 
 ## Architecture
@@ -132,6 +133,11 @@ python -m pip install -r requirements.txt
 python main.py
 python -m streamlit run .\app\streamlit_app.py
 ```
+
+Environment overrides:
+- `RIP_DATA_DIR`
+- `RIP_SEED`
+- `RIP_LOG_LEVEL`
 
 ## CLI
 
