@@ -3,7 +3,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-
 CHANNELS = ["Organic", "Paid Search", "Social Ads", "Referral", "Partnership"]
 KAGGLE_FILE = "E-commerce Customer Behavior - Sheet1.csv"
 
@@ -43,7 +42,9 @@ def generate_synthetic_data(
         base_value = {"SMB": 120, "Mid-Market": 320, "Enterprise": 950}[row.segment]
         order_values = np.clip(rng.normal(base_value, base_value * 0.35, size=num_orders), 25, None)
 
-        for idx, (order_date, order_value) in enumerate(zip(order_dates, order_values), start=1):
+        for idx, (order_date, order_value) in enumerate(
+            zip(order_dates, order_values, strict=False), start=1
+        ):
             order_rows.append(
                 {
                     "order_id": f"O{row.customer_id:05d}-{idx:03d}",
@@ -96,15 +97,36 @@ def _build_from_kaggle_dataset(
     signup_date = today - pd.to_timedelta(tenure_days, unit="D")
 
     customers = df[
-        ["customer_id", "channel", "segment", "gender", "age", "city", "membership_type", "satisfaction_level"]
+        [
+            "customer_id",
+            "channel",
+            "segment",
+            "gender",
+            "age",
+            "city",
+            "membership_type",
+            "satisfaction_level",
+        ]
     ].copy()
     customers["signup_date"] = signup_date
     customers = customers[
-        ["customer_id", "signup_date", "channel", "segment", "gender", "age", "city", "membership_type", "satisfaction_level"]
+        [
+            "customer_id",
+            "signup_date",
+            "channel",
+            "segment",
+            "gender",
+            "age",
+            "city",
+            "membership_type",
+            "satisfaction_level",
+        ]
     ]
 
     order_rows = []
-    for row, tenure, recency in zip(df.itertuples(index=False), tenure_days, recency_days):
+    for row, tenure, recency in zip(
+        df.itertuples(index=False), tenure_days, recency_days, strict=False
+    ):
         customer_signup = today - pd.Timedelta(days=int(tenure))
         n_orders = int(max(1, row.items_purchased))
         avg_ticket = float(row.total_spend) / n_orders
@@ -122,7 +144,9 @@ def _build_from_kaggle_dataset(
         correction = float(row.total_spend) / float(order_values.sum())
         order_values = order_values * correction
 
-        for idx, (order_date, order_value) in enumerate(zip(order_dates, order_values), start=1):
+        for idx, (order_date, order_value) in enumerate(
+            zip(order_dates, order_values, strict=False), start=1
+        ):
             order_rows.append(
                 {
                     "order_id": f"O{int(row.customer_id):05d}-{idx:03d}",
@@ -133,7 +157,9 @@ def _build_from_kaggle_dataset(
             )
 
     orders = pd.DataFrame(order_rows).sort_values("order_date").reset_index(drop=True)
-    acquired = customers.groupby("channel")["customer_id"].count().reset_index(name="customers_acquired")
+    acquired = (
+        customers.groupby("channel")["customer_id"].count().reset_index(name="customers_acquired")
+    )
     acquired["base_cac"] = acquired["channel"].map(
         {
             "Organic": 70,
@@ -148,13 +174,13 @@ def _build_from_kaggle_dataset(
     return customers, orders, marketing
 
 
-def save_raw_datasets(raw_dir: Path) -> tuple[Path, Path, Path]:
+def save_raw_datasets(raw_dir: Path, seed: int = 42) -> tuple[Path, Path, Path]:
     raw_dir.mkdir(parents=True, exist_ok=True)
     kaggle_path = raw_dir / KAGGLE_FILE
     if kaggle_path.exists():
-        customers, orders, marketing = _build_from_kaggle_dataset(kaggle_path)
+        customers, orders, marketing = _build_from_kaggle_dataset(kaggle_path, seed=seed)
     else:
-        customers, orders, marketing = generate_synthetic_data()
+        customers, orders, marketing = generate_synthetic_data(seed=seed)
 
     customers_path = raw_dir / "customers.csv"
     orders_path = raw_dir / "orders.csv"

@@ -35,4 +35,3 @@ def build_recommendations(ltv_df: pd.DataFrame, cac_df: pd.DataFrame) -> pd.Data
         "recommended_action",
     ]
     return out[cols]
-

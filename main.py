@@ -1,6 +1,8 @@
-from pathlib import Path
+import logging
 import shutil
+from pathlib import Path
 
+from src.config import PipelineConfig
 from src.ingestion import build_bronze_layer, save_raw_datasets
 from src.metrics import (
     calculate_cac,
@@ -14,34 +16,38 @@ from src.recommendation import build_recommendations
 from src.transformation import build_customer_features, build_silver_layer
 from src.warehouse import build_star_schema
 
+LOGGER = logging.getLogger("revenue_intelligence.pipeline")
 
-def run_pipeline() -> None:
-    project_root = Path(__file__).resolve().parent
-    data_dir = project_root / "data"
-    raw_dir = data_dir / "raw"
-    bronze_dir = data_dir / "bronze"
-    silver_dir = data_dir / "silver"
-    gold_dir = data_dir / "gold"
-    processed_dir = data_dir / "processed"
 
-    processed_dir.mkdir(parents=True, exist_ok=True)
+def configure_logging(level: str = "INFO") -> None:
+    logging.basicConfig(
+        level=getattr(logging, level.upper(), logging.INFO),
+        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    )
 
-    customers_path, orders_path, marketing_path = save_raw_datasets(raw_dir)
+
+def run_pipeline(config: PipelineConfig | None = None) -> None:
+    cfg = config or PipelineConfig.from_env(Path(__file__).resolve().parent)
+    configure_logging(cfg.log_level)
+    cfg.processed_dir.mkdir(parents=True, exist_ok=True)
+
+    LOGGER.info("Pipeline started with data dir: %s", cfg.data_dir)
+    customers_path, orders_path, marketing_path = save_raw_datasets(cfg.raw_dir, seed=cfg.seed)
     bronze_customers, bronze_orders, bronze_marketing = build_bronze_layer(
-        customers_path, orders_path, marketing_path, bronze_dir
+        customers_path, orders_path, marketing_path, cfg.bronze_dir
     )
     silver_customers, silver_orders, silver_marketing = build_silver_layer(
-        bronze_customers, bronze_orders, bronze_marketing, silver_dir
+        bronze_customers, bronze_orders, bronze_marketing, cfg.silver_dir
     )
 
-    features_df = build_customer_features(silver_customers, silver_orders, processed_dir)
-    build_star_schema(silver_customers, silver_orders, gold_dir)
+    features_df = build_customer_features(silver_customers, silver_orders, cfg.processed_dir)
+    build_star_schema(silver_customers, silver_orders, cfg.gold_dir)
 
     for table in ["dim_customers.csv", "dim_date.csv", "dim_channel.csv", "fact_orders.csv"]:
-        shutil.copy2(gold_dir / table, processed_dir / table)
+        shutil.copy2(cfg.gold_dir / table, cfg.processed_dir / table)
 
     churn_results, next_purchase_results, scored_df = train_and_score_models(
-        features_df, processed_dir
+        features_df, cfg.processed_dir
     )
 
     ltv_df = calculate_ltv(scored_df)
@@ -51,25 +57,22 @@ def run_pipeline() -> None:
     unit_df = unit_economics(ltv_df, cac_df)
     rec_df = build_recommendations(ltv_df, cac_df)
 
-    ltv_df.to_csv(processed_dir / "ltv.csv", index=False)
-    cac_df.to_csv(processed_dir / "cac_by_channel.csv", index=False)
-    rfm_df.to_csv(processed_dir / "rfm_segments.csv", index=False)
-    cohort_df.to_csv(processed_dir / "cohort_retention.csv", index=False)
-    unit_df.to_csv(processed_dir / "unit_economics.csv", index=False)
-    rec_df.to_csv(processed_dir / "recommendations.csv", index=False)
+    ltv_df.to_csv(cfg.processed_dir / "ltv.csv", index=False)
+    cac_df.to_csv(cfg.processed_dir / "cac_by_channel.csv", index=False)
+    rfm_df.to_csv(cfg.processed_dir / "rfm_segments.csv", index=False)
+    cohort_df.to_csv(cfg.processed_dir / "cohort_retention.csv", index=False)
+    unit_df.to_csv(cfg.processed_dir / "unit_economics.csv", index=False)
+    rec_df.to_csv(cfg.processed_dir / "recommendations.csv", index=False)
 
-    print("Pipeline completed.")
-    print(f"Churn split strategy: {churn_results['split_strategy']}")
-    print(f"Churn ROC-AUC (CV mean): {churn_results['cv_roc_auc_mean']:.3f}")
-    print(f"Churn ROC-AUC (Temporal test): {churn_results['temporal_test_roc_auc']:.3f}")
-    print(f"Next Purchase split strategy: {next_purchase_results['split_strategy']}")
-    print(
-        f"Next Purchase ROC-AUC (CV mean): "
-        f"{next_purchase_results['cv_roc_auc_mean']:.3f}"
-    )
-    print(
-        f"Next Purchase ROC-AUC (Temporal test): "
-        f"{next_purchase_results['temporal_test_roc_auc']:.3f}"
+    LOGGER.info("Pipeline completed successfully.")
+    LOGGER.info("Churn split strategy: %s", churn_results["split_strategy"])
+    LOGGER.info("Churn ROC-AUC (CV mean): %.3f", churn_results["cv_roc_auc_mean"])
+    LOGGER.info("Churn ROC-AUC (Temporal test): %.3f", churn_results["temporal_test_roc_auc"])
+    LOGGER.info("Next Purchase split strategy: %s", next_purchase_results["split_strategy"])
+    LOGGER.info("Next Purchase ROC-AUC (CV mean): %.3f", next_purchase_results["cv_roc_auc_mean"])
+    LOGGER.info(
+        "Next Purchase ROC-AUC (Temporal test): %.3f",
+        next_purchase_results["temporal_test_roc_auc"],
     )
 
 

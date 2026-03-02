@@ -4,6 +4,12 @@ import numpy as np
 import pandas as pd
 
 
+def _validate_columns(df: pd.DataFrame, required: set[str], table_name: str) -> None:
+    missing = required.difference(df.columns)
+    if missing:
+        raise ValueError(f"{table_name} missing required columns: {sorted(missing)}")
+
+
 def build_silver_layer(
     bronze_customers_path: Path,
     bronze_orders_path: Path,
@@ -16,15 +22,25 @@ def build_silver_layer(
     orders = pd.read_csv(bronze_orders_path, parse_dates=["order_date"], low_memory=False)
     marketing = pd.read_csv(bronze_marketing_path, low_memory=False)
 
-    customers = customers.drop(columns=["_source_file", "_ingestion_ts"], errors="ignore").drop_duplicates(
-        subset=["customer_id"]
+    _validate_columns(
+        customers,
+        {"customer_id", "signup_date", "channel", "segment"},
+        "bronze_customers",
     )
-    orders = orders.drop(columns=["_source_file", "_ingestion_ts"], errors="ignore").drop_duplicates(
-        subset=["order_id"]
+    _validate_columns(
+        orders, {"order_id", "customer_id", "order_date", "order_value"}, "bronze_orders"
     )
-    marketing = marketing.drop(columns=["_source_file", "_ingestion_ts"], errors="ignore").drop_duplicates(
-        subset=["channel"]
-    )
+    _validate_columns(marketing, {"channel", "marketing_spend"}, "bronze_marketing_spend")
+
+    customers = customers.drop(
+        columns=["_source_file", "_ingestion_ts"], errors="ignore"
+    ).drop_duplicates(subset=["customer_id"])
+    orders = orders.drop(
+        columns=["_source_file", "_ingestion_ts"], errors="ignore"
+    ).drop_duplicates(subset=["order_id"])
+    marketing = marketing.drop(
+        columns=["_source_file", "_ingestion_ts"], errors="ignore"
+    ).drop_duplicates(subset=["channel"])
 
     customers["customer_id"] = customers["customer_id"].astype(int)
     orders["customer_id"] = orders["customer_id"].astype(int)
@@ -36,6 +52,9 @@ def build_silver_layer(
     valid_customers = set(customers["customer_id"].tolist())
     orders = orders[orders["customer_id"].isin(valid_customers)].copy()
     orders = orders[orders["order_value"] > 0].copy()
+    customers = customers.dropna(subset=["customer_id", "signup_date", "channel", "segment"]).copy()
+    orders = orders.dropna(subset=["order_id", "customer_id", "order_date"]).copy()
+    marketing = marketing.dropna(subset=["channel"]).copy()
 
     silver_customers_path = silver_dir / "silver_customers.csv"
     silver_orders_path = silver_dir / "silver_orders.csv"
@@ -58,10 +77,12 @@ def build_customer_features(
     as_of_date = max_order_date - pd.Timedelta(days=120)
     hist_orders = orders[orders["order_date"] <= as_of_date].copy()
     future_30 = orders[
-        (orders["order_date"] > as_of_date) & (orders["order_date"] <= as_of_date + pd.Timedelta(days=30))
+        (orders["order_date"] > as_of_date)
+        & (orders["order_date"] <= as_of_date + pd.Timedelta(days=30))
     ].copy()
     future_90 = orders[
-        (orders["order_date"] > as_of_date) & (orders["order_date"] <= as_of_date + pd.Timedelta(days=90))
+        (orders["order_date"] > as_of_date)
+        & (orders["order_date"] <= as_of_date + pd.Timedelta(days=90))
     ].copy()
 
     agg = (
@@ -95,7 +116,9 @@ def build_customer_features(
     features["future_orders_90d"] = features["future_orders_90d"].fillna(0)
 
     eligible = (features["frequency"] > 0) & (features["tenure_days"] >= 60)
-    features["is_churned"] = np.where(eligible, (features["future_orders_90d"] == 0).astype(int), np.nan)
+    features["is_churned"] = np.where(
+        eligible, (features["future_orders_90d"] == 0).astype(int), np.nan
+    )
     features["next_purchase_30d"] = np.where(
         eligible, (features["future_orders_30d"] > 0).astype(int), np.nan
     )

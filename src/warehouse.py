@@ -12,7 +12,9 @@ def build_star_schema(customers_path: Path, orders_path: Path, output_dir: Path)
     dim_customers["customer_key"] = dim_customers["customer_id"]
     dim_customers["signup_month"] = dim_customers["signup_date"].dt.to_period("M").astype(str)
 
-    dim_date = pd.DataFrame({"date": pd.date_range(orders["order_date"].min(), orders["order_date"].max())})
+    dim_date = pd.DataFrame(
+        {"date": pd.date_range(orders["order_date"].min(), orders["order_date"].max())}
+    )
     dim_date["date_key"] = dim_date["date"].dt.strftime("%Y%m%d").astype(int)
     dim_date["year"] = dim_date["date"].dt.year
     dim_date["month"] = dim_date["date"].dt.month
@@ -33,7 +35,9 @@ def build_star_schema(customers_path: Path, orders_path: Path, output_dir: Path)
 
     fact_orders = orders.copy()
     fact_orders["date_key"] = fact_orders["order_date"].dt.strftime("%Y%m%d").astype(int)
-    fact_orders = fact_orders.merge(customer_channel[["customer_id", "channel_key"]], on="customer_id", how="left")
+    fact_orders = fact_orders.merge(
+        customer_channel[["customer_id", "channel_key"]], on="customer_id", how="left"
+    )
     fact_orders["order_amount"] = fact_orders["order_value"]
     fact_orders["order_count"] = 1
 

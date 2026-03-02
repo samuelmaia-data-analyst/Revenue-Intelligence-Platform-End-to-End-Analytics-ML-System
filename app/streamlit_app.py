@@ -1,7 +1,7 @@
-from datetime import datetime
-from pathlib import Path
 import json
 import sys
+from datetime import datetime
+from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
@@ -47,8 +47,14 @@ def aplicar_estilo_figura(fig):
         template="plotly_white",
         font={"color": "#0f172a", "family": "Segoe UI, Aptos, Calibri, sans-serif", "size": 13},
         title_font={"color": "#0f172a", "size": 18},
-        xaxis={"title_font": {"color": "#334155", "size": 12}, "tickfont": {"color": "#334155", "size": 12}},
-        yaxis={"title_font": {"color": "#334155", "size": 12}, "tickfont": {"color": "#334155", "size": 12}},
+        xaxis={
+            "title_font": {"color": "#334155", "size": 12},
+            "tickfont": {"color": "#334155", "size": 12},
+        },
+        yaxis={
+            "title_font": {"color": "#334155", "size": 12},
+            "tickfont": {"color": "#334155", "size": 12},
+        },
         plot_bgcolor="#ffffff",
         paper_bgcolor="#ffffff",
         margin={"l": 40, "r": 20, "t": 50, "b": 40},
@@ -209,13 +215,31 @@ if df.empty:
 
 st.subheader("Resumo Executivo")
 c1, c2, c3, c4, c5 = st.columns(5)
-c1.markdown(card("Clientes", f"{df['customer_id'].nunique():,}", "base ativa"), unsafe_allow_html=True)
-c2.markdown(card("LTV Médio", moeda(float(df["ltv"].mean())), "por cliente"), unsafe_allow_html=True)
-c3.markdown(card("Risco Médio", f"{df['churn_probability'].mean():.1%}", "probabilidade de churn"), unsafe_allow_html=True)
-c4.markdown(card("LTV/CAC", f"{df['ltv_cac_ratio'].mean():.2f}", "eficiência média"), unsafe_allow_html=True)
-c5.markdown(card("Impacto Potencial", moeda(float(df["impacto_potencial"].sum())), "carteira filtrada"), unsafe_allow_html=True)
+c1.markdown(
+    card("Clientes", f"{df['customer_id'].nunique():,}", "base ativa"), unsafe_allow_html=True
+)
+c2.markdown(
+    card("LTV Médio", moeda(float(df["ltv"].mean())), "por cliente"), unsafe_allow_html=True
+)
+c3.markdown(
+    card("Risco Médio", f"{df['churn_probability'].mean():.1%}", "probabilidade de churn"),
+    unsafe_allow_html=True,
+)
+c4.markdown(
+    card("LTV/CAC", f"{df['ltv_cac_ratio'].mean():.2f}", "eficiência média"), unsafe_allow_html=True
+)
+c5.markdown(
+    card("Impacto Potencial", moeda(float(df["impacto_potencial"].sum())), "carteira filtrada"),
+    unsafe_allow_html=True,
+)
 
-seg_risco = df.groupby("segment")["churn_probability"].mean().sort_values(ascending=False).reset_index().iloc[0]
+seg_risco = (
+    df.groupby("segment")["churn_probability"]
+    .mean()
+    .sort_values(ascending=False)
+    .reset_index()
+    .iloc[0]
+)
 acao_mix = df["recommended_action"].value_counts(normalize=True).mul(100).round(1).reset_index()
 acao_mix.columns = ["ação", "pct"]
 acao_top = acao_mix.iloc[0]
@@ -257,8 +281,12 @@ with tab1:
         use_container_width=True,
         hide_index=True,
         column_config={
-            "Risco de Churn": st.column_config.ProgressColumn(min_value=0.0, max_value=1.0, format="%.2f"),
-            "Prob. Compra 30d": st.column_config.ProgressColumn(min_value=0.0, max_value=1.0, format="%.2f"),
+            "Risco de Churn": st.column_config.ProgressColumn(
+                min_value=0.0, max_value=1.0, format="%.2f"
+            ),
+            "Prob. Compra 30d": st.column_config.ProgressColumn(
+                min_value=0.0, max_value=1.0, format="%.2f"
+            ),
             "Score Estratégico": st.column_config.NumberColumn(format="%.3f"),
             "LTV/CAC": st.column_config.NumberColumn(format="%.2f"),
             "Impacto Potencial (R$)": st.column_config.NumberColumn(format="%.2f"),
@@ -306,7 +334,9 @@ with tab2:
             color_discrete_sequence=["#1e3a8a", "#334155", "#475569", "#1d4ed8", "#0f172a"],
             title="Eficiência por Canal (LTV/CAC)",
         )
-        fig2.update_traces(marker_line_color="#0f172a", marker_line_width=0.6, textposition="outside")
+        fig2.update_traces(
+            marker_line_color="#0f172a", marker_line_width=0.6, textposition="outside"
+        )
         fig2 = aplicar_estilo_figura(fig2)
         fig2.update_layout(showlegend=False, yaxis_title="LTV/CAC", xaxis_title="Canal")
         st.plotly_chart(fig2, use_container_width=True, theme=None)
@@ -315,7 +345,9 @@ with tab2:
     st.markdown('<div class="chart-card">', unsafe_allow_html=True)
     cohort_hm = cohort.copy()
     cohort_hm["retention_pct"] = cohort_hm["retention_rate"] * 100
-    heat = cohort_hm.pivot(index="cohort_month", columns="cohort_index", values="retention_pct").sort_index()
+    heat = cohort_hm.pivot(
+        index="cohort_month", columns="cohort_index", values="retention_pct"
+    ).sort_index()
     fig3 = px.imshow(
         heat,
         aspect="auto",
@@ -342,10 +374,11 @@ with tab3:
                 "Modelo": "Next Purchase 30d",
                 "Split": report.get("next_purchase_30d", {}).get("split_strategy", "n/a"),
                 "ROC-AUC CV": auc_texto(report.get("next_purchase_30d", {}).get("cv_roc_auc_mean")),
-                "ROC-AUC Holdout": auc_texto(report.get("next_purchase_30d", {}).get("temporal_test_roc_auc")),
+                "ROC-AUC Holdout": auc_texto(
+                    report.get("next_purchase_30d", {}).get("temporal_test_roc_auc")
+                ),
             },
         ]
     )
     st.dataframe(gov, use_container_width=True, hide_index=True)
     st.caption("Fonte: data/processed/metrics_report.json")
-

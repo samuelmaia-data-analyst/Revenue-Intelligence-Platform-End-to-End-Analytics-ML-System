@@ -18,6 +18,8 @@
 - [Estrutura do Repositório](#estrutura-do-reposit%C3%B3rio)
 - [Fonte de Dados](#fonte-de-dados)
 - [Como Rodar (Windows / PowerShell)](#como-rodar-windows--powershell)
+- [CLI](#cli)
+- [Qualidade de Engenharia](#qualidade-de-engenharia)
 - [Docker](#docker)
 - [Principais Saídas](#principais-sa%C3%ADdas)
 
@@ -111,6 +113,24 @@ py -3.11 -m venv .venv
 python -m pip install -r requirements.txt
 python main.py
 python -m streamlit run .\app\streamlit_app.py
+```
+
+## CLI
+
+```powershell
+python -m src.pipeline run
+python -m src.pipeline run --seed 123 --log-level DEBUG
+```
+
+## Qualidade de Engenharia
+
+```powershell
+python -m pip install -r requirements-dev.txt
+python -m black .
+python -m ruff check . --fix
+python -m pytest -q
+pre-commit install
+pre-commit run --all-files
 ```
 
 ## Docker

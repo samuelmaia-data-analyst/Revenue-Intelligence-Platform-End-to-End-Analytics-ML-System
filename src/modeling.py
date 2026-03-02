@@ -1,5 +1,5 @@
-from pathlib import Path
 import json
+from pathlib import Path
 
 import joblib
 import numpy as np
@@ -38,7 +38,9 @@ def _safe_roc_auc(y_true: pd.Series, y_prob: np.ndarray) -> float:
     return float(roc_auc_score(y_true, y_prob))
 
 
-def _temporal_split_indices(df: pd.DataFrame, split_ratio: float = 0.8) -> tuple[pd.Index, pd.Index]:
+def _temporal_split_indices(
+    df: pd.DataFrame, split_ratio: float = 0.8
+) -> tuple[pd.Index, pd.Index]:
     ordered_idx = df.sort_values("signup_date").index
     split_at = int(len(ordered_idx) * split_ratio)
     split_at = max(1, min(split_at, len(ordered_idx) - 1))
@@ -53,9 +55,7 @@ def _build_evaluation_split(df: pd.DataFrame, y: pd.Series) -> tuple[pd.Index, p
     if y_train.nunique() > 1 and y_test.nunique() > 1:
         return train_idx, test_idx, "temporal"
 
-    train_idx, test_idx = train_test_split(
-        y.index, test_size=0.2, random_state=42, stratify=y
-    )
+    train_idx, test_idx = train_test_split(y.index, test_size=0.2, random_state=42, stratify=y)
     return pd.Index(train_idx), pd.Index(test_idx), "stratified_fallback"
 
 
@@ -149,7 +149,9 @@ def train_and_score_models(df: pd.DataFrame, output_dir: Path) -> tuple[dict, di
         next_purchase_pipeline, x_next, next_df["next_purchase_30d"], next_df
     )
     next_purchase_model = next_purchase_results["model"]
-    work_df["next_purchase_probability"] = next_purchase_model.predict_proba(work_df[feature_cols])[:, 1]
+    work_df["next_purchase_probability"] = next_purchase_model.predict_proba(work_df[feature_cols])[
+        :, 1
+    ]
 
     joblib.dump(churn_model, output_dir / "churn_model.joblib")
     joblib.dump(next_purchase_model, output_dir / "next_purchase_model.joblib")

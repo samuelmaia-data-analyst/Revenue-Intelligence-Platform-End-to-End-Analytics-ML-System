@@ -17,7 +17,9 @@ def calculate_ltv(df: pd.DataFrame, gross_margin: float = 0.68) -> pd.DataFrame:
 def calculate_cac(marketing_path: Path, customers_path: Path) -> pd.DataFrame:
     marketing = pd.read_csv(marketing_path)
     customers = pd.read_csv(customers_path)
-    acquired = customers.groupby("channel")["customer_id"].count().reset_index(name="customers_acquired")
+    acquired = (
+        customers.groupby("channel")["customer_id"].count().reset_index(name="customers_acquired")
+    )
     cac = marketing.merge(acquired, on="channel", how="left").fillna({"customers_acquired": 1})
     cac["cac"] = cac["marketing_spend"] / cac["customers_acquired"].clip(lower=1)
     return cac
@@ -78,11 +80,12 @@ def cohort_analysis(orders_path: Path, customers_path: Path) -> pd.DataFrame:
     return out.sort_values(["cohort_month", "cohort_index"])
 
 
-def unit_economics(ltv_df: pd.DataFrame, cac_df: pd.DataFrame, gross_margin: float = 0.68) -> pd.DataFrame:
+def unit_economics(
+    ltv_df: pd.DataFrame, cac_df: pd.DataFrame, gross_margin: float = 0.68
+) -> pd.DataFrame:
     channel_arpu = ltv_df.groupby("channel")["arpu"].mean().reset_index(name="avg_arpu")
     out = cac_df.merge(channel_arpu, on="channel", how="left").fillna({"avg_arpu": 0})
     out["ltv_cac_ratio"] = out["avg_arpu"] * 8 * gross_margin / out["cac"].clip(lower=1)
     out["contribution_margin"] = out["avg_arpu"] * gross_margin - out["cac"] / 6
     out["payback_period_months"] = out["cac"] / (out["avg_arpu"] * gross_margin).replace(0, np.nan)
     return out.replace([np.inf, -np.inf], np.nan).fillna(0)
-

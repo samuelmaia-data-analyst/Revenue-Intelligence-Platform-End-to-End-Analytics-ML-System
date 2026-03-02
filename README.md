@@ -20,6 +20,8 @@
 - [Star Schema (Gold)](#star-schema-gold)
 - [SQL Organization](#sql-organization)
 - [Local Run (Windows / PowerShell)](#local-run-windows--powershell)
+- [CLI](#cli)
+- [Engineering Quality](#engineering-quality)
 - [Docker](#docker)
 - [Main Outputs](#main-outputs)
 - [Streamlit Cloud](#streamlit-cloud)
@@ -129,6 +131,24 @@ py -3.11 -m venv .venv
 python -m pip install -r requirements.txt
 python main.py
 python -m streamlit run .\app\streamlit_app.py
+```
+
+## CLI
+
+```powershell
+python -m src.pipeline run
+python -m src.pipeline run --seed 123 --log-level DEBUG
+```
+
+## Engineering Quality
+
+```powershell
+python -m pip install -r requirements-dev.txt
+python -m black .
+python -m ruff check . --fix
+python -m pytest -q
+pre-commit install
+pre-commit run --all-files
 ```
 
 ## Docker
