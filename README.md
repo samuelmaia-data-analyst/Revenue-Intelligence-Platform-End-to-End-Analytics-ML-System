@@ -1,4 +1,4 @@
-# Revenue Intelligence Platform - Executive Analytics & ML System
+﻿# Revenue Intelligence Platform - Executive Analytics & ML System
 
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.43-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
@@ -7,6 +7,22 @@
 [![License](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 
 [Leia em Português](README.pt-BR.md)
+
+## Summary
+
+- [Live App](#live-app)
+- [Executive Summary](#executive-summary)
+- [Business Outcomes](#business-outcomes)
+- [Scope and Capabilities](#scope-and-capabilities)
+- [Architecture](#architecture)
+- [Repository Structure](#repository-structure)
+- [Data Source](#data-source)
+- [Star Schema (Gold)](#star-schema-gold)
+- [SQL Organization](#sql-organization)
+- [Local Run (Windows / PowerShell)](#local-run-windows--powershell)
+- [Docker](#docker)
+- [Main Outputs](#main-outputs)
+- [Streamlit Cloud](#streamlit-cloud)
 
 ## Live App
 
@@ -139,3 +155,5 @@ docker run -p 8501:8501 revenue-intelligence
 - Main file path: `app/streamlit_app.py`
 - Dependency file: `requirements.txt`
 - Kaggle CSV is versioned in `data/raw/` for deterministic cloud runs
+
+

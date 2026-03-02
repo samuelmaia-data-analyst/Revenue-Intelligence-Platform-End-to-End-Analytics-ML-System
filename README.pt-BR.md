@@ -8,6 +8,20 @@
 
 [Read in English](README.md)
 
+## Sumário
+
+- [App em Produção](#app-em-produ%C3%A7%C3%A3o)
+- [Resumo Executivo](#resumo-executivo)
+- [Resultados de Negócio](#resultados-de-neg%C3%B3cio)
+- [Escopo e Capacidades](#escopo-e-capacidades)
+- [Arquitetura](#arquitetura)
+- [Estrutura do Repositório](#estrutura-do-reposit%C3%B3rio)
+- [Fonte de Dados](#fonte-de-dados)
+- [Como Rodar (Windows / PowerShell)](#como-rodar-windows--powershell)
+- [Docker](#docker)
+- [Principais Saídas](#principais-sa%C3%ADdas)
+
+
 ## App em Produção
 
 Streamlit Cloud:
@@ -113,3 +127,8 @@ docker run -p 8501:8501 revenue-intelligence
 - `data/processed/cohort_retention.csv`
 - `data/processed/unit_economics.csv`
 - `data/processed/metrics_report.json`
+
+
+
+
+
