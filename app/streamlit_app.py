@@ -78,7 +78,7 @@ def carregar(processed_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFr
         "recommendations.csv",
         "cohort_retention.csv",
         "unit_economics.csv",
-        "metrics_report.json",
+        "executive_report.json",
     ]
     if not all((processed_dir / f).exists() for f in arquivos):
         run_pipeline(PipelineConfig.from_env(PROJECT_ROOT))
@@ -86,7 +86,11 @@ def carregar(processed_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFr
     rec = pd.read_csv(processed_dir / "recommendations.csv")
     cohort = pd.read_csv(processed_dir / "cohort_retention.csv")
     unit = pd.read_csv(processed_dir / "unit_economics.csv")
-    with (processed_dir / "metrics_report.json").open("r", encoding="utf-8") as f:
+
+    report_path = processed_dir / "executive_report.json"
+    if not report_path.exists():
+        report_path = processed_dir / "metrics_report.json"
+    with report_path.open("r", encoding="utf-8") as f:
         report = json.load(f)
     return rec, cohort, unit, report
 
@@ -365,23 +369,28 @@ with tab_overview:
     st.markdown("</div>", unsafe_allow_html=True)
 
 with tab_risk_growth:
+    model_report = report.get("model_performance", report)
     gov = pd.DataFrame(
         [
             {
                 "Modelo": "Churn",
-                "Split": report.get("churn", {}).get("split_strategy", "n/a"),
-                "ROC-AUC CV": auc_texto(report.get("churn", {}).get("cv_roc_auc_mean")),
-                "ROC-AUC Holdout": auc_texto(report.get("churn", {}).get("temporal_test_roc_auc")),
+                "Split": model_report.get("churn", {}).get("split_strategy", "n/a"),
+                "ROC-AUC CV": auc_texto(model_report.get("churn", {}).get("cv_roc_auc_mean")),
+                "ROC-AUC Holdout": auc_texto(
+                    model_report.get("churn", {}).get("temporal_test_roc_auc")
+                ),
             },
             {
                 "Modelo": "Next Purchase 30d",
-                "Split": report.get("next_purchase_30d", {}).get("split_strategy", "n/a"),
-                "ROC-AUC CV": auc_texto(report.get("next_purchase_30d", {}).get("cv_roc_auc_mean")),
+                "Split": model_report.get("next_purchase_30d", {}).get("split_strategy", "n/a"),
+                "ROC-AUC CV": auc_texto(
+                    model_report.get("next_purchase_30d", {}).get("cv_roc_auc_mean")
+                ),
                 "ROC-AUC Holdout": auc_texto(
-                    report.get("next_purchase_30d", {}).get("temporal_test_roc_auc")
+                    model_report.get("next_purchase_30d", {}).get("temporal_test_roc_auc")
                 ),
             },
         ]
     )
     st.dataframe(gov, use_container_width=True, hide_index=True)
-    st.caption("Fonte: data/processed/metrics_report.json")
+    st.caption("Fonte: data/processed/executive_report.json")

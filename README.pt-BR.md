@@ -157,9 +157,9 @@ docker run -p 8501:8501 revenue-intelligence
 - `data/processed/recommendations.csv`
 - `data/processed/cohort_retention.csv`
 - `data/processed/unit_economics.csv`
-- `data/processed/metrics_report.json` (relatório de métricas de ML)
-- `data/processed/executive_report.json` (relatório executivo com KPIs e top 20 ações)
+- `data/processed/executive_report.json` (relatório principal do app com KPIs, métricas de modelo e top 20 ações)
 - `data/processed/executive_summary.json` (resumo executivo compacto)
+- `data/processed/metrics_report.json` (artefato auxiliar de métricas de ML)
 - `data/processed/dim_customers.csv`
 - `data/processed/dim_date.csv`
 - `data/processed/dim_channel.csv`
