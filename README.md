@@ -8,8 +8,21 @@
 
 [Leia em Português](README.pt-BR.md)
 
+## Product Preview
+
+![Executive Overview](docs/assets/executive-overview.svg)
+![Action List](docs/assets/action-list.svg)
+
+## What Problem It Solves
+
+- Commercial teams need one prioritized view of who to retain, upsell, or deprioritize.
+- Finance and growth need transparent unit economics (`LTV/CAC`) by channel to reallocate spend fast.
+- Leadership needs a single weekly board pack with KPI trends, risk signals, and top actions.
+
 ## Summary
 
+- [Product Preview](#product-preview)
+- [What Problem It Solves](#what-problem-it-solves)
 - [Live App](#live-app)
 - [Executive Summary](#executive-summary)
 - [Business Outcomes](#business-outcomes)

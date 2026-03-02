@@ -8,8 +8,21 @@
 
 [Read in English](README.md)
 
+## Preview do Produto
+
+![Executive Overview](docs/assets/executive-overview.svg)
+![Action List](docs/assets/action-list.svg)
+
+## Qual Problema Resolve
+
+- Times comerciais precisam de uma carteira priorizada única para retenção, upsell e racionalização.
+- Finanças e growth precisam de unit economics (`LTV/CAC`) por canal para realocar verba rapidamente.
+- Liderança precisa de um board pack semanal com KPIs, sinais de risco e ações prioritárias.
+
 ## Sumário
 
+- [Preview do Produto](#preview-do-produto)
+- [Qual Problema Resolve](#qual-problema-resolve)
 - [App em Produção](#app-em-produ%C3%A7%C3%A3o)
 - [Resumo Executivo](#resumo-executivo)
 - [Resultados de Negócio](#resultados-de-neg%C3%B3cio)

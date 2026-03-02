@@ -87,10 +87,7 @@ def carregar(processed_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFr
     cohort = pd.read_csv(processed_dir / "cohort_retention.csv")
     unit = pd.read_csv(processed_dir / "unit_economics.csv")
 
-    report_path = processed_dir / "executive_report.json"
-    if not report_path.exists():
-        report_path = processed_dir / "metrics_report.json"
-    with report_path.open("r", encoding="utf-8") as f:
+    with (processed_dir / "executive_report.json").open("r", encoding="utf-8") as f:
         report = json.load(f)
     return rec, cohort, unit, report
 
@@ -394,3 +391,56 @@ with tab_risk_growth:
     )
     st.dataframe(gov, use_container_width=True, hide_index=True)
     st.caption("Fonte: data/processed/executive_report.json")
+
+    rg1, rg2 = st.columns(2)
+    with rg1:
+        churn_seg = (
+            df.groupby("segment", as_index=False)["churn_probability"]
+            .mean()
+            .sort_values("churn_probability", ascending=False)
+        )
+        fig_churn_seg = px.bar(
+            churn_seg,
+            x="segment",
+            y="churn_probability",
+            color="segment",
+            color_discrete_sequence=["#1e3a8a", "#334155", "#1d4ed8"],
+            title="Churn Risk by Segment",
+        )
+        fig_churn_seg = aplicar_estilo_figura(fig_churn_seg)
+        fig_churn_seg.update_layout(showlegend=False, yaxis_tickformat=".0%")
+        st.plotly_chart(fig_churn_seg, use_container_width=True, theme=None)
+
+    with rg2:
+        next_by_channel = (
+            df.groupby("channel", as_index=False)["next_purchase_probability"]
+            .mean()
+            .sort_values("next_purchase_probability", ascending=False)
+        )
+        fig_next_channel = px.bar(
+            next_by_channel,
+            x="channel",
+            y="next_purchase_probability",
+            color="channel",
+            color_discrete_sequence=["#1e3a8a", "#334155", "#475569", "#1d4ed8", "#0f172a"],
+            title="Next Purchase Probability by Channel",
+        )
+        fig_next_channel = aplicar_estilo_figura(fig_next_channel)
+        fig_next_channel.update_layout(showlegend=False, yaxis_tickformat=".0%")
+        st.plotly_chart(fig_next_channel, use_container_width=True, theme=None)
+
+    drivers = df.copy()
+    if {"recency_days", "frequency"}.issubset(drivers.columns):
+        fig_drivers = px.scatter(
+            drivers,
+            x="recency_days",
+            y="churn_probability",
+            size="frequency",
+            color="segment",
+            hover_data=["customer_id", "channel", "next_purchase_probability"],
+            color_discrete_sequence=["#1e3a8a", "#334155", "#1d4ed8"],
+            title="Risk Drivers: Recency vs Churn (bubble size = Frequency)",
+        )
+        fig_drivers = aplicar_estilo_figura(fig_drivers)
+        fig_drivers.update_layout(yaxis_tickformat=".0%")
+        st.plotly_chart(fig_drivers, use_container_width=True, theme=None)
