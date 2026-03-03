@@ -31,6 +31,8 @@ def test_pipeline_generates_expected_contract_outputs(tmp_path: Path) -> None:
         "metrics_report.json",
         "executive_report.json",
         "executive_summary.json",
+        "business_outcomes.json",
+        "top_10_actions.csv",
         "dim_customers.csv",
         "dim_date.csv",
         "dim_channel.csv",
@@ -43,6 +45,7 @@ def test_pipeline_generates_expected_contract_outputs(tmp_path: Path) -> None:
     dim_date = pd.read_csv(processed / "dim_date.csv")
     dim_channel = pd.read_csv(processed / "dim_channel.csv")
     fact_orders = pd.read_csv(processed / "fact_orders.csv")
+    top_10_actions = pd.read_csv(processed / "top_10_actions.csv")
 
     assert {"customer_id", "signup_date", "channel", "segment"}.issubset(dim_customers.columns)
     assert {"date_key", "date", "year", "month", "week_of_year", "day_of_week"}.issubset(
@@ -58,3 +61,12 @@ def test_pipeline_generates_expected_contract_outputs(tmp_path: Path) -> None:
         "order_amount",
         "order_count",
     }.issubset(fact_orders.columns)
+    assert {
+        "priority_rank",
+        "customer_id",
+        "action",
+        "expected_uplift",
+        "action_cost",
+        "net_impact",
+        "roi_simulated",
+    }.issubset(top_10_actions.columns)

@@ -73,12 +73,14 @@ def card(titulo: str, valor: str, subtitulo: str = "") -> str:
     """
 
 
-def carregar(processed_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict]:
+def carregar(processed_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict, dict, pd.DataFrame]:
     arquivos = [
         "recommendations.csv",
         "cohort_retention.csv",
         "unit_economics.csv",
         "executive_report.json",
+        "business_outcomes.json",
+        "top_10_actions.csv",
     ]
     if not all((processed_dir / f).exists() for f in arquivos):
         run_pipeline(PipelineConfig.from_env(PROJECT_ROOT))
@@ -86,10 +88,13 @@ def carregar(processed_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFr
     rec = pd.read_csv(processed_dir / "recommendations.csv")
     cohort = pd.read_csv(processed_dir / "cohort_retention.csv")
     unit = pd.read_csv(processed_dir / "unit_economics.csv")
+    top10 = pd.read_csv(processed_dir / "top_10_actions.csv")
 
     with (processed_dir / "executive_report.json").open("r", encoding="utf-8") as f:
         report = json.load(f)
-    return rec, cohort, unit, report
+    with (processed_dir / "business_outcomes.json").open("r", encoding="utf-8") as f:
+        outcomes = json.load(f)
+    return rec, cohort, unit, report, outcomes, top10
 
 
 st.set_page_config(page_title="Painel Executivo de Receita", layout="wide")
@@ -184,7 +189,7 @@ st.markdown(
 )
 
 dir_proc = PROJECT_ROOT / "data" / "processed"
-rec, cohort, unit, report = carregar(dir_proc)
+rec, cohort, unit, report, outcomes, top10 = carregar(dir_proc)
 
 with st.sidebar:
     st.header("Filtros")
@@ -259,8 +264,8 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-tab_overview, tab_risk_growth, tab_action_list = st.tabs(
-    ["Executive Overview", "Risk & Growth", "Action List"]
+tab_overview, tab_risk_growth, tab_action_list, tab_business_outcomes = st.tabs(
+    ["Executive Overview", "Risk & Growth", "Action List", "Business Outcomes"]
 )
 
 with tab_action_list:
@@ -444,3 +449,79 @@ with tab_risk_growth:
         fig_drivers = aplicar_estilo_figura(fig_drivers)
         fig_drivers.update_layout(yaxis_tickformat=".0%")
         st.plotly_chart(fig_drivers, use_container_width=True, theme=None)
+
+with tab_business_outcomes:
+    business_kpis = outcomes.get("kpis", {})
+    simulation = outcomes.get("simulation_summary_top10", {})
+    channel_efficiency = pd.DataFrame(outcomes.get("ltv_cac_by_channel", []))
+
+    b1, b2, b3 = st.columns(3)
+    b1.markdown(
+        card("LTV/CAC Medio", f"{business_kpis.get('avg_ltv_cac_ratio', 0):.2f}", "carteira total"),
+        unsafe_allow_html=True,
+    )
+    b2.markdown(
+        card(
+            "Risco Alto (>=70%)",
+            f"{business_kpis.get('high_churn_risk_pct', 0):.1%}",
+            "clientes em risco",
+        ),
+        unsafe_allow_html=True,
+    )
+    b3.markdown(
+        card(
+            "Impacto Simulado Top-10",
+            moeda(float(business_kpis.get("simulated_net_impact_top10", 0))),
+            "net impact 90d",
+        ),
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("#### Simulacao de Efeito (Top-10)")
+    s1, s2, s3, s4 = st.columns(4)
+    s1.metric("Baseline 90d", moeda(float(simulation.get("baseline_revenue_90d", 0))))
+    s2.metric("Scenario 90d", moeda(float(simulation.get("scenario_revenue_90d", 0))))
+    s3.metric("Delta Receita", moeda(float(simulation.get("delta_revenue_90d", 0))))
+    s4.metric("ROI Simulado", f"{float(simulation.get('roi_simulated', 0)):.2f}x")
+
+    c1, c2 = st.columns(2)
+    with c1:
+        if not channel_efficiency.empty:
+            fig_eff = px.bar(
+                channel_efficiency,
+                x="channel",
+                y="ltv_cac_ratio",
+                color="channel",
+                color_discrete_sequence=["#1e3a8a", "#334155", "#475569", "#1d4ed8", "#0f172a"],
+                title="LTV/CAC por Canal",
+            )
+            fig_eff = aplicar_estilo_figura(fig_eff)
+            fig_eff.update_layout(showlegend=False, yaxis_title="LTV/CAC")
+            st.plotly_chart(fig_eff, use_container_width=True, theme=None)
+    with c2:
+        if not top10.empty:
+            fig_impact = px.bar(
+                top10.sort_values("net_impact", ascending=True),
+                x="net_impact",
+                y="customer_id",
+                color="action",
+                orientation="h",
+                title="Net Impact Simulado por Cliente (Top-10)",
+            )
+            fig_impact = aplicar_estilo_figura(fig_impact)
+            st.plotly_chart(fig_impact, use_container_width=True, theme=None)
+
+    st.markdown("#### Top-10 Acoes Priorizadas")
+    st.dataframe(
+        top10,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "strategic_priority_score": st.column_config.NumberColumn(format="%.3f"),
+            "expected_uplift": st.column_config.NumberColumn(format="%.2f"),
+            "action_cost": st.column_config.NumberColumn(format="%.2f"),
+            "net_impact": st.column_config.NumberColumn(format="%.2f"),
+            "roi_simulated": st.column_config.NumberColumn(format="%.2f"),
+            "ltv_cac_ratio": st.column_config.NumberColumn(format="%.2f"),
+        },
+    )

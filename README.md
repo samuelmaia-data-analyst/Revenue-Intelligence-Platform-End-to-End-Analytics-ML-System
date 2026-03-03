@@ -190,6 +190,8 @@ docker run -p 8501:8501 revenue-intelligence
 - `data/processed/unit_economics.csv`
 - `data/processed/executive_report.json` (main app report with KPIs, model metrics and top 20 actions)
 - `data/processed/executive_summary.json` (compact executive summary)
+- `data/processed/business_outcomes.json` (business KPIs, LTV/CAC by channel and baseline-vs-scenario simulation)
+- `data/processed/top_10_actions.csv` (top 10 prioritized actions with uplift, cost, net impact and simulated ROI)
 - `data/processed/metrics_report.json` (auxiliary ML metrics artifact)
 - `data/processed/dim_customers.csv`
 - `data/processed/dim_date.csv`

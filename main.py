@@ -13,7 +13,7 @@ from src.metrics import (
 )
 from src.modeling import train_and_score_models
 from src.recommendation import build_recommendations
-from src.reporting import build_executive_report, build_executive_summary
+from src.reporting import build_business_outcomes, build_executive_report, build_executive_summary
 from src.transformation import build_customer_features, build_silver_layer
 from src.warehouse import build_star_schema
 
@@ -74,6 +74,12 @@ def run_pipeline(cfg: PipelineConfig) -> None:
         scored_df=scored_df,
         unit_economics_df=unit_df,
         output_path=cfg.processed_dir / "executive_summary.json",
+    )
+    build_business_outcomes(
+        recommendations_df=rec_df,
+        unit_economics_df=unit_df,
+        outcomes_path=cfg.processed_dir / "business_outcomes.json",
+        top_actions_path=cfg.processed_dir / "top_10_actions.csv",
     )
 
     LOGGER.info("Pipeline completed successfully.")
