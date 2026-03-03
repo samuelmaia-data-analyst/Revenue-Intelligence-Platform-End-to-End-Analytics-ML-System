@@ -251,6 +251,24 @@ st.markdown(
         [data-testid="stHeader"] { background: transparent; }
         [data-testid="stSidebar"] { background: #ffffff; border-right: 1px solid #e5e7eb; }
         [data-testid="stSidebar"] * { color: #0f172a !important; }
+        [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] .stCaption,
+        [data-testid="stSidebar"] p {
+            color: #0f172a !important;
+            opacity: 1 !important;
+        }
+        [data-testid="stSidebar"] .stSelectbox [data-baseweb="select"] {
+            background: #ffffff !important;
+            border: 1px solid #cbd5e1 !important;
+        }
+        [data-testid="stSidebar"] .stSelectbox [data-baseweb="select"] * {
+            color: #0f172a !important;
+            opacity: 1 !important;
+        }
+        div[role="listbox"] * {
+            color: #0f172a !important;
+            opacity: 1 !important;
+        }
         .app-head { border-radius: 12px; padding: 18px 22px; background: linear-gradient(130deg, #0b1f3a 0%, #122b4f 100%); margin-bottom: 14px; color: #f8fafc; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.20); }
         .app-sub { color: #cbd5e1; font-size: 0.92rem; margin-top: 4px; }
         .kpi-card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px 16px; min-height: 110px; box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04); }
