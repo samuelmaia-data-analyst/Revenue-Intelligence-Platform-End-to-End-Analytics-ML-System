@@ -212,7 +212,9 @@ def card(title: str, value: str, subtitle: str = "") -> str:
     """
 
 
-def load_data(processed_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict, dict, pd.DataFrame]:
+def load_data(
+    processed_dir: Path,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict, dict, pd.DataFrame]:
     required = [
         "recommendations.csv",
         "cohort_retention.csv",
@@ -359,7 +361,9 @@ with st.sidebar:
 
     segment_options = [t(lang, "all_segments")] + sorted(rec["segment"].dropna().unique().tolist())
     channel_options = [t(lang, "all_channels")] + sorted(rec["channel"].dropna().unique().tolist())
-    action_options = [t(lang, "all_actions")] + sorted(rec["recommended_action"].dropna().unique().tolist())
+    action_options = [t(lang, "all_actions")] + sorted(
+        rec["recommended_action"].dropna().unique().tolist()
+    )
 
     selected_segment = st.selectbox(t(lang, "segment"), segment_options)
     selected_channel = st.selectbox(t(lang, "channel"), channel_options)
@@ -391,14 +395,41 @@ if df.empty:
 
 st.subheader(t(lang, "summary"))
 r1, r2, r3 = st.columns(3)
-r1.markdown(card(t(lang, "customers"), f"{df['customer_id'].nunique():,}", t(lang, "active_base")), unsafe_allow_html=True)
-r2.markdown(card(t(lang, "avg_ltv"), format_currency(float(df["ltv"].mean()), lang), t(lang, "per_customer")), unsafe_allow_html=True)
-r3.markdown(card(t(lang, "avg_risk"), f"{df['churn_probability'].mean():.1%}", t(lang, "churn_prob")), unsafe_allow_html=True)
+r1.markdown(
+    card(t(lang, "customers"), f"{df['customer_id'].nunique():,}", t(lang, "active_base")),
+    unsafe_allow_html=True,
+)
+r2.markdown(
+    card(
+        t(lang, "avg_ltv"), format_currency(float(df["ltv"].mean()), lang), t(lang, "per_customer")
+    ),
+    unsafe_allow_html=True,
+)
+r3.markdown(
+    card(t(lang, "avg_risk"), f"{df['churn_probability'].mean():.1%}", t(lang, "churn_prob")),
+    unsafe_allow_html=True,
+)
 r4, r5 = st.columns(2)
-r4.markdown(card(t(lang, "efficiency"), f"{df['ltv_cac_ratio'].mean():.2f}", t(lang, "avg_efficiency")), unsafe_allow_html=True)
-r5.markdown(card(t(lang, "impact"), format_currency(float(df["potential_impact"].sum()), lang), t(lang, "filtered_portfolio")), unsafe_allow_html=True)
+r4.markdown(
+    card(t(lang, "efficiency"), f"{df['ltv_cac_ratio'].mean():.2f}", t(lang, "avg_efficiency")),
+    unsafe_allow_html=True,
+)
+r5.markdown(
+    card(
+        t(lang, "impact"),
+        format_currency(float(df["potential_impact"].sum()), lang),
+        t(lang, "filtered_portfolio"),
+    ),
+    unsafe_allow_html=True,
+)
 
-risk_row = df.groupby("segment")["churn_probability"].mean().sort_values(ascending=False).reset_index().iloc[0]
+risk_row = (
+    df.groupby("segment")["churn_probability"]
+    .mean()
+    .sort_values(ascending=False)
+    .reset_index()
+    .iloc[0]
+)
 action_mix = df["recommended_action"].value_counts(normalize=True).mul(100).round(1).reset_index()
 action_mix.columns = ["action", "pct"]
 top_action = action_mix.iloc[0]
@@ -417,7 +448,12 @@ st.markdown(
 )
 
 tab_overview, tab_risk, tab_action, tab_business = st.tabs(
-    [t(lang, "tab_overview"), t(lang, "tab_risk_growth"), t(lang, "tab_action_list"), t(lang, "tab_business")]
+    [
+        t(lang, "tab_overview"),
+        t(lang, "tab_risk_growth"),
+        t(lang, "tab_action_list"),
+        t(lang, "tab_business"),
+    ]
 )
 
 with tab_action:
@@ -461,13 +497,19 @@ with tab_overview:
 
     cohort_hm = cohort.copy()
     cohort_hm["retention_pct"] = cohort_hm["retention_rate"] * 100
-    heat = cohort_hm.pivot(index="cohort_month", columns="cohort_index", values="retention_pct").sort_index()
+    heat = cohort_hm.pivot(
+        index="cohort_month", columns="cohort_index", values="retention_pct"
+    ).sort_index()
     fig3 = px.imshow(
         heat,
         aspect="auto",
         text_auto=".0f",
         title=t(lang, "cohort_retention"),
-        labels={"x": t(lang, "months_since"), "y": t(lang, "cohort_label"), "color": t(lang, "retention")},
+        labels={
+            "x": t(lang, "months_since"),
+            "y": t(lang, "cohort_label"),
+            "color": t(lang, "retention"),
+        },
         color_continuous_scale=[[0, "#e2e8f0"], [0.5, "#93c5fd"], [1, "#1e3a8a"]],
     )
     st.plotly_chart(apply_chart_style(fig3), use_container_width=True, theme=None)
@@ -480,13 +522,21 @@ with tab_risk:
                 "Model": t(lang, "churn_model"),
                 t(lang, "split"): model_report.get("churn", {}).get("split_strategy", "n/a"),
                 t(lang, "cv_auc"): auc_text(model_report.get("churn", {}).get("cv_roc_auc_mean")),
-                t(lang, "holdout_auc"): auc_text(model_report.get("churn", {}).get("temporal_test_roc_auc")),
+                t(lang, "holdout_auc"): auc_text(
+                    model_report.get("churn", {}).get("temporal_test_roc_auc")
+                ),
             },
             {
                 "Model": t(lang, "next_model"),
-                t(lang, "split"): model_report.get("next_purchase_30d", {}).get("split_strategy", "n/a"),
-                t(lang, "cv_auc"): auc_text(model_report.get("next_purchase_30d", {}).get("cv_roc_auc_mean")),
-                t(lang, "holdout_auc"): auc_text(model_report.get("next_purchase_30d", {}).get("temporal_test_roc_auc")),
+                t(lang, "split"): model_report.get("next_purchase_30d", {}).get(
+                    "split_strategy", "n/a"
+                ),
+                t(lang, "cv_auc"): auc_text(
+                    model_report.get("next_purchase_30d", {}).get("cv_roc_auc_mean")
+                ),
+                t(lang, "holdout_auc"): auc_text(
+                    model_report.get("next_purchase_30d", {}).get("temporal_test_roc_auc")
+                ),
             },
         ]
     )
@@ -495,13 +545,33 @@ with tab_risk:
 
     rg1, rg2 = st.columns(2)
     with rg1:
-        churn_seg = df.groupby("segment", as_index=False)["churn_probability"].mean().sort_values("churn_probability", ascending=False)
-        fig_churn = px.bar(churn_seg, x="segment", y="churn_probability", color="segment", title=t(lang, "churn_by_segment"))
+        churn_seg = (
+            df.groupby("segment", as_index=False)["churn_probability"]
+            .mean()
+            .sort_values("churn_probability", ascending=False)
+        )
+        fig_churn = px.bar(
+            churn_seg,
+            x="segment",
+            y="churn_probability",
+            color="segment",
+            title=t(lang, "churn_by_segment"),
+        )
         fig_churn.update_layout(showlegend=False, yaxis_tickformat=".0%")
         st.plotly_chart(apply_chart_style(fig_churn), use_container_width=True, theme=None)
     with rg2:
-        next_channel = df.groupby("channel", as_index=False)["next_purchase_probability"].mean().sort_values("next_purchase_probability", ascending=False)
-        fig_next = px.bar(next_channel, x="channel", y="next_purchase_probability", color="channel", title=t(lang, "next_by_channel"))
+        next_channel = (
+            df.groupby("channel", as_index=False)["next_purchase_probability"]
+            .mean()
+            .sort_values("next_purchase_probability", ascending=False)
+        )
+        fig_next = px.bar(
+            next_channel,
+            x="channel",
+            y="next_purchase_probability",
+            color="channel",
+            title=t(lang, "next_by_channel"),
+        )
         fig_next.update_layout(showlegend=False, yaxis_tickformat=".0%")
         st.plotly_chart(apply_chart_style(fig_next), use_container_width=True, theme=None)
 
@@ -511,27 +581,68 @@ with tab_business:
     channel_eff = pd.DataFrame(outcomes.get("ltv_cac_by_channel", []))
 
     b1, b2, b3 = st.columns(3)
-    b1.markdown(card(t(lang, "business_ltv_cac"), f"{business_kpis.get('avg_ltv_cac_ratio', 0):.2f}", t(lang, "business_portfolio")), unsafe_allow_html=True)
-    b2.markdown(card(t(lang, "business_high_risk"), f"{business_kpis.get('high_churn_risk_pct', 0):.1%}", t(lang, "business_risk_customers")), unsafe_allow_html=True)
-    b3.markdown(card(t(lang, "business_net_impact"), format_currency(float(business_kpis.get("simulated_net_impact_top10", 0)), lang), t(lang, "business_net_impact_sub")), unsafe_allow_html=True)
+    b1.markdown(
+        card(
+            t(lang, "business_ltv_cac"),
+            f"{business_kpis.get('avg_ltv_cac_ratio', 0):.2f}",
+            t(lang, "business_portfolio"),
+        ),
+        unsafe_allow_html=True,
+    )
+    b2.markdown(
+        card(
+            t(lang, "business_high_risk"),
+            f"{business_kpis.get('high_churn_risk_pct', 0):.1%}",
+            t(lang, "business_risk_customers"),
+        ),
+        unsafe_allow_html=True,
+    )
+    b3.markdown(
+        card(
+            t(lang, "business_net_impact"),
+            format_currency(float(business_kpis.get("simulated_net_impact_top10", 0)), lang),
+            t(lang, "business_net_impact_sub"),
+        ),
+        unsafe_allow_html=True,
+    )
 
     st.markdown(f"#### {t(lang, 'simulation')}")
     s1, s2 = st.columns(2)
-    s1.metric(t(lang, "baseline"), format_currency(float(simulation.get("baseline_revenue_90d", 0)), lang))
-    s2.metric(t(lang, "scenario"), format_currency(float(simulation.get("scenario_revenue_90d", 0)), lang))
+    s1.metric(
+        t(lang, "baseline"), format_currency(float(simulation.get("baseline_revenue_90d", 0)), lang)
+    )
+    s2.metric(
+        t(lang, "scenario"), format_currency(float(simulation.get("scenario_revenue_90d", 0)), lang)
+    )
     s3, s4 = st.columns(2)
-    s3.metric(t(lang, "delta_revenue"), format_currency(float(simulation.get("delta_revenue_90d", 0)), lang))
+    s3.metric(
+        t(lang, "delta_revenue"),
+        format_currency(float(simulation.get("delta_revenue_90d", 0)), lang),
+    )
     s4.metric(t(lang, "roi"), f"{float(simulation.get('roi_simulated', 0)):.2f}x")
 
     c1, c2 = st.columns(2)
     with c1:
         if not channel_eff.empty:
-            fig_eff = px.bar(channel_eff, x="channel", y="ltv_cac_ratio", color="channel", title=t(lang, "ltv_cac_channel"))
+            fig_eff = px.bar(
+                channel_eff,
+                x="channel",
+                y="ltv_cac_ratio",
+                color="channel",
+                title=t(lang, "ltv_cac_channel"),
+            )
             fig_eff.update_layout(showlegend=False)
             st.plotly_chart(apply_chart_style(fig_eff), use_container_width=True, theme=None)
     with c2:
         if not top10.empty:
-            fig_impact = px.bar(top10.sort_values("net_impact", ascending=True), x="net_impact", y="customer_id", color="action", orientation="h", title=t(lang, "impact_customer"))
+            fig_impact = px.bar(
+                top10.sort_values("net_impact", ascending=True),
+                x="net_impact",
+                y="customer_id",
+                color="action",
+                orientation="h",
+                title=t(lang, "impact_customer"),
+            )
             st.plotly_chart(apply_chart_style(fig_impact), use_container_width=True, theme=None)
 
     st.markdown(f"#### {t(lang, 'top_actions')}")

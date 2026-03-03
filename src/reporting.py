@@ -125,7 +125,9 @@ def build_business_outcomes(
         "Nurture": {"uplift_rate": 0.03, "cost_rate": 0.02, "base": "ltv"},
     }
 
-    top_actions = recommendations_df.sort_values("strategic_score", ascending=False).head(top_n).copy()
+    top_actions = (
+        recommendations_df.sort_values("strategic_score", ascending=False).head(top_n).copy()
+    )
 
     def _simulate_row(row: pd.Series) -> pd.Series:
         action = row["recommended_action"]
@@ -158,7 +160,9 @@ def build_business_outcomes(
     top_actions["baseline_revenue_90d"] = (
         top_actions["ltv"] * top_actions["next_purchase_probability"]
     )
-    top_actions["scenario_revenue_90d"] = top_actions["baseline_revenue_90d"] + top_actions["expected_uplift"]
+    top_actions["scenario_revenue_90d"] = (
+        top_actions["baseline_revenue_90d"] + top_actions["expected_uplift"]
+    )
 
     top_actions_export = top_actions[
         [

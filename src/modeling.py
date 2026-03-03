@@ -1,7 +1,7 @@
 import json
+import pickle
 from pathlib import Path
 
-import joblib
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
@@ -12,8 +12,13 @@ from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
+try:
+    import joblib
+except ModuleNotFoundError:  # pragma: no cover - fallback used only in minimal envs
+    joblib = None
 
-def _build_preprocessor(df: pd.DataFrame) -> tuple[ColumnTransformer, list[str], list[str]]:
+
+def _build_preprocessor() -> tuple[ColumnTransformer, list[str], list[str]]:
     numeric_features = [
         "recency_days",
         "frequency",
@@ -54,6 +59,9 @@ def _build_evaluation_split(df: pd.DataFrame, y: pd.Series) -> tuple[pd.Index, p
     y_train, y_test = y.loc[train_idx], y.loc[test_idx]
     if y_train.nunique() > 1 and y_test.nunique() > 1:
         return train_idx, test_idx, "temporal"
+
+    if y.nunique() < 2:
+        return train_idx, test_idx, "temporal_single_class"
 
     train_idx, test_idx = train_test_split(y.index, test_size=0.2, random_state=42, stratify=y)
     return pd.Index(train_idx), pd.Index(test_idx), "stratified_fallback"
@@ -107,15 +115,32 @@ def _evaluate_pipeline_temporal(
     }
 
 
+def _persist_model(model: Pipeline, path: Path) -> None:
+    if joblib is not None:
+        joblib.dump(model, path)
+        return
+    with path.open("wb") as model_file:
+        pickle.dump(model, model_file)
+
+
+def _validate_binary_target(y: pd.Series, target_name: str) -> None:
+    if y.nunique() < 2:
+        raise ValueError(
+            f"Target '{target_name}' has a single class after preprocessing; "
+            "cannot train a classifier."
+        )
+
+
 def train_and_score_models(df: pd.DataFrame, output_dir: Path) -> tuple[dict, dict, pd.DataFrame]:
     output_dir.mkdir(parents=True, exist_ok=True)
     work_df = df.copy().dropna(subset=["signup_date"])
-    preprocessor, numeric_features, categorical_features = _build_preprocessor(work_df)
+    preprocessor, numeric_features, categorical_features = _build_preprocessor()
     feature_cols = numeric_features + categorical_features
     eval_df = work_df[feature_cols + ["signup_date", "is_churned", "next_purchase_30d"]].copy()
 
     churn_df = eval_df.dropna(subset=["is_churned"]).copy()
     churn_df["is_churned"] = churn_df["is_churned"].astype(int)
+    _validate_binary_target(churn_df["is_churned"], "is_churned")
     x_churn = churn_df[feature_cols]
 
     churn_pipeline = Pipeline(
@@ -137,6 +162,7 @@ def train_and_score_models(df: pd.DataFrame, output_dir: Path) -> tuple[dict, di
 
     next_df = eval_df.dropna(subset=["next_purchase_30d"]).copy()
     next_df["next_purchase_30d"] = next_df["next_purchase_30d"].astype(int)
+    _validate_binary_target(next_df["next_purchase_30d"], "next_purchase_30d")
     x_next = next_df[feature_cols]
 
     next_purchase_pipeline = Pipeline(
@@ -153,8 +179,8 @@ def train_and_score_models(df: pd.DataFrame, output_dir: Path) -> tuple[dict, di
         :, 1
     ]
 
-    joblib.dump(churn_model, output_dir / "churn_model.joblib")
-    joblib.dump(next_purchase_model, output_dir / "next_purchase_model.joblib")
+    _persist_model(churn_model, output_dir / "churn_model.joblib")
+    _persist_model(next_purchase_model, output_dir / "next_purchase_model.joblib")
     work_df.to_csv(output_dir / "scored_customers.csv", index=False)
     report = {
         "churn": {

@@ -28,6 +28,7 @@
 - [Business Outcomes](#business-outcomes)
 - [Scope and Capabilities](#scope-and-capabilities)
 - [Architecture](#architecture)
+- [Data Lineage](#data-lineage)
 - [Repository Structure](#repository-structure)
 - [Data Source](#data-source)
 - [Star Schema (Gold)](#star-schema-gold)
@@ -73,16 +74,61 @@ This version includes a mature layered data architecture (`raw -> bronze -> silv
 
 ## Architecture
 
-Kaggle Source Dataset
--> Raw Layer
--> Bronze (auditable ingestion)
--> Silver (cleaning and standardization)
--> Gold (Star Schema)
--> Analytics Layer
--> ML Layer
--> Recommendation Engine
--> Executive Dashboard
--> Docker / Cloud Deployment
+```mermaid
+flowchart LR
+    A[Kaggle Source Dataset] --> B[Raw Layer]
+    B --> C[Bronze - auditable ingestion]
+    C --> D[Silver - cleaning and standardization]
+    D --> E[Gold - Star Schema]
+    E --> F[Analytics Layer]
+    E --> G[ML Layer]
+    G --> H[Recommendation Engine]
+    F --> I[Executive Dashboard]
+    H --> I
+    I --> J[Docker / Cloud Deployment]
+```
+
+## Data Lineage
+
+```mermaid
+flowchart TB
+    subgraph R[Raw]
+        R1[customers.csv]
+        R2[orders.csv]
+        R3[marketing_spend.csv]
+    end
+
+    subgraph B[Bronze]
+        B1[bronze_customers.csv]
+        B2[bronze_orders.csv]
+        B3[bronze_marketing_spend.csv]
+    end
+
+    subgraph S[Silver]
+        S1[silver_customers.csv]
+        S2[silver_orders.csv]
+        S3[silver_marketing_spend.csv]
+    end
+
+    subgraph G[Gold]
+        G1[dim_customers.csv]
+        G2[dim_date.csv]
+        G3[dim_channel.csv]
+        G4[fact_orders.csv]
+    end
+
+    subgraph P[Processed]
+        P1[scored_customers.csv]
+        P2[recommendations.csv]
+        P3[executive_report.json]
+        P4[business_outcomes.json]
+        P5[top_10_actions.csv]
+    end
+
+    R --> B --> S --> G
+    S --> P
+    G --> P
+```
 
 ## Repository Structure
 
@@ -103,6 +149,8 @@ revenue-intelligence-platform/
 |  \- analytics/
 |- main.py
 |- requirements.txt
+|- requirements-dev.txt
+|- pytest.ini
 |- Dockerfile
 |- README.md
 \- README.pt-BR.md
@@ -132,6 +180,44 @@ Then normalized into:
 - Fact: `fact_orders`
 - Standardized measures: `order_amount`, `order_count`
 
+```mermaid
+erDiagram
+    DIM_CUSTOMERS ||--o{ FACT_ORDERS : customer_id
+    DIM_DATE ||--o{ FACT_ORDERS : date_key
+    DIM_CHANNEL ||--o{ FACT_ORDERS : channel_key
+
+    DIM_CUSTOMERS {
+        int customer_id PK
+        date signup_date
+        string channel
+        string segment
+    }
+
+    DIM_DATE {
+        int date_key PK
+        date date
+        int year
+        int month
+        int week_of_year
+        string day_of_week
+    }
+
+    DIM_CHANNEL {
+        int channel_key PK
+        string channel
+    }
+
+    FACT_ORDERS {
+        string order_id PK
+        int customer_id FK
+        int channel_key FK
+        int date_key FK
+        date order_date
+        float order_amount
+        int order_count
+    }
+```
+
 ## SQL Organization
 
 - `sql/ddl/`: schema creation scripts per table/domain
@@ -143,6 +229,7 @@ Then normalized into:
 ```powershell
 py -3.11 -m venv .venv
 .\.venv\Scripts\activate
+python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 python main.py
 python -m streamlit run .\app\streamlit_app.py
@@ -164,10 +251,10 @@ python -m src.pipeline run --seed 123 --log-level DEBUG
 ## Engineering Quality
 
 ```powershell
-python -m pip install -r requirements-dev.txt
-python -m black .
-python -m ruff check . --fix
-python -m pytest -q
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m black .
+.\.venv\Scripts\python.exe -m ruff check . --fix
+.\.venv\Scripts\python.exe -m pytest -q
 pre-commit install
 pre-commit run --all-files
 ```
@@ -211,8 +298,24 @@ docker run -p 8501:8501 revenue-intelligence
 ## CI
 
 GitHub Actions workflow at `.github/workflows/ci.yml` runs:
+- `pip check` (dependency consistency)
 - `ruff`
 - `black --check`
 - `pytest -q`
+
+Pipeline hardening:
+- pip cache enabled via `actions/setup-python`
+- `concurrency` enabled (`cancel-in-progress: true`)
+- minimal workflow permissions (`contents: read`)
+
+```mermaid
+flowchart LR
+    A[checkout] --> B[setup-python 3.11 + pip cache]
+    B --> C[install requirements]
+    C --> D[pip check]
+    D --> E[ruff]
+    E --> F[black --check]
+    F --> G[pytest -q]
+```
 
 
