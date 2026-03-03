@@ -250,6 +250,7 @@ st.markdown(
         .stApp { background: linear-gradient(180deg, #f4f7fb 0%, #ecf1f7 100%); color: #111827; }
         [data-testid="stHeader"] { background: transparent; }
         [data-testid="stSidebar"] { background: #ffffff; border-right: 1px solid #e5e7eb; }
+        [data-testid="stSidebar"] * { color: #0f172a !important; }
         .app-head { border-radius: 12px; padding: 18px 22px; background: linear-gradient(130deg, #0b1f3a 0%, #122b4f 100%); margin-bottom: 14px; color: #f8fafc; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.20); }
         .app-sub { color: #cbd5e1; font-size: 0.92rem; margin-top: 4px; }
         .kpi-card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px 16px; min-height: 110px; box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04); }
@@ -258,6 +259,52 @@ st.markdown(
         .kpi-sub { color: #64748b; font-size: 0.82rem; margin-top: 4px; }
         .note-card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px 16px; color: #1f2937; }
         .kpi-card, .note-card { overflow-wrap: anywhere; word-break: break-word; }
+        [data-testid="stTabs"] [role="tablist"] { gap: 8px; }
+        [data-testid="stTabs"] button[role="tab"] {
+            border-radius: 8px !important;
+            background: #e2e8f0 !important;
+            color: #0f172a !important;
+            opacity: 1 !important;
+            font-weight: 700 !important;
+            border: 1px solid #cbd5e1 !important;
+            padding: 8px 12px !important;
+        }
+        [data-testid="stTabs"] button[role="tab"] * {
+            color: #0f172a !important;
+            opacity: 1 !important;
+        }
+        [data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+            background: #1d4ed8 !important;
+            border-color: #1e40af !important;
+        }
+        [data-testid="stTabs"] button[role="tab"][aria-selected="true"] * {
+            color: #ffffff !important;
+        }
+        .stButton > button, .stDownloadButton > button,
+        [data-testid="stSidebar"] .stButton > button {
+            width: 100%;
+            border-radius: 10px;
+            border: 1px solid #1d4ed8 !important;
+            background: #1d4ed8 !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            opacity: 1 !important;
+        }
+        .stButton > button *, .stDownloadButton > button *,
+        [data-testid="stSidebar"] .stButton > button * {
+            color: #ffffff !important;
+            opacity: 1 !important;
+        }
+        .stButton > button:hover, .stDownloadButton > button:hover,
+        [data-testid="stSidebar"] .stButton > button:hover {
+            background: #1e40af !important;
+            border-color: #1e40af !important;
+            color: #ffffff !important;
+        }
+        .stButton > button:focus, .stDownloadButton > button:focus {
+            outline: 2px solid #93c5fd;
+            outline-offset: 1px;
+        }
         @media (max-width: 900px) {
             .kpi-value { font-size: 1.35rem; }
             .kpi-title, .kpi-sub { font-size: 0.78rem; }
