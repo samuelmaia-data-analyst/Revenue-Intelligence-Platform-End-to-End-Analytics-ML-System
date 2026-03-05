@@ -1,3 +1,4 @@
+import hashlib
 import json
 import pickle
 from pathlib import Path
@@ -11,6 +12,8 @@ from sklearn.metrics import precision_recall_curve, roc_auc_score, roc_curve
 from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
+from src.model_registry import register_model
 
 try:
     import joblib
@@ -131,6 +134,15 @@ def _validate_binary_target(y: pd.Series, target_name: str) -> None:
         )
 
 
+def _compute_data_version(df: pd.DataFrame) -> str:
+    normalized = df.copy()
+    for col in normalized.columns:
+        if pd.api.types.is_datetime64_any_dtype(normalized[col]):
+            normalized[col] = normalized[col].astype(str)
+    hashed = pd.util.hash_pandas_object(normalized, index=True).to_numpy().tobytes()
+    return hashlib.md5(hashed).hexdigest()
+
+
 def train_and_score_models(df: pd.DataFrame, output_dir: Path) -> tuple[dict, dict, pd.DataFrame]:
     output_dir.mkdir(parents=True, exist_ok=True)
     work_df = df.copy().dropna(subset=["signup_date"])
@@ -181,6 +193,42 @@ def train_and_score_models(df: pd.DataFrame, output_dir: Path) -> tuple[dict, di
 
     _persist_model(churn_model, output_dir / "churn_model.joblib")
     _persist_model(next_purchase_model, output_dir / "next_purchase_model.joblib")
+    churn_data_version = _compute_data_version(churn_df[feature_cols + ["is_churned"]])
+    next_data_version = _compute_data_version(next_df[feature_cols + ["next_purchase_30d"]])
+
+    register_model(
+        model_name="churn",
+        model=churn_model,
+        output_dir=output_dir,
+        data_version=churn_data_version,
+        metrics={
+            "cv_roc_auc_mean": churn_results["cv_roc_auc_mean"],
+            "cv_roc_auc_std": churn_results["cv_roc_auc_std"],
+            "temporal_test_roc_auc": churn_results["temporal_test_roc_auc"],
+            "split_strategy": churn_results["split_strategy"],
+            "train_size": churn_results["train_size"],
+            "test_size": churn_results["test_size"],
+        },
+        input_features=feature_cols,
+        target_name="is_churned",
+    )
+    register_model(
+        model_name="next_purchase_30d",
+        model=next_purchase_model,
+        output_dir=output_dir,
+        data_version=next_data_version,
+        metrics={
+            "cv_roc_auc_mean": next_purchase_results["cv_roc_auc_mean"],
+            "cv_roc_auc_std": next_purchase_results["cv_roc_auc_std"],
+            "temporal_test_roc_auc": next_purchase_results["temporal_test_roc_auc"],
+            "split_strategy": next_purchase_results["split_strategy"],
+            "train_size": next_purchase_results["train_size"],
+            "test_size": next_purchase_results["test_size"],
+        },
+        input_features=feature_cols,
+        target_name="next_purchase_30d",
+    )
+
     work_df.to_csv(output_dir / "scored_customers.csv", index=False)
     report = {
         "churn": {

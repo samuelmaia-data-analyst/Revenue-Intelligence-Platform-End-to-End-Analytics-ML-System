@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from contracts.data_contract import validate_gold_table
 from main import run_pipeline
 from src.config import PipelineConfig
 
@@ -41,6 +42,17 @@ def test_pipeline_generates_expected_contract_outputs(tmp_path: Path) -> None:
     for file_name in expected_files:
         assert (processed / file_name).exists(), f"Missing output file: {file_name}"
 
+    model_registry_files = [
+        "model_registry/churn/model.pkl",
+        "model_registry/churn/model_metadata.json",
+        "model_registry/next_purchase_30d/model.pkl",
+        "model_registry/next_purchase_30d/model_metadata.json",
+    ]
+    for registry_file in model_registry_files:
+        assert (
+            processed / registry_file
+        ).exists(), f"Missing model registry artifact: {registry_file}"
+
     dim_customers = pd.read_csv(processed / "dim_customers.csv")
     dim_date = pd.read_csv(processed / "dim_date.csv")
     dim_channel = pd.read_csv(processed / "dim_channel.csv")
@@ -48,20 +60,10 @@ def test_pipeline_generates_expected_contract_outputs(tmp_path: Path) -> None:
     top_10_actions = pd.read_csv(processed / "top_10_actions.csv")
     cohort_retention = pd.read_csv(processed / "cohort_retention.csv")
 
-    assert {"customer_id", "signup_date", "channel", "segment"}.issubset(dim_customers.columns)
-    assert {"date_key", "date", "year", "month", "week_of_year", "day_of_week"}.issubset(
-        dim_date.columns
-    )
-    assert {"channel_key", "channel"}.issubset(dim_channel.columns)
-    assert {
-        "order_id",
-        "customer_id",
-        "channel_key",
-        "date_key",
-        "order_date",
-        "order_amount",
-        "order_count",
-    }.issubset(fact_orders.columns)
+    validate_gold_table(dim_customers, "dim_customers.csv")
+    validate_gold_table(dim_date, "dim_date.csv")
+    validate_gold_table(dim_channel, "dim_channel.csv")
+    validate_gold_table(fact_orders, "fact_orders.csv")
     assert {
         "priority_rank",
         "customer_id",

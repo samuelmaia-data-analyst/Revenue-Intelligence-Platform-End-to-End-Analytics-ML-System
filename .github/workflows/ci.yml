@@ -45,3 +45,9 @@ jobs:
 
       - name: Pytest
         run: python -m pytest -q
+
+      - name: Docker build (streamlit app)
+        run: docker build -t revenue-intelligence .
+
+      - name: Docker build (serving api)
+        run: docker build -f Dockerfile.api -t revenue-intelligence-api .

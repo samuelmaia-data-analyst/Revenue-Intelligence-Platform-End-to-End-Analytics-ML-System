@@ -4,9 +4,16 @@
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.43-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.6-F7931E?logo=scikitlearn&logoColor=white)](https://scikit-learn.org/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![CI](https://github.com/samuelmaia-data-analyst/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/actions/workflows/ci.yml/badge.svg)](https://github.com/samuelmaia-data-analyst/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 
 [Leia em Português](README.pt-BR.md)
+
+## Business Impact (Latest Run)
+
+- Simulated net impact (Top 10 actions): **2,550.13**
+- Simulated ROI (Top 10 actions): **1.58x**
+- Revenue uplift over baseline (90d, Top 10 actions): **+4,165.63**
 
 ## Product Preview
 
@@ -24,7 +31,9 @@
 - [Product Preview](#product-preview)
 - [What Problem It Solves](#what-problem-it-solves)
 - [Live App](#live-app)
+- [30-Second Quickstart](#30-second-quickstart)
 - [Executive Summary](#executive-summary)
+- [Business Impact (Latest Run)](#business-impact-latest-run)
 - [Business Outcomes](#business-outcomes)
 - [Scope and Capabilities](#scope-and-capabilities)
 - [Architecture](#architecture)
@@ -35,6 +44,11 @@
 - [SQL Organization](#sql-organization)
 - [Local Run (Windows / PowerShell)](#local-run-windows--powershell)
 - [CLI](#cli)
+- [Task Automation (Makefile)](#task-automation-makefile)
+- [Serving API (FastAPI)](#serving-api-fastapi)
+- [Data Contract](#data-contract)
+- [Operating Standards](#operating-standards)
+- [Runbook](#runbook)
 - [Engineering Quality](#engineering-quality)
 - [CI](#ci)
 - [Docker](#docker)
@@ -45,6 +59,16 @@
 
 Streamlit Cloud:
 - https://revenue-intelligence-platform.streamlit.app/
+
+## 30-Second Quickstart
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\activate
+python -m pip install -r requirements.txt -r requirements-dev.txt
+make pipeline
+make serve-api
+```
 
 ## Executive Summary
 
@@ -136,6 +160,13 @@ flowchart TB
 revenue-intelligence-platform/
 |- app/
 |  \- streamlit_app.py
+|- contracts/
+|  \- data_contract.py
+|- api/
+|  \- main.py (compatibility shim)
+|- services/
+|  \- api/
+|     \- main.py
 |- data/
 |  |- raw/
 |  |- bronze/
@@ -152,6 +183,7 @@ revenue-intelligence-platform/
 |- requirements-dev.txt
 |- pytest.ini
 |- Dockerfile
+|- Dockerfile.api
 |- README.md
 \- README.pt-BR.md
 ```
@@ -248,6 +280,86 @@ python -m src.pipeline run
 python -m src.pipeline run --seed 123 --log-level DEBUG
 ```
 
+## Task Automation (Makefile)
+
+```bash
+make install-dev
+make pipeline
+make serve-api
+make quality
+make docker-build
+```
+
+## Serving API (FastAPI)
+
+Start API locally:
+
+```powershell
+python -m uvicorn services.api.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Available endpoints:
+- `GET /health`: service status, input schema, model versions (`run_id`, `data_version`)
+- `POST /score`: churn + next purchase prediction for one or multiple customers
+
+Example request:
+
+```json
+{
+  "records": [
+    {
+      "recency_days": 21,
+      "frequency": 7,
+      "monetary": 1450.0,
+      "avg_order_value": 207.0,
+      "tenure_days": 360,
+      "arpu": 148.0,
+      "channel": "Organic",
+      "segment": "SMB"
+    }
+  ]
+}
+```
+
+## Data Contract
+
+Contracts are centralized in `contracts/data_contract.py`:
+- Input serving schema: `ScoreRequest` / `ScoreInputRecord`
+- Gold output schema: `DimCustomersContract`, `DimDateContract`, `DimChannelContract`, `FactOrdersContract`
+
+Automated validation:
+- `tests/test_output_contract.py` validates required columns from the contract.
+
+## Operating Standards
+
+- Service entrypoint: `services/api/main.py` (canonical), `api/main.py` (backward-compatible shim).
+- Contract source of truth: `contracts/data_contract.py` (`src/data_contract.py` kept as compatibility import path).
+- Repository structure standard: `docs/repository_structure.md`.
+- PR governance: `.github/pull_request_template.md` and CI workflow `.github/workflows/ci.yml`.
+
+## Runbook
+
+### Dev
+- Install dependencies: `make install-dev`
+- Generate artifacts locally: `make pipeline`
+- Start serving API: `make serve-api`
+- Start Streamlit app: `make serve-app`
+
+### CI
+- Required checks: `ruff`, `black --check`, `pytest -q`
+- Image checks: `docker build` (app) and `docker build -f Dockerfile.api` (API)
+- Workflow source: `.github/workflows/ci.yml`
+
+### Release
+- Build images: `make docker-build`
+- Verify API health in runtime: `GET /health`
+- Validate scoring contract in runtime: `POST /score`
+
+### Incident
+- If `/health` returns `degraded`, regenerate artifacts with `make pipeline`
+- Confirm model registry files in `data/processed/model_registry/*`
+- Rollback option: use legacy `*.joblib` artifacts already supported by the API fallback
+
 ## Engineering Quality
 
 ```powershell
@@ -268,6 +380,9 @@ Current quality gates:
 ```bash
 docker build -t revenue-intelligence .
 docker run -p 8501:8501 revenue-intelligence
+
+docker build -f Dockerfile.api -t revenue-intelligence-api .
+docker run -p 8000:8000 revenue-intelligence-api
 ```
 
 ## Main Outputs
@@ -281,6 +396,8 @@ docker run -p 8501:8501 revenue-intelligence
 - `data/processed/business_outcomes.json` (business KPIs, LTV/CAC by channel and baseline-vs-scenario simulation)
 - `data/processed/top_10_actions.csv` (top 10 prioritized actions with uplift, cost, net impact and simulated ROI)
 - `data/processed/metrics_report.json` (auxiliary ML metrics artifact)
+- `data/processed/model_registry/churn/model.pkl` + `model_metadata.json` (light model registry)
+- `data/processed/model_registry/next_purchase_30d/model.pkl` + `model_metadata.json` (light model registry)
 - `data/processed/dim_customers.csv`
 - `data/processed/dim_date.csv`
 - `data/processed/dim_channel.csv`
@@ -302,6 +419,11 @@ GitHub Actions workflow at `.github/workflows/ci.yml` runs:
 - `ruff`
 - `black --check`
 - `pytest -q`
+- `docker build` for Streamlit image
+- `docker build -f Dockerfile.api` for serving API image
+
+PR routine:
+- `.github/pull_request_template.md` enforces lint/test/docker checklist and business-impact note.
 
 Pipeline hardening:
 - pip cache enabled via `actions/setup-python`
