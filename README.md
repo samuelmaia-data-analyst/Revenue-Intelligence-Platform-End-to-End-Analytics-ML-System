@@ -9,6 +9,10 @@
 
 [Leia em Português](README.pt-BR.md)
 
+## API Security Spotlight
+
+> Secure-by-default serving API: versioned endpoints (`/api/v1/*`), authenticated scoring with `X-API-Key`/Bearer token, and release runbook for reproducible operations.
+
 ## Business Impact (Latest Run)
 
 - Simulated net impact (Top 10 actions): **2,550.13**
@@ -26,10 +30,18 @@
 - Finance and growth need transparent unit economics (`LTV/CAC`) by channel to reallocate spend fast.
 - Leadership needs a single weekly board pack with KPI trends, risk signals, and top actions.
 
+## Who Should Care About This
+
+- Recruiters: validates end-to-end ownership (data engineering, ML, API, dashboard, CI/CD) in one production-style repository.
+- Heads of Data/Analytics: shows governance discipline (contracts, versioned models, quality gates, runbook) and business KPI alignment.
+- Tech/Analytics Leads: provides a reusable blueprint for turning behavioral data into prioritized actions with measurable ROI.
+
 ## Summary
 
+- [API Security Spotlight](#api-security-spotlight)
 - [Product Preview](#product-preview)
 - [What Problem It Solves](#what-problem-it-solves)
+- [Who Should Care About This](#who-should-care-about-this)
 - [Live App](#live-app)
 - [30-Second Quickstart](#30-second-quickstart)
 - [Executive Summary](#executive-summary)
@@ -396,10 +408,12 @@ Automated validation:
 - Validate scoring contract in runtime: `POST /api/v1/score`
 - Keep release notes short and business-first (impact/ROI/uplift deltas).
 - Register API/contract breaking changes in `CHANGELOG.md` under `Breaking Changes`.
-- Published release notes: `docs/releases/v1.0.0.md`
-- Published tag: `v1.0.0` (already available on `origin`)
-- GitHub publish command:
+- Release notes source: `docs/releases/v1.0.0.md`
+- If the sidebar shows only `1 tag`, publish the GitHub Release explicitly:
   `gh release create v1.0.0 --title "v1.0.0" --notes-file docs/releases/v1.0.0.md`
+- If the release already exists, update it:
+  `gh release edit v1.0.0 --title "v1.0.0" --notes-file docs/releases/v1.0.0.md`
+- Validate in GitHub UI: `https://github.com/samuelmaia-data-analyst/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/releases`
 
 ### Incident
 - If `/api/v1/health` returns `degraded`, regenerate artifacts with `make pipeline`

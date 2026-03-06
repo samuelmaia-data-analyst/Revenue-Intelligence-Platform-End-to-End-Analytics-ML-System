@@ -9,6 +9,10 @@
 
 [Read in English](README.md)
 
+## Destaque de Segurança da API
+
+> API de serving secure-by-default: endpoints versionados (`/api/v1/*`), scoring autenticado com `X-API-Key`/Bearer token e runbook de release para operação reproduzível.
+
 ## Impacto de Negócio (Última Execução)
 
 - Net impact simulado (Top 10 ações): **2.550,13**
@@ -26,10 +30,18 @@
 - Finanças e growth precisam de unit economics (`LTV/CAC`) por canal para realocar verba rapidamente.
 - Liderança precisa de um board pack semanal com KPIs, sinais de risco e ações prioritárias.
 
+## Quem Deve Se Importar Com Isso
+
+- Recrutadores: comprova ownership end-to-end (engenharia de dados, ML, API, dashboard, CI/CD) em um único repositório com cara de produção.
+- Heads de Dados/Analytics: evidencia disciplina de governança (contratos, modelos versionados, quality gates, runbook) e alinhamento com KPI de negócio.
+- Tech Leads/Analytics Leads: entrega um blueprint reutilizável para converter dados comportamentais em ações priorizadas com ROI mensurável.
+
 ## Sumário
 
+- [Destaque de Segurança da API](#destaque-de-segurança-da-api)
 - [Preview do Produto](#preview-do-produto)
 - [Qual Problema Resolve](#qual-problema-resolve)
+- [Quem Deve Se Importar Com Isso](#quem-deve-se-importar-com-isso)
 - [App em Produção](#app-em-produ%C3%A7%C3%A3o)
 - [Quickstart em 30 Segundos](#quickstart-em-30-segundos)
 - [Resumo Executivo](#resumo-executivo)
@@ -376,10 +388,12 @@ Validação automática:
 - Validar contrato de scoring em runtime: `POST /api/v1/score`
 - Notas de release curtas e orientadas a negócio (impacto/ROI/uplift).
 - Registrar mudanças de quebra de API/contrato no `CHANGELOG.md` em `Breaking Changes`.
-- Release publicada: `docs/releases/v1.0.0.md`
-- Tag publicada: `v1.0.0` (já disponível em `origin`)
-- Comando para publicar no GitHub:
+- Fonte das notas de release: `docs/releases/v1.0.0.md`
+- Se a lateral mostrar apenas `1 tag`, publique a GitHub Release explicitamente:
   `gh release create v1.0.0 --title "v1.0.0" --notes-file docs/releases/v1.0.0.md`
+- Se a release já existir, atualize:
+  `gh release edit v1.0.0 --title "v1.0.0" --notes-file docs/releases/v1.0.0.md`
+- Validar na UI do GitHub: `https://github.com/samuelmaia-data-analyst/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/releases`
 
 ### Incidente
 - Se `/api/v1/health` retornar `degraded`, regenerar artefatos com `make pipeline`
