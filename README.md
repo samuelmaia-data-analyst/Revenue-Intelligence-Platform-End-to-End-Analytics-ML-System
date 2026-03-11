@@ -10,6 +10,12 @@
 [Leia em Português](README.pt-BR.md)
 LinkedIn: https://linkedin.com/in/samuelmaia-analytics
 
+## Senior+ Snapshot
+
+- Product framing: customer behavior becomes revenue actions, not just dashboards.
+- Engineering framing: packaged runtime, versioned contracts, authenticated API, CI, Docker, and runbook.
+- Leadership framing: explicit business impact, operating model, and measurable decision outputs.
+
 ## API Security Spotlight
 
 > Secure-by-default serving API: versioned endpoints (`/api/v1/*`), authenticated scoring with `X-API-Key`/Bearer token, and release runbook for reproducible operations.
@@ -31,6 +37,13 @@ LinkedIn: https://linkedin.com/in/samuelmaia-analytics
 - Finance and growth need transparent unit economics (`LTV/CAC`) by channel to reallocate spend fast.
 - Leadership needs a single weekly board pack with KPI trends, risk signals, and top actions.
 
+## Why This Repository Feels Senior+
+
+- The codebase is organized around operating boundaries: pipeline, warehouse, contracts, API, app, and release assets.
+- Execution is standardized through installable entry points, task automation, and environment-driven configuration.
+- Risk is addressed explicitly with auth, rate limiting, schema contracts, backward-compatible shims, and CI gates.
+- The repository explains not only how the system runs, but how it would be operated, released, and recovered.
+
 ## Who Should Care About This
 
 - Recruiters: validates end-to-end ownership (data engineering, ML, API, dashboard, CI/CD) in one production-style repository.
@@ -42,6 +55,7 @@ LinkedIn: https://linkedin.com/in/samuelmaia-analytics
 - [API Security Spotlight](#api-security-spotlight)
 - [Product Preview](#product-preview)
 - [What Problem It Solves](#what-problem-it-solves)
+- [Why This Repository Feels Senior+](#why-this-repository-feels-senior)
 - [Who Should Care About This](#who-should-care-about-this)
 - [Live App](#live-app)
 - [30-Second Quickstart](#30-second-quickstart)
@@ -78,7 +92,8 @@ Streamlit Cloud:
 ```powershell
 py -3.11 -m venv .venv
 .\.venv\Scripts\activate
-python -m pip install -r requirements.txt -r requirements-dev.txt
+copy .env.example .env
+python -m pip install -e .[dev]
 make pipeline
 make serve-api
 ```
@@ -88,6 +103,14 @@ make serve-api
 Revenue Intelligence Platform is an end-to-end decision system that converts customer behavior data into commercial priorities.
 
 This version includes a mature layered data architecture (`raw -> bronze -> silver -> gold`) with a formal Star Schema and structured SQL domains for analytics.
+
+The repository is intentionally presented as a production-style engineering asset: reproducible setup, explicit runtime contracts, API hardening, model versioning, and deployment-oriented documentation.
+
+## One-Minute Evaluation
+
+- If you are a recruiter, the signal is breadth plus control: data pipeline, ML, API, dashboard, CI/CD, and release hygiene in one repo.
+- If you are a lead, the signal is architectural intent: the domain is small, but the boundaries and operating standards are deliberate.
+- If you are an engineer, the signal is maintainability: installable package, env-driven runtime, quality gates, and compatibility shims where needed.
 
 ## Business Outcomes
 
@@ -280,9 +303,10 @@ erDiagram
 py -3.11 -m venv .venv
 .\.venv\Scripts\activate
 python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python main.py
-python -m streamlit run .\app\streamlit_app.py
+copy .env.example .env
+python -m pip install -e .[dev]
+rip-pipeline run
+rip-app
 ```
 
 Environment overrides:
@@ -290,12 +314,15 @@ Environment overrides:
 - `RIP_SEED`
 - `RIP_LOG_LEVEL`
 - `RIP_APP_LANG_MODE` (`bilingual` or `international`)
+- `RIP_MODEL_DIR`
 
 ## CLI
 
 ```powershell
-python -m src.pipeline run
-python -m src.pipeline run --seed 123 --log-level DEBUG
+rip-pipeline run
+rip-pipeline run --seed 123 --log-level DEBUG
+rip-api
+rip-app
 ```
 
 ## Task Automation (Makefile)
@@ -304,6 +331,7 @@ python -m src.pipeline run --seed 123 --log-level DEBUG
 make install-dev
 make pipeline
 make serve-api
+make test-cov
 make quality
 make docker-build
 ```
@@ -394,12 +422,13 @@ Automated validation:
 
 ### Dev
 - Install dependencies: `make install-dev`
+- Bootstrap runtime env: `copy .env.example .env`
 - Generate artifacts locally: `make pipeline`
 - Start serving API: `make serve-api`
 - Start Streamlit app: `make serve-app`
 
 ### CI
-- Required checks: `ruff`, `black --check`, `pytest -q`
+- Required checks: `ruff`, `black --check`, `mypy`, `pytest --cov`
 - Image checks: `docker build` (app) and `docker build -f Dockerfile.api` (API)
 - Workflow source: `.github/workflows/ci.yml`
 
@@ -424,17 +453,19 @@ Automated validation:
 ## Engineering Quality
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pip install -e .[dev]
 .\.venv\Scripts\python.exe -m black .
 .\.venv\Scripts\python.exe -m ruff check . --fix
-.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m mypy src services
+.\.venv\Scripts\python.exe -m pytest
 pre-commit install
 pre-commit run --all-files
 ```
 
 Current quality gates:
 - `tests/test_output_contract.py` validates output file generation and minimum Gold schema columns.
-- `main.py` bootstraps pipeline execution with `PipelineConfig.from_env(...)` for deterministic runtime settings.
+- Runtime entrypoints are standardized through `rip-pipeline`, `rip-api`, `rip-app`, and the compatibility shim `main.py`.
+- Coverage gate is enforced in CI and can be reproduced locally with `make test-cov`.
 
 ## Docker
 
@@ -466,6 +497,8 @@ docker run -p 8000:8000 revenue-intelligence-api
 - `data/processed/dim_channel.csv`
 - `data/processed/fact_orders.csv`
 
+These artifacts are generated by the pipeline and are intentionally not versioned in Git.
+
 ## Streamlit Cloud
 
 - Main file path: `app/streamlit_app.py`
@@ -481,7 +514,8 @@ GitHub Actions workflow at `.github/workflows/ci.yml` runs:
 - `pip check` (dependency consistency)
 - `ruff`
 - `black --check`
-- `pytest -q`
+- `mypy`
+- `pytest --cov` with fail-under gate
 - `docker build` for Streamlit image
 - `docker build -f Dockerfile.api` for serving API image
 

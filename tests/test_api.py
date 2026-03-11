@@ -81,6 +81,8 @@ def test_api_health_and_score(tmp_path: Path) -> None:
 
     health = client.get("/api/v1/health")
     assert health.status_code == 200
+    assert health.headers["X-API-Version"] == "1.1.0"
+    assert health.headers["Cache-Control"] == "no-store"
     health_payload = health.json()
     assert health_payload["status"] == "ok"
     assert health_payload["models"]["churn"]["loaded"] is True
@@ -115,6 +117,38 @@ def test_api_health_and_score(tmp_path: Path) -> None:
     assert "churn_probability" in score_payload["predictions"][0]
     assert "next_purchase_probability" in score_payload["predictions"][0]
     assert "suggested_action" in score_payload["predictions"][0]
+
+
+def test_api_accepts_legacy_header_alias(tmp_path: Path) -> None:
+    _bootstrap_registry(tmp_path)
+    os.environ["RIP_MODEL_DIR"] = str(tmp_path / "processed")
+    os.environ["RIP_API_AUTH_MODE"] = "demo"
+    os.environ["RIP_API_DEMO_TOKEN"] = "test-token"
+    os.environ["RIP_API_RATE_LIMIT_PER_MINUTE"] = "5"
+
+    api_module = importlib.import_module("services.api.main")
+    api_module = importlib.reload(api_module)
+    client = TestClient(api_module.app)
+
+    response = client.post(
+        "/api/v1/score",
+        json={
+            "records": [
+                {
+                    "recency_days": 14,
+                    "frequency": 8,
+                    "monetary": 1800.0,
+                    "avg_order_value": 225.0,
+                    "tenure_days": 420,
+                    "arpu": 160.0,
+                    "channel": "Organic",
+                    "segment": "SMB",
+                }
+            ]
+        },
+        headers={"X-API-Token": "test-token"},
+    )
+    assert response.status_code == 200
 
 
 def test_api_requires_token(tmp_path: Path) -> None:

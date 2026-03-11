@@ -10,6 +10,12 @@
 [Read in English](README.md)
 LinkedIn: https://linkedin.com/in/samuelmaia-analytics
 
+## Snapshot Sênior+
+
+- Enquadramento de produto: comportamento de cliente vira ação de receita, não só dashboard.
+- Enquadramento de engenharia: runtime empacotado, contratos versionados, API autenticada, CI, Docker e runbook.
+- Enquadramento executivo: impacto de negócio explícito, modelo operacional e saídas orientadas à decisão.
+
 ## Destaque de Segurança da API
 
 > API de serving secure-by-default: endpoints versionados (`/api/v1/*`), scoring autenticado com `X-API-Key`/Bearer token e runbook de release para operação reproduzível.
@@ -31,6 +37,13 @@ LinkedIn: https://linkedin.com/in/samuelmaia-analytics
 - Finanças e growth precisam de unit economics (`LTV/CAC`) por canal para realocar verba rapidamente.
 - Liderança precisa de um board pack semanal com KPIs, sinais de risco e ações prioritárias.
 
+## Por Que Este Repositório Passa Percepção Sênior+
+
+- A base está organizada por fronteiras operacionais: pipeline, warehouse, contratos, API, app e ativos de release.
+- A execução é padronizada com entry points instaláveis, automação de tarefas e configuração orientada por ambiente.
+- O risco é tratado de forma explícita com autenticação, rate limiting, contratos de schema, shims de compatibilidade e gates de CI.
+- O repositório explica não só como rodar, mas como operar, publicar e recuperar o sistema.
+
 ## Quem Deve Se Importar Com Isso
 
 - Recrutadores: comprova ownership end-to-end (engenharia de dados, ML, API, dashboard, CI/CD) em um único repositório com cara de produção.
@@ -42,6 +55,7 @@ LinkedIn: https://linkedin.com/in/samuelmaia-analytics
 - [Destaque de Segurança da API](#destaque-de-segurança-da-api)
 - [Preview do Produto](#preview-do-produto)
 - [Qual Problema Resolve](#qual-problema-resolve)
+- [Por Que Este Repositório Passa Percepção Sênior+](#por-que-este-repositório-passa-percepção-sênior)
 - [Quem Deve Se Importar Com Isso](#quem-deve-se-importar-com-isso)
 - [App em Produção](#app-em-produ%C3%A7%C3%A3o)
 - [Quickstart em 30 Segundos](#quickstart-em-30-segundos)
@@ -78,7 +92,8 @@ Streamlit Cloud:
 ```powershell
 py -3.11 -m venv .venv
 .\.venv\Scripts\activate
-python -m pip install -r requirements.txt -r requirements-dev.txt
+copy .env.example .env
+python -m pip install -e .[dev]
 make pipeline
 make serve-api
 ```
@@ -88,6 +103,14 @@ make serve-api
 A Revenue Intelligence Platform é um sistema de decisão comercial de ponta a ponta que transforma dados de comportamento em prioridades executivas.
 
 Esta versão inclui uma arquitetura de dados madura em camadas (`raw -> bronze -> silver -> gold`) com Star Schema formal e domínios SQL estruturados para analytics.
+
+O repositório foi apresentado deliberadamente como um ativo de engenharia com cara de produção: setup reproduzível, contratos explícitos de runtime, endurecimento da API, versionamento de modelos e documentação orientada à operação.
+
+## Avaliação em 1 Minuto
+
+- Para recrutador, o sinal é amplitude com controle: pipeline de dados, ML, API, dashboard, CI/CD e higiene de release no mesmo repo.
+- Para lead, o sinal é intenção arquitetural: o domínio é pequeno, mas as fronteiras e padrões operacionais são conscientes.
+- Para engenheiro, o sinal é mantenabilidade: pacote instalável, runtime orientado por ambiente, quality gates e compatibilidade preservada quando necessário.
 
 ## Resultados de Negócio
 
@@ -279,9 +302,10 @@ erDiagram
 py -3.11 -m venv .venv
 .\.venv\Scripts\activate
 python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python main.py
-python -m streamlit run .\app\streamlit_app.py
+copy .env.example .env
+python -m pip install -e .[dev]
+rip-pipeline run
+rip-app
 ```
 
 Sobrescritas via ambiente:
@@ -293,8 +317,10 @@ Sobrescritas via ambiente:
 ## CLI
 
 ```powershell
-python -m src.pipeline run
-python -m src.pipeline run --seed 123 --log-level DEBUG
+rip-pipeline run
+rip-pipeline run --seed 123 --log-level DEBUG
+rip-api
+rip-app
 ```
 
 ## Automação de Tarefas (Makefile)
@@ -303,6 +329,7 @@ python -m src.pipeline run --seed 123 --log-level DEBUG
 make install-dev
 make pipeline
 make serve-api
+make test-cov
 make quality
 make docker-build
 ```
@@ -374,12 +401,13 @@ Validação automática:
 
 ### Dev
 - Instalar dependências: `make install-dev`
+- Inicializar variáveis: `copy .env.example .env`
 - Gerar artefatos locais: `make pipeline`
 - Subir API de serving: `make serve-api`
 - Subir app Streamlit: `make serve-app`
 
 ### CI
-- Checks obrigatórios: `ruff`, `black --check`, `pytest -q`
+- Checks obrigatórios: `ruff`, `black --check`, `mypy`, `pytest --cov`
 - Checks de imagem: `docker build` (app) e `docker build -f Dockerfile.api` (API)
 - Fonte do workflow: `.github/workflows/ci.yml`
 
@@ -404,17 +432,19 @@ Validação automática:
 ## Qualidade de Engenharia
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pip install -e .[dev]
 .\.venv\Scripts\python.exe -m black .
 .\.venv\Scripts\python.exe -m ruff check . --fix
-.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m mypy src services
+.\.venv\Scripts\python.exe -m pytest
 pre-commit install
 pre-commit run --all-files
 ```
 
 Gates atuais de qualidade:
 - `tests/test_output_contract.py` valida geração dos arquivos de saída e colunas mínimas do schema Gold.
-- `main.py` inicializa a execução com `PipelineConfig.from_env(...)` para configuração determinística.
+- Os entrypoints de runtime foram padronizados via `rip-pipeline`, `rip-api`, `rip-app` e o shim de compatibilidade `main.py`.
+- O gate de cobertura roda no CI e pode ser reproduzido localmente com `make test-cov`.
 
 ## Docker
 
@@ -446,13 +476,16 @@ docker run -p 8000:8000 revenue-intelligence-api
 - `data/processed/dim_channel.csv`
 - `data/processed/fact_orders.csv`
 
+Esses artefatos sao gerados pelo pipeline e intencionalmente nao ficam versionados no Git.
+
 ## CI
 
 Workflow GitHub Actions em `.github/workflows/ci.yml` executa:
 - `pip check` (consistência de dependências)
 - `ruff`
 - `black --check`
-- `pytest -q`
+- `mypy`
+- `pytest --cov` com fail-under
 - `docker build` da imagem Streamlit
 - `docker build -f Dockerfile.api` da imagem de serving
 

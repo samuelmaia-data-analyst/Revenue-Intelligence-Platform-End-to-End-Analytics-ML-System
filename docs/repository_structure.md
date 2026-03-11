@@ -7,7 +7,7 @@ This repository follows a production-oriented structure with explicit boundaries
 - `contracts/`: input/output schemas used across pipeline, API and tests.
 - `app/`: Streamlit product UI.
 - `tests/`: automated quality gates.
-- `data/`: local development data and generated artifacts.
+- `data/`: local development data and generated artifacts. Generated outputs should not be committed.
 
 ## Import Policy
 

@@ -1,6 +1,5 @@
 import json
 import os
-import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -10,11 +9,9 @@ import plotly.graph_objects as go
 import streamlit as st
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.append(str(PROJECT_ROOT))
 
-from main import run_pipeline  # noqa: E402
-from src.config import PipelineConfig  # noqa: E402
+from src.config import PipelineConfig
+from src.runtime import run_pipeline
 
 LANG_MODE = os.getenv("RIP_APP_LANG_MODE", "bilingual").strip().lower()
 if LANG_MODE not in {"bilingual", "international"}:
@@ -361,8 +358,8 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-processed_dir = PROJECT_ROOT / "data" / "processed"
-rec, cohort, unit, report, outcomes, top10 = load_data(processed_dir)
+PIPELINE_CONFIG = PipelineConfig.from_env(PROJECT_ROOT)
+rec, cohort, unit, report, outcomes, top10 = load_data(PIPELINE_CONFIG.processed_dir)
 
 with st.sidebar:
     if LANG_MODE == "bilingual":
@@ -378,7 +375,7 @@ with st.sidebar:
 
     st.header(t(lang, "filters"))
     if st.button(t(lang, "refresh"), use_container_width=True):
-        run_pipeline(PipelineConfig.from_env(PROJECT_ROOT))
+        run_pipeline(PIPELINE_CONFIG)
         st.rerun()
 
     segment_options = [t(lang, "all_segments")] + sorted(rec["segment"].dropna().unique().tolist())
