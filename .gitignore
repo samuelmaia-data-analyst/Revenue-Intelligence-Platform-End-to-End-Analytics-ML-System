@@ -1,0 +1,16 @@
+.idea/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+__pycache__/
+*.pyc
+models/artifacts/
+data/raw/*.csv
+data/bronze/*.csv
+data/silver/*.csv
+data/gold/*.csv
+!data/raw/.gitkeep
+!data/bronze/.gitkeep
+!data/silver/.gitkeep
+!data/gold/.gitkeep

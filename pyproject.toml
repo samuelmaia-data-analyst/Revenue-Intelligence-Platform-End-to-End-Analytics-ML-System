@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "revenue-intelligence-data-platform"
+version = "0.1.0"
+description = "End-to-end revenue intelligence data platform with pipelines, analytics, models, and dashboard."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Samuel Maia" }]
+dependencies = [
+    "numpy>=1.26.0",
+    "pandas>=2.2.0",
+    "scikit-learn>=1.5.0",
+    "sqlalchemy>=2.0.0",
+    "streamlit>=1.40.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=25.0.0",
+    "mypy>=1.15.0",
+    "pre-commit>=4.1.0",
+    "pytest>=8.0.0",
+    "ruff>=0.11.0",
+]
+
+[project.scripts]
+ridp = "ridp.cli:main"
+ridp-dashboard = "ridp.dashboard_launcher:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["analytics", "dashboard", "models", "pipelines", "ridp"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_configs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
