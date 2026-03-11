@@ -16,6 +16,16 @@ from src.model_registry import load_registered_model
 
 LOGGER = logging.getLogger("revenue_intelligence.api")
 API_VERSION_PREFIX = "/api/v1"
+EXPECTED_FEATURE_COLUMNS = [
+    "recency_days",
+    "frequency",
+    "monetary",
+    "avg_order_value",
+    "tenure_days",
+    "arpu",
+    "channel",
+    "segment",
+]
 
 
 def _resolve_model_dir() -> Path:
@@ -93,6 +103,17 @@ def _load_model_bundle(model_dir: Path, model_name: str, legacy_name: str) -> di
             }
         except Exception:
             return {"model": None, "metadata": {}, "loaded_from": "broken"}
+
+
+def _build_features_frame(records: list[dict[str, Any]]) -> pd.DataFrame:
+    features = pd.DataFrame(records)
+    missing = [column for column in EXPECTED_FEATURE_COLUMNS if column not in features.columns]
+    if missing:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Request payload is missing required feature columns: {', '.join(missing)}.",
+        )
+    return features[EXPECTED_FEATURE_COLUMNS].copy()
 
 
 def _extract_auth_token(
@@ -211,6 +232,8 @@ NEXT_BUNDLE = _load_model_bundle(MODEL_DIR, "next_purchase_30d", "next_purchase_
 @app.middleware("http")
 async def _http_telemetry(request: Request, call_next: Any) -> Response:
     response = await call_next(request)
+    response.headers["X-API-Version"] = "1.1.0"
+    response.headers["Cache-Control"] = "no-store"
     TELEMETRY.record_request(endpoint=request.url.path, status_code=response.status_code)
     LOGGER.info(
         "request_volume endpoint=%s status_code=%s total=%s",
@@ -285,7 +308,7 @@ def score(
 
     prediction_start = time.perf_counter()
     records = [record.model_dump() for record in payload.records]
-    features = pd.DataFrame(records)
+    features = _build_features_frame(records)
 
     churn_scores = CHURN_BUNDLE["model"].predict_proba(features)[:, 1].tolist()
     next_scores = NEXT_BUNDLE["model"].predict_proba(features)[:, 1].tolist()

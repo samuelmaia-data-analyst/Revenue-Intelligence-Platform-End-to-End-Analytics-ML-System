@@ -358,8 +358,8 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-processed_dir = PROJECT_ROOT / "data" / "processed"
-rec, cohort, unit, report, outcomes, top10 = load_data(processed_dir)
+PIPELINE_CONFIG = PipelineConfig.from_env(PROJECT_ROOT)
+rec, cohort, unit, report, outcomes, top10 = load_data(PIPELINE_CONFIG.processed_dir)
 
 with st.sidebar:
     if LANG_MODE == "bilingual":
@@ -375,7 +375,7 @@ with st.sidebar:
 
     st.header(t(lang, "filters"))
     if st.button(t(lang, "refresh"), use_container_width=True):
-        run_pipeline(PipelineConfig.from_env(PROJECT_ROOT))
+        run_pipeline(PIPELINE_CONFIG)
         st.rerun()
 
     segment_options = [t(lang, "all_segments")] + sorted(rec["segment"].dropna().unique().tolist())
