@@ -329,6 +329,7 @@ rip-app
 make install-dev
 make pipeline
 make serve-api
+make test-cov
 make quality
 make docker-build
 ```
@@ -443,6 +444,7 @@ pre-commit run --all-files
 Gates atuais de qualidade:
 - `tests/test_output_contract.py` valida geração dos arquivos de saída e colunas mínimas do schema Gold.
 - Os entrypoints de runtime foram padronizados via `rip-pipeline`, `rip-api`, `rip-app` e o shim de compatibilidade `main.py`.
+- O gate de cobertura roda no CI e pode ser reproduzido localmente com `make test-cov`.
 
 ## Docker
 

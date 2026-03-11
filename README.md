@@ -314,6 +314,7 @@ Environment overrides:
 - `RIP_SEED`
 - `RIP_LOG_LEVEL`
 - `RIP_APP_LANG_MODE` (`bilingual` or `international`)
+- `RIP_MODEL_DIR`
 
 ## CLI
 
@@ -330,6 +331,7 @@ rip-app
 make install-dev
 make pipeline
 make serve-api
+make test-cov
 make quality
 make docker-build
 ```
@@ -463,6 +465,7 @@ pre-commit run --all-files
 Current quality gates:
 - `tests/test_output_contract.py` validates output file generation and minimum Gold schema columns.
 - Runtime entrypoints are standardized through `rip-pipeline`, `rip-api`, `rip-app`, and the compatibility shim `main.py`.
+- Coverage gate is enforced in CI and can be reproduced locally with `make test-cov`.
 
 ## Docker
 
