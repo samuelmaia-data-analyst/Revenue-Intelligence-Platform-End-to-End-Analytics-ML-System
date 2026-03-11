@@ -1,8 +1,8 @@
 import argparse
 from pathlib import Path
 
-from main import run_pipeline
 from src.config import PipelineConfig
+from src.runtime import run_pipeline
 
 
 def _build_parser() -> argparse.ArgumentParser:

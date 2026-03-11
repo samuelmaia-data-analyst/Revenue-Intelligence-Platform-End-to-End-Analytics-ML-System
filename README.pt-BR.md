@@ -442,7 +442,7 @@ pre-commit run --all-files
 
 Gates atuais de qualidade:
 - `tests/test_output_contract.py` valida geração dos arquivos de saída e colunas mínimas do schema Gold.
-- `main.py` inicializa a execução com `PipelineConfig.from_env(...)` para configuração determinística.
+- Os entrypoints de runtime foram padronizados via `rip-pipeline`, `rip-api`, `rip-app` e o shim de compatibilidade `main.py`.
 
 ## Docker
 
@@ -473,6 +473,8 @@ docker run -p 8000:8000 revenue-intelligence-api
 - `data/processed/dim_date.csv`
 - `data/processed/dim_channel.csv`
 - `data/processed/fact_orders.csv`
+
+Esses artefatos sao gerados pelo pipeline e intencionalmente nao ficam versionados no Git.
 
 ## CI
 
