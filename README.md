@@ -10,6 +10,12 @@
 [Leia em Português](README.pt-BR.md)
 LinkedIn: https://linkedin.com/in/samuelmaia-analytics
 
+## Senior+ Snapshot
+
+- Product framing: customer behavior becomes revenue actions, not just dashboards.
+- Engineering framing: packaged runtime, versioned contracts, authenticated API, CI, Docker, and runbook.
+- Leadership framing: explicit business impact, operating model, and measurable decision outputs.
+
 ## API Security Spotlight
 
 > Secure-by-default serving API: versioned endpoints (`/api/v1/*`), authenticated scoring with `X-API-Key`/Bearer token, and release runbook for reproducible operations.
@@ -31,6 +37,13 @@ LinkedIn: https://linkedin.com/in/samuelmaia-analytics
 - Finance and growth need transparent unit economics (`LTV/CAC`) by channel to reallocate spend fast.
 - Leadership needs a single weekly board pack with KPI trends, risk signals, and top actions.
 
+## Why This Repository Feels Senior+
+
+- The codebase is organized around operating boundaries: pipeline, warehouse, contracts, API, app, and release assets.
+- Execution is standardized through installable entry points, task automation, and environment-driven configuration.
+- Risk is addressed explicitly with auth, rate limiting, schema contracts, backward-compatible shims, and CI gates.
+- The repository explains not only how the system runs, but how it would be operated, released, and recovered.
+
 ## Who Should Care About This
 
 - Recruiters: validates end-to-end ownership (data engineering, ML, API, dashboard, CI/CD) in one production-style repository.
@@ -42,6 +55,7 @@ LinkedIn: https://linkedin.com/in/samuelmaia-analytics
 - [API Security Spotlight](#api-security-spotlight)
 - [Product Preview](#product-preview)
 - [What Problem It Solves](#what-problem-it-solves)
+- [Why This Repository Feels Senior+](#why-this-repository-feels-senior)
 - [Who Should Care About This](#who-should-care-about-this)
 - [Live App](#live-app)
 - [30-Second Quickstart](#30-second-quickstart)
@@ -89,6 +103,14 @@ make serve-api
 Revenue Intelligence Platform is an end-to-end decision system that converts customer behavior data into commercial priorities.
 
 This version includes a mature layered data architecture (`raw -> bronze -> silver -> gold`) with a formal Star Schema and structured SQL domains for analytics.
+
+The repository is intentionally presented as a production-style engineering asset: reproducible setup, explicit runtime contracts, API hardening, model versioning, and deployment-oriented documentation.
+
+## One-Minute Evaluation
+
+- If you are a recruiter, the signal is breadth plus control: data pipeline, ML, API, dashboard, CI/CD, and release hygiene in one repo.
+- If you are a lead, the signal is architectural intent: the domain is small, but the boundaries and operating standards are deliberate.
+- If you are an engineer, the signal is maintainability: installable package, env-driven runtime, quality gates, and compatibility shims where needed.
 
 ## Business Outcomes
 
