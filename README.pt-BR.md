@@ -78,7 +78,8 @@ Streamlit Cloud:
 ```powershell
 py -3.11 -m venv .venv
 .\.venv\Scripts\activate
-python -m pip install -r requirements.txt -r requirements-dev.txt
+copy .env.example .env
+python -m pip install -e .[dev]
 make pipeline
 make serve-api
 ```
@@ -279,9 +280,10 @@ erDiagram
 py -3.11 -m venv .venv
 .\.venv\Scripts\activate
 python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python main.py
-python -m streamlit run .\app\streamlit_app.py
+copy .env.example .env
+python -m pip install -e .[dev]
+rip-pipeline run
+rip-app
 ```
 
 Sobrescritas via ambiente:
@@ -293,8 +295,10 @@ Sobrescritas via ambiente:
 ## CLI
 
 ```powershell
-python -m src.pipeline run
-python -m src.pipeline run --seed 123 --log-level DEBUG
+rip-pipeline run
+rip-pipeline run --seed 123 --log-level DEBUG
+rip-api
+rip-app
 ```
 
 ## Automação de Tarefas (Makefile)
@@ -374,12 +378,13 @@ Validação automática:
 
 ### Dev
 - Instalar dependências: `make install-dev`
+- Inicializar variáveis: `copy .env.example .env`
 - Gerar artefatos locais: `make pipeline`
 - Subir API de serving: `make serve-api`
 - Subir app Streamlit: `make serve-app`
 
 ### CI
-- Checks obrigatórios: `ruff`, `black --check`, `pytest -q`
+- Checks obrigatórios: `ruff`, `black --check`, `mypy`, `pytest --cov`
 - Checks de imagem: `docker build` (app) e `docker build -f Dockerfile.api` (API)
 - Fonte do workflow: `.github/workflows/ci.yml`
 
@@ -404,10 +409,11 @@ Validação automática:
 ## Qualidade de Engenharia
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pip install -e .[dev]
 .\.venv\Scripts\python.exe -m black .
 .\.venv\Scripts\python.exe -m ruff check . --fix
-.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m mypy src services
+.\.venv\Scripts\python.exe -m pytest
 pre-commit install
 pre-commit run --all-files
 ```
@@ -452,7 +458,8 @@ Workflow GitHub Actions em `.github/workflows/ci.yml` executa:
 - `pip check` (consistência de dependências)
 - `ruff`
 - `black --check`
-- `pytest -q`
+- `mypy`
+- `pytest --cov` com fail-under
 - `docker build` da imagem Streamlit
 - `docker build -f Dockerfile.api` da imagem de serving
 

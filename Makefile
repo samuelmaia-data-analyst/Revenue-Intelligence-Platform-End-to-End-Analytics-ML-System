@@ -1,22 +1,22 @@
 PYTHON ?= python
 
-.PHONY: install install-dev pipeline serve-app serve-api lint format test quality docker-build-app docker-build-api docker-build
+.PHONY: install install-dev pipeline serve-app serve-api lint format typecheck test test-cov quality docker-build-app docker-build-api docker-build
 
 install:
 	$(PYTHON) -m pip install --upgrade pip
-	$(PYTHON) -m pip install -r requirements.txt
+	$(PYTHON) -m pip install -e .
 
 install-dev: install
-	$(PYTHON) -m pip install -r requirements-dev.txt
+	$(PYTHON) -m pip install -e .[dev]
 
 pipeline:
-	$(PYTHON) -m src.pipeline run
+	rip-pipeline run
 
 serve-app:
-	$(PYTHON) -m streamlit run app/streamlit_app.py
+	rip-app
 
 serve-api:
-	$(PYTHON) -m uvicorn services.api.main:app --host 0.0.0.0 --port 8000 --reload
+	rip-api
 
 lint:
 	$(PYTHON) -m ruff check .
@@ -26,10 +26,16 @@ format:
 	$(PYTHON) -m black .
 	$(PYTHON) -m ruff check . --fix
 
-test:
-	$(PYTHON) -m pytest -q
+typecheck:
+	$(PYTHON) -m mypy src services
 
-quality: lint test
+test:
+	$(PYTHON) -m pytest
+
+test-cov:
+	$(PYTHON) -m pytest --cov=src --cov=services --cov-report=term-missing --cov-fail-under=85
+
+quality: lint typecheck test
 
 docker-build-app:
 	docker build -t revenue-intelligence .
