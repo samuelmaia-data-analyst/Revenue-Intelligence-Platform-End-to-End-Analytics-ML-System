@@ -46,8 +46,20 @@ jobs:
       - name: Pytest
         run: python -m pytest -q
 
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: quality
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Docker build (streamlit app)
-        run: docker build -t revenue-intelligence .
+        run: docker build --progress=plain -t revenue-intelligence .
 
       - name: Docker build (serving api)
-        run: docker build -f Dockerfile.api -t revenue-intelligence-api .
+        run: docker build --progress=plain -f Dockerfile.api -t revenue-intelligence-api .
