@@ -20,6 +20,10 @@ def test_pipeline_generates_expected_contract_outputs(tmp_path: Path) -> None:
         warehouse_dir=data_dir / "warehouse",
         warehouse_db_path=data_dir / "warehouse" / "revenue_intelligence.db",
         semantic_metrics_path=tmp_path / "metrics" / "semantic_metrics.json",
+        warehouse_target="sqlite",
+        warehouse_url=None,
+        alerts_output_path=data_dir / "processed" / "alerts_report.json",
+        approvals_output_path=data_dir / "processed" / "approved_actions.csv",
         seed=42,
         log_level="WARNING",
     )
@@ -43,6 +47,7 @@ def test_pipeline_generates_expected_contract_outputs(tmp_path: Path) -> None:
         "monitoring_report.json",
         "monitoring_baseline.json",
         "semantic_metrics_catalog.json",
+        "alerts_report.json",
         "executive_report.json",
         "executive_summary.json",
         "business_outcomes.json",

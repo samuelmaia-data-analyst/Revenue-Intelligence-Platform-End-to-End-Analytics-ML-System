@@ -2,10 +2,12 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.alerting import build_alert_report
 from src.monitoring import build_monitoring_report
 from src.persistence import persist_frames_to_sqlite
 from src.reporting import simulate_action_portfolio
 from src.semantic_metrics import build_metric_catalog
+from src.writeback import append_approved_actions
 
 
 def test_persist_frames_to_sqlite_creates_database_tables(tmp_path: Path) -> None:
@@ -87,3 +89,48 @@ def test_build_metric_catalog_exports_semantic_definition(tmp_path: Path) -> Non
 
     assert catalog["version"] == "1.0"
     assert (tmp_path / "catalog.json").exists()
+
+
+def test_build_alert_report_generates_warning_from_monitoring_and_quality(tmp_path: Path) -> None:
+    monitoring = {
+        "feature_drift": {"recency_days": {"status": "drift"}},
+        "calibration": {"churn": {"status": "ok", "brier_score": 0.3}},
+    }
+    quality = {
+        "datasets": [
+            {
+                "dataset_name": "silver_customers",
+                "duplicate_rows": 1,
+                "null_counts": {"channel": 0, "segment": 0},
+            }
+        ]
+    }
+
+    report = build_alert_report(monitoring, quality, tmp_path / "alerts_report.json")
+
+    assert report["status"] == "warning"
+    assert report["alert_count"] >= 1
+    assert (tmp_path / "alerts_report.json").exists()
+
+
+def test_append_approved_actions_writes_csv_and_warehouse(tmp_path: Path) -> None:
+    approvals = pd.DataFrame(
+        {
+            "customer_id": [1],
+            "recommended_action": ["Retention Campaign"],
+            "approved_by": ["leader"],
+            "approval_note": ["priority retention account"],
+        }
+    )
+
+    result = append_approved_actions(
+        approved_actions=approvals,
+        csv_path=tmp_path / "approved_actions.csv",
+        warehouse_target="sqlite",
+        sqlite_path=tmp_path / "warehouse.db",
+        warehouse_url=None,
+    )
+
+    assert "approval_timestamp_utc" in result.columns
+    assert (tmp_path / "approved_actions.csv").exists()
+    assert (tmp_path / "warehouse.db").exists()

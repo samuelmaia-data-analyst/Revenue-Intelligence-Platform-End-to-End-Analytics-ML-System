@@ -1,11 +1,28 @@
 revenue_intelligence_platform:
-  target: dev
+  target: "{{ env_var('DBT_TARGET', 'dev') }}"
   outputs:
     dev:
       type: sqlite
       threads: 1
-      database: "data/warehouse/revenue_intelligence.db"
+      database: "{{ env_var('DBT_SQLITE_PATH', 'data/warehouse/revenue_intelligence.db') }}"
       schema: main
       schemas_and_paths:
-        main: "data/warehouse/revenue_intelligence.db"
-      schema_directory: "data/warehouse"
+        main: "{{ env_var('DBT_SQLITE_PATH', 'data/warehouse/revenue_intelligence.db') }}"
+      schema_directory: "{{ env_var('DBT_SQLITE_SCHEMA_DIR', 'data/warehouse') }}"
+    ci:
+      type: sqlite
+      threads: 1
+      database: "{{ env_var('DBT_SQLITE_PATH', 'data/warehouse/revenue_intelligence.db') }}"
+      schema: main
+      schemas_and_paths:
+        main: "{{ env_var('DBT_SQLITE_PATH', 'data/warehouse/revenue_intelligence.db') }}"
+      schema_directory: "{{ env_var('DBT_SQLITE_SCHEMA_DIR', 'data/warehouse') }}"
+    postgres:
+      type: postgres
+      host: "{{ env_var('DBT_POSTGRES_HOST') }}"
+      port: "{{ env_var('DBT_POSTGRES_PORT', '5432') | int }}"
+      user: "{{ env_var('DBT_POSTGRES_USER') }}"
+      password: "{{ env_var('DBT_POSTGRES_PASSWORD') }}"
+      dbname: "{{ env_var('DBT_POSTGRES_DBNAME') }}"
+      schema: "{{ env_var('DBT_POSTGRES_SCHEMA', 'analytics') }}"
+      threads: 4

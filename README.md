@@ -22,6 +22,7 @@ Streamlit Cloud:
 - Business-first outputs: churn risk, next-purchase propensity, channel efficiency, prioritized actions, and impact simulation
 - Reproducible and production-minded: pipeline manifest, data quality report, model registry, tests, and versioned serving API
 - Platform operations: optional Prefect flow, SQLite warehouse persistence, drift monitoring, calibration diagnostics, and semantic metrics
+- Operational controls: scheduler deployment examples, alert thresholds, notification hooks, write-back workflow, and dbt governance assets
 
 ## Executive Snapshot
 
@@ -233,10 +234,11 @@ If Prefect is not installed, the module fails with a clear runtime message inste
 
 ## Warehouse Persistence
 
-The pipeline now persists core analytics tables into a local SQLite warehouse:
+The pipeline now persists core analytics tables into a configurable warehouse target:
 
 - database path: `data/warehouse/revenue_intelligence.db`
 - tables: `dim_customers`, `dim_date`, `dim_channel`, `fact_orders`, `customer_features`, `scored_customers`, `recommendations`, `unit_economics`, `top_10_actions`
+- supported targets in code: `sqlite` and optional `postgres` via `RIP_WAREHOUSE_TARGET`
 
 This keeps the project closer to a real analytics platform and reduces coupling to CSV-only consumption.
 
@@ -244,8 +246,17 @@ This keeps the project closer to a real analytics platform and reduces coupling 
 
 - `monitoring_report.json`: feature drift status and calibration diagnostics
 - `monitoring_baseline.json`: reference distribution snapshot for future runs
+- `alerts_report.json`: threshold evaluation and alert payload for quality/monitoring regressions
 - `metrics/semantic_metrics.json`: dbt-style semantic metric definitions
 - `semantic_metrics_catalog.json`: exported catalog used by downstream consumers
+
+## Write-Back Workflow
+
+The dashboard now supports approval and write-back of recommended actions:
+
+- approved records are written to `data/processed/approved_actions.csv`
+- approved records are appended to the configured warehouse table `approved_actions`
+- this closes the loop between insight generation and operational action
 
 ## dbt Semantic Layer
 
@@ -260,7 +271,17 @@ What it adds:
 - staging models over the warehouse tables
 - finance-oriented semantic metric marts
 - dbt-native tests for curated models
+- dbt exposures for dashboard/API consumers
+- source freshness checks with explicit SLAs for warehouse-fed models
+- environment-aware dbt profiles for local, CI, and Postgres-backed execution
 - alignment between `metrics/semantic_metrics.json` and the dbt semantic model
+
+dbt docs publishing is also hardened:
+
+- CI-specific dbt target for deterministic docs generation
+- `dbt debug` before docs build
+- `dbt source freshness` before publish
+- GitHub Pages publishing workflow for dbt docs artifacts
 
 ## Repository Structure
 
@@ -311,8 +332,13 @@ python -m src.pipeline run --seed 123 --log-level DEBUG
 - `RIP_LOG_LEVEL`
 - `RIP_APP_LANG_MODE`
 - `RIP_MODEL_DIR`
+- `RIP_WAREHOUSE_TARGET`
+- `RIP_WAREHOUSE_URL`
 - `RIP_API_AUTH_MODE`
 - `RIP_API_KEYS`
+- `RIP_ALERT_WEBHOOK_URL`
+- `RIP_ALERT_DRIFT_FEATURE_COUNT_WARN`
+- `RIP_ALERT_BRIER_SCORE_WARN`
 
 ## Testing and Quality
 
@@ -334,6 +360,9 @@ Current automated coverage includes:
 - semantic metric catalog export
 - scenario simulation logic
 - dbt project structure and semantic model alignment
+- alert generation
+- write-back persistence
+- operational asset coverage
 
 ## Why This Looks Senior
 
@@ -350,15 +379,16 @@ Current automated coverage includes:
 The following capabilities already exist in the repository in a local or optional form:
 
 - optional Prefect orchestration flow
-- SQLite warehouse persistence
-- drift monitoring and calibration diagnostics
-- interactive scenario planning in the dashboard
-- dbt models and tests on top of the semantic metric layer
+- scheduler deployment examples for Prefect and Airflow
+- configurable warehouse persistence with SQLite and optional Postgres
+- drift monitoring, calibration diagnostics, and alert report generation
+- interactive scenario planning and write-back in the dashboard
+- dbt models, tests, exposures, and freshness checks on top of the semantic metric layer
 
 Next production-grade improvements:
 
-- add true deployed scheduler examples for Prefect or Airflow
-- move SQLite persistence to a cloud warehouse target such as BigQuery, Snowflake, or Postgres
-- add alerting thresholds and notification hooks for drift and quality regressions
-- expose a write-back workflow for approved actions from the dashboard
-- add dbt exposures, docs site publishing, and source freshness checks
+- add managed deployment templates for Prefect Cloud, MWAA, or Astronomer
+- add warehouse adapters for BigQuery and Snowflake
+- add Slack, Teams, or PagerDuty alert sinks with secret-managed credentials
+- add approval roles, audit trail states, and downstream CRM sync for write-back
+- harden dbt docs publishing with environment-aware profiles and source freshness SLAs

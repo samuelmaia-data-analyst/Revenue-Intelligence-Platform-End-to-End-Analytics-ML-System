@@ -1,0 +1,25 @@
+version: 2
+
+exposures:
+  - name: executive_dashboard
+    type: dashboard
+    maturity: high
+    owner:
+      name: Revenue Intelligence
+      email: data@example.com
+    depends_on:
+      - ref('portfolio_semantic_metrics')
+      - ref('channel_semantic_metrics')
+      - ref('action_priority_board')
+    description: Executive Streamlit dashboard built on top of dbt semantic marts.
+
+  - name: action_serving_api
+    type: application
+    maturity: medium
+    owner:
+      name: Revenue Intelligence API
+      email: data@example.com
+    depends_on:
+      - ref('action_priority_board')
+      - ref('portfolio_semantic_metrics')
+    description: Serving layer and downstream write-back workflow consuming curated marts.

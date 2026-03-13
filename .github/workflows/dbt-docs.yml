@@ -1,0 +1,75 @@
+name: dbt Docs
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "dbt/**"
+      - "metrics/**"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+    env:
+      DBT_TARGET: ci
+      DBT_SQLITE_PATH: data/warehouse/revenue_intelligence.db
+      DBT_SQLITE_SCHEMA_DIR: data/warehouse
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dbt
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install dbt-core dbt-sqlite
+
+      - name: Prepare dbt profile
+        run: |
+          mkdir -p ~/.dbt
+          cp dbt/profiles/profiles.yml.example ~/.dbt/profiles.yml
+
+      - name: Build local warehouse artifacts
+        run: |
+          python -m pip install -r requirements.txt -r requirements-dev.txt
+          python main.py
+
+      - name: dbt debug
+        run: dbt --project-dir dbt debug
+
+      - name: dbt source freshness
+        run: dbt --project-dir dbt source freshness
+
+      - name: Generate dbt docs
+        run: |
+          dbt --project-dir dbt deps || true
+          dbt --project-dir dbt docs generate
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dbt/target
+
+  deploy-docs:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build-docs
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

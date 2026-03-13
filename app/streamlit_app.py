@@ -16,6 +16,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from main import run_pipeline  # noqa: E402
 from src.config import PipelineConfig  # noqa: E402
 from src.reporting import simulate_action_portfolio  # noqa: E402
+from src.writeback import append_approved_actions  # noqa: E402
 
 LANG_MODE = os.getenv("RIP_APP_LANG_MODE", "bilingual").strip().lower()
 if LANG_MODE not in {"bilingual", "international"}:
@@ -102,6 +103,12 @@ I18N = {
         "expression": "Expression",
         "calibration": "Calibration",
         "action_policies": "Action Policies",
+        "alerts": "Alerts",
+        "approved_actions": "Approved Actions",
+        "approve_actions": "Approve Actions",
+        "approver": "Approver",
+        "approval_note": "Approval Note",
+        "select_customers": "Select Customers",
     },
     "pt-br": {
         "page_title": "Painel Executivo de Receita",
@@ -183,6 +190,12 @@ I18N = {
         "expression": "Expressão",
         "calibration": "Calibração",
         "action_policies": "Políticas de Ação",
+        "alerts": "Alertas",
+        "approved_actions": "Ações Aprovadas",
+        "approve_actions": "Aprovar Ações",
+        "approver": "Aprovador",
+        "approval_note": "Nota de Aprovação",
+        "select_customers": "Selecionar Clientes",
     },
 }
 
@@ -247,7 +260,7 @@ def card(title: str, value: str, subtitle: str = "") -> str:
 
 def load_data(
     processed_dir: Path,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict, dict, pd.DataFrame, dict, dict]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict, dict, pd.DataFrame, dict, dict, dict, pd.DataFrame]:
     required = [
         "recommendations.csv",
         "cohort_retention.csv",
@@ -257,6 +270,7 @@ def load_data(
         "top_10_actions.csv",
         "monitoring_report.json",
         "semantic_metrics_catalog.json",
+        "alerts_report.json",
     ]
     if not all((processed_dir / f).exists() for f in required):
         run_pipeline(PipelineConfig.from_env(PROJECT_ROOT))
@@ -273,7 +287,11 @@ def load_data(
         monitoring = json.load(f)
     with (processed_dir / "semantic_metrics_catalog.json").open("r", encoding="utf-8") as f:
         semantic_metrics = json.load(f)
-    return rec, cohort, unit, report, outcomes, top10, monitoring, semantic_metrics
+    with (processed_dir / "alerts_report.json").open("r", encoding="utf-8") as f:
+        alerts = json.load(f)
+    approvals_path = processed_dir / "approved_actions.csv"
+    approved_actions = pd.read_csv(approvals_path) if approvals_path.exists() else pd.DataFrame()
+    return rec, cohort, unit, report, outcomes, top10, monitoring, semantic_metrics, alerts, approved_actions
 
 
 def normalize_lang(option: str) -> str:
@@ -401,7 +419,7 @@ st.markdown(
 )
 
 processed_dir = PROJECT_ROOT / "data" / "processed"
-rec, cohort, unit, report, outcomes, top10, monitoring, semantic_metrics = load_data(processed_dir)
+rec, cohort, unit, report, outcomes, top10, monitoring, semantic_metrics, alerts, approved_actions = load_data(processed_dir)
 
 with st.sidebar:
     if LANG_MODE == "bilingual":
@@ -526,6 +544,30 @@ with tab_action:
         file_name=t(lang, "board_file"),
         mime="text/csv",
     )
+    approver = st.text_input(t(lang, "approver"), value="executive_demo")
+    approval_note = st.text_input(t(lang, "approval_note"), value="")
+    selectable_ids = board["customer_id"].astype(int).tolist()
+    selected_customers = st.multiselect(t(lang, "select_customers"), selectable_ids, max_selections=10)
+    if st.button(t(lang, "approve_actions"), use_container_width=True) and selected_customers:
+        cfg = PipelineConfig.from_env(PROJECT_ROOT)
+        approved = board[board["customer_id"].isin(selected_customers)].copy()
+        approved["approved_by"] = approver.strip() or "executive_demo"
+        approved["approval_note"] = approval_note.strip()
+        append_approved_actions(
+            approved_actions=approved,
+            csv_path=cfg.approvals_output_path,
+            warehouse_target=cfg.warehouse_target,
+            sqlite_path=cfg.warehouse_db_path,
+            warehouse_url=cfg.warehouse_url,
+        )
+        st.success(f"{len(approved)} actions approved and written back.")
+        st.rerun()
+
+    st.markdown(f"#### {t(lang, 'approved_actions')}")
+    if approved_actions.empty:
+        st.caption("n/a")
+    else:
+        st.dataframe(approved_actions.tail(20), use_container_width=True, hide_index=True, height=240)
 
 with tab_overview:
     business_context = report.get("business_context", {})
@@ -690,6 +732,12 @@ with tab_risk:
         )
     if drift_rows:
         st.dataframe(pd.DataFrame(drift_rows), use_container_width=True, hide_index=True)
+    st.markdown(f"#### {t(lang, 'alerts')}")
+    alert_rows = pd.DataFrame(alerts.get("alerts", []))
+    if alert_rows.empty:
+        st.caption("n/a")
+    else:
+        st.dataframe(alert_rows, use_container_width=True, hide_index=True)
 
 with tab_business:
     business_kpis = outcomes.get("kpis", {})

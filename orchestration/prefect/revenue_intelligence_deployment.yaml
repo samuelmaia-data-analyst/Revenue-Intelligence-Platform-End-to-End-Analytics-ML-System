@@ -1,0 +1,12 @@
+name: revenue-intelligence-platform-prod
+version: "1.0"
+description: Scheduled Prefect deployment for the revenue intelligence platform.
+flow_name: revenue_intelligence_platform
+entrypoint: src/prefect_flow.py:run_prefect_flow
+work_pool:
+  name: default-agent-pool
+  work_queue_name: default
+schedules:
+  - cron: "0 6 * * *"
+    timezone: "UTC"
+    active: true

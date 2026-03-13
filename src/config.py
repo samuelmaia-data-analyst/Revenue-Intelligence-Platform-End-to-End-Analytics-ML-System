@@ -17,6 +17,10 @@ class PipelineConfig:
     warehouse_dir: Path
     warehouse_db_path: Path
     semantic_metrics_path: Path
+    warehouse_target: str
+    warehouse_url: str | None
+    alerts_output_path: Path
+    approvals_output_path: Path
     seed: int
     log_level: str
 
@@ -49,6 +53,10 @@ class PipelineConfig:
             warehouse_dir=data_dir / "warehouse",
             warehouse_db_path=data_dir / "warehouse" / "revenue_intelligence.db",
             semantic_metrics_path=root / "metrics" / "semantic_metrics.json",
+            warehouse_target=os.getenv("RIP_WAREHOUSE_TARGET", "sqlite").strip().lower(),
+            warehouse_url=os.getenv("RIP_WAREHOUSE_URL", "").strip() or None,
+            alerts_output_path=data_dir / "processed" / "alerts_report.json",
+            approvals_output_path=data_dir / "processed" / "approved_actions.csv",
             seed=seed,
             log_level=log_level,
         )

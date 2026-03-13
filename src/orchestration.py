@@ -10,13 +10,14 @@ from time import perf_counter
 import pandas as pd
 
 from src.analytics import build_analytics_outputs
+from src.alerting import build_alert_report, dispatch_alerts
 from src.config import PipelineConfig
 from src.exceptions import PipelineStageError
 from src.ingestion import build_bronze_layer, save_raw_datasets
 from src.logging_utils import configure_logging
 from src.monitoring import build_monitoring_report
 from src.modeling import train_and_score_models
-from src.persistence import persist_frames_to_sqlite
+from src.persistence import persist_frames
 from src.quality import (
     build_dataset_quality_report,
     enforce_quality_gate,
@@ -50,6 +51,7 @@ def _write_manifest(cfg: PipelineConfig, stage_timings: dict[str, float], output
             "processed": str(cfg.processed_dir),
             "warehouse": str(cfg.warehouse_db_path),
         },
+        "warehouse_target": cfg.warehouse_target,
         "stage_timings_seconds": {name: round(value, 3) for name, value in stage_timings.items()},
         "outputs": outputs,
     }
@@ -114,7 +116,7 @@ def run_pipeline(cfg: PipelineConfig) -> None:
         build_dataset_quality_report(marketing_df, "silver_marketing", primary_key="channel"),
     ]
     enforce_quality_gate(quality_reports)
-    write_quality_report(quality_reports, cfg.processed_dir / "quality_report.json")
+    quality_payload = write_quality_report(quality_reports, cfg.processed_dir / "quality_report.json")
 
     (features_df, elapsed) = _run_stage(
         "transformation.features",
@@ -160,7 +162,7 @@ def run_pipeline(cfg: PipelineConfig) -> None:
     )
     stage_timings["governance.semantic_metrics"] = elapsed
 
-    (_, elapsed) = _run_stage(
+    (monitoring_payload, elapsed) = _run_stage(
         "monitoring.model",
         lambda: build_monitoring_report(
             scored_df=scored_df,
@@ -170,6 +172,17 @@ def run_pipeline(cfg: PipelineConfig) -> None:
         ),
     )
     stage_timings["monitoring.model"] = elapsed
+
+    (alerts_payload, elapsed) = _run_stage(
+        "monitoring.alerting",
+        lambda: build_alert_report(
+            monitoring_report=monitoring_payload,
+            quality_report=quality_payload,
+            output_path=cfg.alerts_output_path,
+        ),
+    )
+    stage_timings["monitoring.alerting"] = elapsed
+    dispatch_alerts(alerts_payload)
 
     (_, elapsed) = _run_stage(
         "insights.reporting",
@@ -211,9 +224,14 @@ def run_pipeline(cfg: PipelineConfig) -> None:
     }
     (_, elapsed) = _run_stage(
         "warehouse.sqlite",
-        lambda: persist_frames_to_sqlite(warehouse_frames, cfg.warehouse_db_path),
+        lambda: persist_frames(
+            warehouse_frames,
+            warehouse_target=cfg.warehouse_target,
+            sqlite_path=cfg.warehouse_db_path,
+            warehouse_url=cfg.warehouse_url,
+        ),
     )
-    stage_timings["warehouse.sqlite"] = elapsed
+    stage_timings[f"warehouse.{cfg.warehouse_target}"] = elapsed
 
     manifest = _write_manifest(
         cfg,

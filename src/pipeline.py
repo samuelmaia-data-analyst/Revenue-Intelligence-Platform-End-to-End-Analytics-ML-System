@@ -49,6 +49,10 @@ def main() -> None:
             warehouse_dir=data_dir / "warehouse",
             warehouse_db_path=data_dir / "warehouse" / "revenue_intelligence.db",
             semantic_metrics_path=cfg.semantic_metrics_path,
+            warehouse_target=cfg.warehouse_target,
+            warehouse_url=cfg.warehouse_url,
+            alerts_output_path=data_dir / "processed" / "alerts_report.json",
+            approvals_output_path=data_dir / "processed" / "approved_actions.csv",
             seed=args.seed if args.seed is not None else cfg.seed,
             log_level=args.log_level or cfg.log_level,
         )
@@ -64,6 +68,10 @@ def main() -> None:
             warehouse_dir=cfg.warehouse_dir,
             warehouse_db_path=cfg.warehouse_db_path,
             semantic_metrics_path=cfg.semantic_metrics_path,
+            warehouse_target=cfg.warehouse_target,
+            warehouse_url=cfg.warehouse_url,
+            alerts_output_path=cfg.alerts_output_path,
+            approvals_output_path=cfg.approvals_output_path,
             seed=args.seed if args.seed is not None else cfg.seed,
             log_level=args.log_level or cfg.log_level,
         )

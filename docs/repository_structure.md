@@ -8,6 +8,7 @@ This repository follows a production-oriented structure with explicit boundaries
 - `app/`: Streamlit product UI.
 - `dbt/`: semantic warehouse models and dbt-native tests.
 - `metrics/`: declarative metric definitions shared across analytics governance layers.
+- `orchestration/`: deployment-ready examples for Airflow and Prefect.
 - `tests/`: automated quality gates.
 - `data/`: local development data and generated artifacts.
 

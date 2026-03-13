@@ -22,6 +22,7 @@ Streamlit Cloud:
 - Outputs orientados a negócio: risco de churn, propensão de recompra, eficiência por canal, ações priorizadas e simulação de impacto
 - Execução reproduzível e com padrão de produção: manifesto de pipeline, quality report, model registry, testes e API versionada
 - Operação de plataforma: fluxo opcional com Prefect, persistência em SQLite, monitoramento de drift, calibração e métricas semânticas
+- Controles operacionais: exemplos de scheduler implantado, thresholds de alerta, hooks de notificação, write-back e ativos de governança dbt
 
 ## Resumo Executivo
 
@@ -233,10 +234,11 @@ Se Prefect não estiver instalado, o módulo falha com mensagem explícita.
 
 ## Persistência em Warehouse
 
-O pipeline agora persiste tabelas centrais em um warehouse SQLite local:
+O pipeline agora persiste tabelas centrais em um target de warehouse configurável:
 
 - caminho: `data/warehouse/revenue_intelligence.db`
 - tabelas: `dim_customers`, `dim_date`, `dim_channel`, `fact_orders`, `customer_features`, `scored_customers`, `recommendations`, `unit_economics`, `top_10_actions`
+- targets suportados no código: `sqlite` e `postgres` opcional via `RIP_WAREHOUSE_TARGET`
 
 Isso aproxima o projeto de uma plataforma analítica real e reduz dependência de consumo apenas em CSV.
 
@@ -244,8 +246,17 @@ Isso aproxima o projeto de uma plataforma analítica real e reduz dependência d
 
 - `monitoring_report.json`: status de drift e diagnósticos de calibração
 - `monitoring_baseline.json`: snapshot de referência para futuras execuções
+- `alerts_report.json`: avaliação de thresholds e payload de alertas para regressões
 - `metrics/semantic_metrics.json`: definições semânticas no estilo dbt
 - `semantic_metrics_catalog.json`: catálogo exportado para consumidores downstream
+
+## Workflow de Write-Back
+
+O dashboard agora suporta aprovação e write-back das ações recomendadas:
+
+- registros aprovados são escritos em `data/processed/approved_actions.csv`
+- registros aprovados são anexados à tabela `approved_actions` no warehouse configurado
+- isso fecha o ciclo entre insight analítico e ação operacional
 
 ## Camada Semântica com dbt
 
@@ -260,7 +271,17 @@ O que isso adiciona:
 - modelos staging sobre as tabelas do warehouse
 - marts semânticos orientados a finanças
 - testes nativos do dbt na camada curada
+- exposures para dashboard e API
+- source freshness checks com SLA explícito para modelos alimentados pelo warehouse
+- profiles dbt environment-aware para local, CI e execução com Postgres
 - alinhamento entre `metrics/semantic_metrics.json` e o modelo semântico no dbt
+
+O publish de docs dbt também foi endurecido:
+
+- target dbt específico para CI
+- `dbt debug` antes da geração de docs
+- `dbt source freshness` antes do publish
+- workflow de publicação dos artefatos em GitHub Pages
 
 ## Estrutura do Repositório
 
@@ -311,8 +332,13 @@ python -m src.pipeline run --seed 123 --log-level DEBUG
 - `RIP_LOG_LEVEL`
 - `RIP_APP_LANG_MODE`
 - `RIP_MODEL_DIR`
+- `RIP_WAREHOUSE_TARGET`
+- `RIP_WAREHOUSE_URL`
 - `RIP_API_AUTH_MODE`
 - `RIP_API_KEYS`
+- `RIP_ALERT_WEBHOOK_URL`
+- `RIP_ALERT_DRIFT_FEATURE_COUNT_WARN`
+- `RIP_ALERT_BRIER_SCORE_WARN`
 
 ## Testes e Qualidade
 
@@ -334,6 +360,9 @@ Cobertura automatizada atual:
 - export do catálogo semântico
 - lógica de scenario simulation
 - estrutura do projeto dbt e alinhamento com a camada semântica
+- geração de alertas
+- persistência de write-back
+- cobertura de assets operacionais
 
 ## Por Que o Projeto Está Mais Sênior
 
@@ -350,15 +379,16 @@ Cobertura automatizada atual:
 As capacidades abaixo já existem no repositório em forma local ou opcional:
 
 - fluxo opcional de orquestração com Prefect
-- persistência em warehouse SQLite
-- monitoramento de drift e calibração
-- scenario planning interativo no dashboard
-- modelos e testes dbt sobre a camada semântica
+- exemplos de scheduler implantado com Prefect e Airflow
+- persistência configurável com SQLite e Postgres opcional
+- monitoramento de drift, calibração e geração de alertas
+- scenario planning interativo e write-back no dashboard
+- modelos, testes, exposures e freshness checks no dbt
 
 Próximos passos em nível production-grade:
 
-- exemplos reais de scheduler implantado com Prefect ou Airflow
-- migração do SQLite local para warehouse cloud como BigQuery, Snowflake ou Postgres
-- alertas automáticos para regressões de qualidade e drift
-- workflow de aprovação e write-back de ações a partir do dashboard
-- exposures, docs site e source freshness checks no dbt
+- templates gerenciados para Prefect Cloud, MWAA ou Astronomer
+- adapters de warehouse para BigQuery e Snowflake
+- sinks de alerta para Slack, Teams ou PagerDuty com secrets gerenciados
+- papéis de aprovação, trilha de auditoria e sync downstream com CRM
+- hardening do publish de docs dbt com profiles por ambiente e SLAs de freshness
