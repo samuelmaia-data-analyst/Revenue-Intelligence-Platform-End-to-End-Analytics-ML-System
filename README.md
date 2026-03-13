@@ -364,28 +364,7 @@ Current automated coverage includes:
 - write-back persistence
 - operational asset coverage
 
-## Why This Looks Senior
-
-- clear separation between analytics and ML
-- KPI layer treated as a business contract
-- reproducible execution with manifest and registry
-- data quality built into the pipeline, not treated as an afterthought
-- model interpretation linked to commercial action
-- outputs designed for leadership storytelling and operational follow-through
-- project structured as a platform blueprint, not a one-off notebook experiment
-
 ## Future Improvements
-
-The following capabilities already exist in the repository in a local or optional form:
-
-- optional Prefect orchestration flow
-- scheduler deployment examples for Prefect and Airflow
-- configurable warehouse persistence with SQLite and optional Postgres
-- drift monitoring, calibration diagnostics, and alert report generation
-- interactive scenario planning and write-back in the dashboard
-- dbt models, tests, exposures, freshness checks, and hardened docs publishing on top of the semantic metric layer
-
-Next production-grade improvements:
 
 - add managed deployment templates for Prefect Cloud, MWAA, or Astronomer
 - add warehouse adapters for BigQuery and Snowflake

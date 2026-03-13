@@ -364,28 +364,7 @@ Cobertura automatizada atual:
 - persistência de write-back
 - cobertura de assets operacionais
 
-## Por Que o Projeto Está Mais Sênior
-
-- separação clara entre analytics e ML
-- camada de métricas tratada como fonte única de verdade
-- execução reproduzível com manifesto e registry
-- qualidade de dados embutida no pipeline
-- modelagem ligada a decisão de negócio
-- storytelling executivo e outputs prontos para operação
-- visão de plataforma em vez de notebook isolado
-
 ## Melhorias Futuras
-
-As capacidades abaixo já existem no repositório em forma local ou opcional:
-
-- fluxo opcional de orquestração com Prefect
-- exemplos de scheduler implantado com Prefect e Airflow
-- persistência configurável com SQLite e Postgres opcional
-- monitoramento de drift, calibração e geração de alertas
-- scenario planning interativo e write-back no dashboard
-- modelos, testes, exposures, freshness checks e docs publishing endurecido no dbt
-
-Próximos passos em nível production-grade:
 
 - templates gerenciados para Prefect Cloud, MWAA ou Astronomer
 - adapters de warehouse para BigQuery e Snowflake
