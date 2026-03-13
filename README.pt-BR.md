@@ -16,6 +16,18 @@ Streamlit Cloud:
 
 - https://revenue-intelligence-platform.streamlit.app/
 
+## Por Que Este Projeto Se Destaca
+
+- Construído como plataforma, não como notebook isolado: camadas claras de ingestão, transformação, analytics, ML, reporting, API e dashboard
+- Outputs orientados a negócio: risco de churn, propensão de recompra, eficiência por canal, ações priorizadas e simulação de impacto
+- Execução reproduzível e com padrão de produção: manifesto de pipeline, quality report, model registry, testes e API versionada
+
+## Resumo Executivo
+
+- Problema de negócio: transformar dados comportamentais em decisões de proteção de receita e crescimento
+- Usuários principais: Revenue Ops, Marketing, Finanças, Customer Success e liderança
+- Entregas centrais: carteira priorizada, KPIs centralizados, modelos interpretáveis e storytelling executivo
+
 ## Problema de Negócio
 
 Times comerciais raramente precisam de mais um notebook. Eles precisam de um sistema de decisão que responda:
