@@ -21,6 +21,7 @@ Streamlit Cloud:
 - Construído como plataforma, não como notebook isolado: camadas claras de ingestão, transformação, analytics, ML, reporting, API e dashboard
 - Outputs orientados a negócio: risco de churn, propensão de recompra, eficiência por canal, ações priorizadas e simulação de impacto
 - Execução reproduzível e com padrão de produção: manifesto de pipeline, quality report, model registry, testes e API versionada
+- Operação de plataforma: fluxo opcional com Prefect, persistência em SQLite, monitoramento de drift, calibração e métricas semânticas
 
 ## Resumo Executivo
 
@@ -168,6 +169,9 @@ Saídas principais em `data/processed/`:
 - `top_10_actions.csv`
 - `quality_report.json`
 - `pipeline_manifest.json`
+- `monitoring_report.json`
+- `semantic_metrics_catalog.json`
+- `data/warehouse/revenue_intelligence.db`
 
 Uso por público:
 
@@ -189,6 +193,8 @@ Entregas atuais:
 - lens de risco e crescimento
 - sumário de performance dos modelos
 - drivers dos modelos
+- status de drift e sinal de calibração
+- controles interativos de scenario planning
 - carteira priorizada
 - simulação de impacto das top 10 ações
 
@@ -207,6 +213,36 @@ Camada FastAPI com:
 Serviço principal:
 
 - [services/api/main.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/services/api/main.py)
+
+## Orquestração Agendada
+
+O repositório agora inclui uma entrada opcional com Prefect para execuções agendadas em estilo produção:
+
+- [src/prefect_flow.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/prefect_flow.py)
+
+Exemplo:
+
+```powershell
+python -c "from src.prefect_flow import run_prefect_flow; run_prefect_flow()"
+```
+
+Se Prefect não estiver instalado, o módulo falha com mensagem explícita.
+
+## Persistência em Warehouse
+
+O pipeline agora persiste tabelas centrais em um warehouse SQLite local:
+
+- caminho: `data/warehouse/revenue_intelligence.db`
+- tabelas: `dim_customers`, `dim_date`, `dim_channel`, `fact_orders`, `customer_features`, `scored_customers`, `recommendations`, `unit_economics`, `top_10_actions`
+
+Isso aproxima o projeto de uma plataforma analítica real e reduz dependência de consumo apenas em CSV.
+
+## Monitoramento e Governança
+
+- `monitoring_report.json`: status de drift e diagnósticos de calibração
+- `monitoring_baseline.json`: snapshot de referência para futuras execuções
+- `metrics/semantic_metrics.json`: definições semânticas no estilo dbt
+- `semantic_metrics_catalog.json`: catálogo exportado para consumidores downstream
 
 ## Estrutura do Repositório
 

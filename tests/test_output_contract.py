@@ -17,8 +17,17 @@ def test_pipeline_generates_expected_contract_outputs(tmp_path: Path) -> None:
         silver_dir=data_dir / "silver",
         gold_dir=data_dir / "gold",
         processed_dir=data_dir / "processed",
+        warehouse_dir=data_dir / "warehouse",
+        warehouse_db_path=data_dir / "warehouse" / "revenue_intelligence.db",
+        semantic_metrics_path=tmp_path / "metrics" / "semantic_metrics.json",
         seed=42,
         log_level="WARNING",
+    )
+
+    cfg.semantic_metrics_path.parent.mkdir(parents=True, exist_ok=True)
+    cfg.semantic_metrics_path.write_text(
+        '{"version":"1.0","metrics":[{"name":"revenue_proxy","expression":"sum(monetary)"}]}',
+        encoding="utf-8",
     )
 
     run_pipeline(cfg)
@@ -31,6 +40,9 @@ def test_pipeline_generates_expected_contract_outputs(tmp_path: Path) -> None:
         "unit_economics.csv",
         "kpi_snapshot.json",
         "metrics_report.json",
+        "monitoring_report.json",
+        "monitoring_baseline.json",
+        "semantic_metrics_catalog.json",
         "executive_report.json",
         "executive_summary.json",
         "business_outcomes.json",
@@ -57,6 +69,7 @@ def test_pipeline_generates_expected_contract_outputs(tmp_path: Path) -> None:
         assert (
             processed / registry_file
         ).exists(), f"Missing model registry artifact: {registry_file}"
+    assert cfg.warehouse_db_path.exists()
 
     dim_customers = pd.read_csv(processed / "dim_customers.csv")
     dim_date = pd.read_csv(processed / "dim_date.csv")

@@ -14,7 +14,9 @@ from src.config import PipelineConfig
 from src.exceptions import PipelineStageError
 from src.ingestion import build_bronze_layer, save_raw_datasets
 from src.logging_utils import configure_logging
+from src.monitoring import build_monitoring_report
 from src.modeling import train_and_score_models
+from src.persistence import persist_frames_to_sqlite
 from src.quality import (
     build_dataset_quality_report,
     enforce_quality_gate,
@@ -22,6 +24,7 @@ from src.quality import (
     write_quality_report,
 )
 from src.reporting import build_business_outcomes, build_executive_report, build_executive_summary
+from src.semantic_metrics import build_metric_catalog
 from src.transformation import build_customer_features, build_silver_layer
 from src.warehouse import build_star_schema
 
@@ -45,6 +48,7 @@ def _write_manifest(cfg: PipelineConfig, stage_timings: dict[str, float], output
             "silver": str(cfg.silver_dir),
             "gold": str(cfg.gold_dir),
             "processed": str(cfg.processed_dir),
+            "warehouse": str(cfg.warehouse_db_path),
         },
         "stage_timings_seconds": {name: round(value, 3) for name, value in stage_timings.items()},
         "outputs": outputs,
@@ -148,6 +152,26 @@ def run_pipeline(cfg: PipelineConfig) -> None:
     kpi_snapshot = analytics_outputs["kpi_snapshot"]
 
     (_, elapsed) = _run_stage(
+        "governance.semantic_metrics",
+        lambda: build_metric_catalog(
+            cfg.semantic_metrics_path,
+            cfg.processed_dir / "semantic_metrics_catalog.json",
+        ),
+    )
+    stage_timings["governance.semantic_metrics"] = elapsed
+
+    (_, elapsed) = _run_stage(
+        "monitoring.model",
+        lambda: build_monitoring_report(
+            scored_df=scored_df,
+            labeled_df=scored_df,
+            output_path=cfg.processed_dir / "monitoring_report.json",
+            baseline_path=cfg.processed_dir / "monitoring_baseline.json",
+        ),
+    )
+    stage_timings["monitoring.model"] = elapsed
+
+    (_, elapsed) = _run_stage(
         "insights.reporting",
         lambda: (
             build_executive_report(
@@ -174,9 +198,29 @@ def run_pipeline(cfg: PipelineConfig) -> None:
     )
     stage_timings["insights.reporting"] = elapsed
 
+    warehouse_frames = {
+        "dim_customers": pd.read_csv(cfg.processed_dir / "dim_customers.csv"),
+        "dim_date": pd.read_csv(cfg.processed_dir / "dim_date.csv"),
+        "dim_channel": pd.read_csv(cfg.processed_dir / "dim_channel.csv"),
+        "fact_orders": pd.read_csv(cfg.processed_dir / "fact_orders.csv"),
+        "customer_features": pd.read_csv(cfg.processed_dir / "customer_features.csv"),
+        "scored_customers": pd.read_csv(cfg.processed_dir / "scored_customers.csv"),
+        "recommendations": pd.read_csv(cfg.processed_dir / "recommendations.csv"),
+        "unit_economics": pd.read_csv(cfg.processed_dir / "unit_economics.csv"),
+        "top_10_actions": pd.read_csv(cfg.processed_dir / "top_10_actions.csv"),
+    }
+    (_, elapsed) = _run_stage(
+        "warehouse.sqlite",
+        lambda: persist_frames_to_sqlite(warehouse_frames, cfg.warehouse_db_path),
+    )
+    stage_timings["warehouse.sqlite"] = elapsed
+
     manifest = _write_manifest(
         cfg,
         stage_timings=stage_timings,
-        outputs=sorted(path.name for path in cfg.processed_dir.glob("*") if path.is_file()),
+        outputs=sorted(
+            set(path.name for path in cfg.processed_dir.glob("*") if path.is_file())
+            | {cfg.warehouse_db_path.name}
+        ),
     )
     LOGGER.info("Pipeline completed successfully | outputs=%s", len(manifest["outputs"]))

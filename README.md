@@ -21,6 +21,7 @@ Streamlit Cloud:
 - Built as a platform, not a notebook: clear layers for ingestion, transformation, analytics, ML, reporting, API, and dashboard
 - Business-first outputs: churn risk, next-purchase propensity, channel efficiency, prioritized actions, and impact simulation
 - Reproducible and production-minded: pipeline manifest, data quality report, model registry, tests, and versioned serving API
+- Platform operations: optional Prefect flow, SQLite warehouse persistence, drift monitoring, calibration diagnostics, and semantic metrics
 
 ## Executive Snapshot
 
@@ -168,6 +169,9 @@ Main generated artifacts in `data/processed/`:
 - `top_10_actions.csv`
 - `quality_report.json`
 - `pipeline_manifest.json`
+- `monitoring_report.json`
+- `semantic_metrics_catalog.json`
+- `data/warehouse/revenue_intelligence.db`
 
 These outputs support different audiences:
 
@@ -189,6 +193,8 @@ Current storytelling outputs include:
 - risk and growth lenses
 - model performance summary
 - top business drivers from both models
+- drift status and calibration signal
+- interactive scenario planning controls
 - prioritized action list
 - simulated impact for the top 10 interventions
 
@@ -207,6 +213,36 @@ FastAPI serving layer:
 Primary service:
 
 - [services/api/main.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/services/api/main.py)
+
+## Scheduled Orchestration
+
+The repository now includes an optional Prefect entrypoint for scheduled production-style runs:
+
+- [src/prefect_flow.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/prefect_flow.py)
+
+Example:
+
+```powershell
+python -c "from src.prefect_flow import run_prefect_flow; run_prefect_flow()"
+```
+
+If Prefect is not installed, the module fails with a clear runtime message instead of silently degrading.
+
+## Warehouse Persistence
+
+The pipeline now persists core analytics tables into a local SQLite warehouse:
+
+- database path: `data/warehouse/revenue_intelligence.db`
+- tables: `dim_customers`, `dim_date`, `dim_channel`, `fact_orders`, `customer_features`, `scored_customers`, `recommendations`, `unit_economics`, `top_10_actions`
+
+This keeps the project closer to a real analytics platform and reduces coupling to CSV-only consumption.
+
+## Monitoring and Governance
+
+- `monitoring_report.json`: feature drift status and calibration diagnostics
+- `monitoring_baseline.json`: reference distribution snapshot for future runs
+- `metrics/semantic_metrics.json`: dbt-style semantic metric definitions
+- `semantic_metrics_catalog.json`: exported catalog used by downstream consumers
 
 ## Repository Structure
 

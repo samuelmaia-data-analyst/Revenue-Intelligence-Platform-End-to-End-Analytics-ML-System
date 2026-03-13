@@ -1,0 +1,45 @@
+{
+  "version": "1.0",
+  "metrics": [
+    {
+      "name": "revenue_proxy",
+      "label": "Revenue Proxy",
+      "description": "Total observed monetary value in the scored customer base.",
+      "owner": "finance",
+      "grain": "portfolio",
+      "expression": "sum(monetary)"
+    },
+    {
+      "name": "avg_ltv",
+      "label": "Average LTV",
+      "description": "Average expected lifetime value across customers in scope.",
+      "owner": "revenue_ops",
+      "grain": "portfolio",
+      "expression": "avg(ltv)"
+    },
+    {
+      "name": "avg_cac",
+      "label": "Average CAC",
+      "description": "Average customer acquisition cost blended across channels.",
+      "owner": "growth",
+      "grain": "portfolio",
+      "expression": "avg(cac)"
+    },
+    {
+      "name": "avg_ltv_cac_ratio",
+      "label": "Average LTV/CAC",
+      "description": "Average efficiency ratio across the active portfolio.",
+      "owner": "finance",
+      "grain": "portfolio",
+      "expression": "avg(ltv_cac_ratio)"
+    },
+    {
+      "name": "high_churn_risk_pct",
+      "label": "High Churn Risk Share",
+      "description": "Share of customers with churn probability at or above 70%.",
+      "owner": "customer_success",
+      "grain": "portfolio",
+      "expression": "avg(churn_probability >= 0.70)"
+    }
+  ]
+}

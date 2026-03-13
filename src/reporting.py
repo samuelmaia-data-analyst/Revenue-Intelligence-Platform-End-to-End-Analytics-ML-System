@@ -7,6 +7,68 @@ import pandas as pd
 from src.business_rules import RECOMMENDATION_POLICIES
 
 
+def simulate_action_portfolio(
+    recommendations_df: pd.DataFrame,
+    top_n: int = 10,
+    policy_overrides: dict[str, dict[str, float | str]] | None = None,
+) -> pd.DataFrame:
+    top_actions = (
+        recommendations_df.sort_values("strategic_score", ascending=False).head(top_n).copy()
+    )
+    active_policies = {
+        name: {
+            "uplift_rate": policy.uplift_rate,
+            "cost_rate": policy.cost_rate,
+            "base": policy.base_metric,
+        }
+        for name, policy in RECOMMENDATION_POLICIES.items()
+    }
+    if policy_overrides:
+        for name, override in policy_overrides.items():
+            if name in active_policies:
+                active_policies[name] = {**active_policies[name], **override}
+
+    def _simulate_row(row: pd.Series) -> pd.Series:
+        action = row["recommended_action"]
+        policy = active_policies.get(action, active_policies["Nurture"])
+        if action == "Retention Campaign":
+            expected_uplift = row["ltv"] * row["churn_probability"] * float(policy["uplift_rate"])
+        elif action == "Upsell Offer":
+            expected_uplift = (
+                row["ltv"] * row["next_purchase_probability"] * float(policy["uplift_rate"])
+            )
+        elif action == "Reduce Acquisition Spend":
+            expected_uplift = row["cac"] * float(policy["uplift_rate"])
+        else:
+            expected_uplift = (
+                row["ltv"] * row["next_purchase_probability"] * float(policy["uplift_rate"])
+            )
+
+        cost_base = row["ltv"] if policy["base"] == "ltv" else row["cac"]
+        action_cost = cost_base * float(policy["cost_rate"])
+        net_impact = expected_uplift - action_cost
+        roi = net_impact / action_cost if action_cost > 0 else 0.0
+        return pd.Series(
+            {
+                "expected_uplift": expected_uplift,
+                "action_cost": action_cost,
+                "net_impact": net_impact,
+                "roi_simulated": roi,
+            }
+        )
+
+    simulated = top_actions.apply(_simulate_row, axis=1)
+    top_actions = pd.concat([top_actions, simulated], axis=1)
+    top_actions["priority_rank"] = range(1, len(top_actions) + 1)
+    top_actions["baseline_revenue_90d"] = (
+        top_actions["ltv"] * top_actions["next_purchase_probability"]
+    )
+    top_actions["scenario_revenue_90d"] = (
+        top_actions["baseline_revenue_90d"] + top_actions["expected_uplift"]
+    )
+    return top_actions
+
+
 def build_executive_report(
     recommendations_df: pd.DataFrame,
     churn_results: dict,
@@ -116,44 +178,7 @@ def build_business_outcomes(
     top_actions_path: Path,
     top_n: int = 10,
 ) -> dict:
-    top_actions = (
-        recommendations_df.sort_values("strategic_score", ascending=False).head(top_n).copy()
-    )
-
-    def _simulate_row(row: pd.Series) -> pd.Series:
-        action = row["recommended_action"]
-        policy = RECOMMENDATION_POLICIES.get(action, RECOMMENDATION_POLICIES["Nurture"])
-        if action == "Retention Campaign":
-            expected_uplift = row["ltv"] * row["churn_probability"] * policy.uplift_rate
-        elif action == "Upsell Offer":
-            expected_uplift = row["ltv"] * row["next_purchase_probability"] * policy.uplift_rate
-        elif action == "Reduce Acquisition Spend":
-            expected_uplift = row["cac"] * policy.uplift_rate
-        else:
-            expected_uplift = row["ltv"] * row["next_purchase_probability"] * policy.uplift_rate
-
-        cost_base = row["ltv"] if policy.base_metric == "ltv" else row["cac"]
-        action_cost = cost_base * policy.cost_rate
-        net_impact = expected_uplift - action_cost
-        roi = net_impact / action_cost if action_cost > 0 else 0.0
-        return pd.Series(
-            {
-                "expected_uplift": expected_uplift,
-                "action_cost": action_cost,
-                "net_impact": net_impact,
-                "roi_simulated": roi,
-            }
-        )
-
-    simulated = top_actions.apply(_simulate_row, axis=1)
-    top_actions = pd.concat([top_actions, simulated], axis=1)
-    top_actions["priority_rank"] = range(1, len(top_actions) + 1)
-    top_actions["baseline_revenue_90d"] = (
-        top_actions["ltv"] * top_actions["next_purchase_probability"]
-    )
-    top_actions["scenario_revenue_90d"] = (
-        top_actions["baseline_revenue_90d"] + top_actions["expected_uplift"]
-    )
+    top_actions = simulate_action_portfolio(recommendations_df=recommendations_df, top_n=top_n)
 
     top_actions_export = top_actions[
         [

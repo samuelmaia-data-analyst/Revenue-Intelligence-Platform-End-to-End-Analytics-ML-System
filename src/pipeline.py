@@ -46,6 +46,9 @@ def main() -> None:
             silver_dir=data_dir / "silver",
             gold_dir=data_dir / "gold",
             processed_dir=data_dir / "processed",
+            warehouse_dir=data_dir / "warehouse",
+            warehouse_db_path=data_dir / "warehouse" / "revenue_intelligence.db",
+            semantic_metrics_path=cfg.semantic_metrics_path,
             seed=args.seed if args.seed is not None else cfg.seed,
             log_level=args.log_level or cfg.log_level,
         )
@@ -58,6 +61,9 @@ def main() -> None:
             silver_dir=cfg.silver_dir,
             gold_dir=cfg.gold_dir,
             processed_dir=cfg.processed_dir,
+            warehouse_dir=cfg.warehouse_dir,
+            warehouse_db_path=cfg.warehouse_db_path,
+            semantic_metrics_path=cfg.semantic_metrics_path,
             seed=args.seed if args.seed is not None else cfg.seed,
             log_level=args.log_level or cfg.log_level,
         )

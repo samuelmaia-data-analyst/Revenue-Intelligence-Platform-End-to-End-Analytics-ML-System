@@ -50,6 +50,7 @@ Provide a reproducible revenue intelligence workflow with explicit separation be
 - temporal evaluation
 - model registry
 - business-facing driver summaries
+- drift monitoring and calibration diagnostics
 
 ### 7. Insights
 
@@ -59,9 +60,22 @@ Provide a reproducible revenue intelligence workflow with explicit separation be
 - business outcomes simulation
 - dashboard/API consumption layer
 
+### 8. Persistence and Governance
+
+- SQLite warehouse persistence for analytics-ready tables
+- semantic metric catalog in `metrics/semantic_metrics.json`
+- exported semantic catalog for finance-grade metric governance
+
+### 9. Orchestration
+
+- core pipeline run in `src/orchestration.py`
+- optional Prefect flow in `src/prefect_flow.py` for scheduled production-style runs
+
 ## Reproducibility Controls
 
 - `PipelineConfig` controls runtime paths, seed, and log level
 - `pipeline_manifest.json` records execution metadata and output inventory
 - `quality_report.json` records basic data quality diagnostics
+- `monitoring_report.json` records drift status and calibration diagnostics
+- `semantic_metrics_catalog.json` exports the active semantic metric layer
 - versioned model registry tracks latest production artifacts

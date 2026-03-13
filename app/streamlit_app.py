@@ -15,6 +15,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from main import run_pipeline  # noqa: E402
 from src.config import PipelineConfig  # noqa: E402
+from src.reporting import simulate_action_portfolio  # noqa: E402
 
 LANG_MODE = os.getenv("RIP_APP_LANG_MODE", "bilingual").strip().lower()
 if LANG_MODE not in {"bilingual", "international"}:
@@ -91,6 +92,16 @@ I18N = {
         "model_drivers": "Model Drivers",
         "driver_feature": "Feature",
         "driver_importance": "Importance",
+        "scenario_controls": "Scenario Planning Controls",
+        "uplift_rate": "Uplift Rate",
+        "cost_rate": "Cost Rate",
+        "monitoring": "Model Monitoring",
+        "drift_status": "Drift Status",
+        "semantic_metrics": "Semantic Metrics",
+        "owner": "Owner",
+        "expression": "Expression",
+        "calibration": "Calibration",
+        "action_policies": "Action Policies",
     },
     "pt-br": {
         "page_title": "Painel Executivo de Receita",
@@ -162,6 +173,16 @@ I18N = {
         "model_drivers": "Drivers do Modelo",
         "driver_feature": "Feature",
         "driver_importance": "Importância",
+        "scenario_controls": "Controles de Cenário",
+        "uplift_rate": "Taxa de Uplift",
+        "cost_rate": "Taxa de Custo",
+        "monitoring": "Monitoramento de Modelo",
+        "drift_status": "Status de Drift",
+        "semantic_metrics": "Métricas Semânticas",
+        "owner": "Responsável",
+        "expression": "Expressão",
+        "calibration": "Calibração",
+        "action_policies": "Políticas de Ação",
     },
 }
 
@@ -226,7 +247,7 @@ def card(title: str, value: str, subtitle: str = "") -> str:
 
 def load_data(
     processed_dir: Path,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict, dict, pd.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict, dict, pd.DataFrame, dict, dict]:
     required = [
         "recommendations.csv",
         "cohort_retention.csv",
@@ -234,6 +255,8 @@ def load_data(
         "executive_report.json",
         "business_outcomes.json",
         "top_10_actions.csv",
+        "monitoring_report.json",
+        "semantic_metrics_catalog.json",
     ]
     if not all((processed_dir / f).exists() for f in required):
         run_pipeline(PipelineConfig.from_env(PROJECT_ROOT))
@@ -246,7 +269,11 @@ def load_data(
         report = json.load(f)
     with (processed_dir / "business_outcomes.json").open("r", encoding="utf-8") as f:
         outcomes = json.load(f)
-    return rec, cohort, unit, report, outcomes, top10
+    with (processed_dir / "monitoring_report.json").open("r", encoding="utf-8") as f:
+        monitoring = json.load(f)
+    with (processed_dir / "semantic_metrics_catalog.json").open("r", encoding="utf-8") as f:
+        semantic_metrics = json.load(f)
+    return rec, cohort, unit, report, outcomes, top10, monitoring, semantic_metrics
 
 
 def normalize_lang(option: str) -> str:
@@ -374,7 +401,7 @@ st.markdown(
 )
 
 processed_dir = PROJECT_ROOT / "data" / "processed"
-rec, cohort, unit, report, outcomes, top10 = load_data(processed_dir)
+rec, cohort, unit, report, outcomes, top10, monitoring, semantic_metrics = load_data(processed_dir)
 
 with st.sidebar:
     if LANG_MODE == "bilingual":
@@ -643,10 +670,32 @@ with tab_risk:
                 )
                 st.dataframe(drivers, use_container_width=True, hide_index=True)
 
+    st.markdown(f"#### {t(lang, 'monitoring')}")
+    m1, m2 = st.columns(2)
+    m1.metric(t(lang, "drift_status"), monitoring.get("drift_status", "n/a"))
+    churn_calibration = monitoring.get("calibration", {}).get("churn", {})
+    m2.metric(
+        t(lang, "calibration"),
+        f"{float(churn_calibration.get('brier_score', 0)):.3f}"
+        if churn_calibration.get("status") == "ok"
+        else "n/a",
+    )
+    drift_rows = []
+    for feature_name, drift_info in monitoring.get("feature_drift", {}).items():
+        drift_rows.append(
+            {
+                t(lang, "driver_feature"): feature_name,
+                t(lang, "drift_status"): drift_info.get("status", "n/a"),
+            }
+        )
+    if drift_rows:
+        st.dataframe(pd.DataFrame(drift_rows), use_container_width=True, hide_index=True)
+
 with tab_business:
     business_kpis = outcomes.get("kpis", {})
     simulation = outcomes.get("simulation_summary_top10", {})
     channel_eff = pd.DataFrame(outcomes.get("ltv_cac_by_channel", []))
+    policy_defaults = outcomes.get("simulation_assumptions", {})
 
     b1, b2, b3 = st.columns(3)
     b1.markdown(
@@ -689,6 +738,81 @@ with tab_business:
     )
     s4.metric(t(lang, "roi"), f"{float(simulation.get('roi_simulated', 0)):.2f}x")
 
+    with st.expander(t(lang, "scenario_controls")):
+        overrides: dict[str, dict[str, float]] = {}
+        policy_columns = st.columns(2)
+        for idx, (action_name, policy) in enumerate(policy_defaults.items()):
+            with policy_columns[idx % 2]:
+                st.markdown(f"**{action_name}**")
+                uplift = st.slider(
+                    f"{action_name} | {t(lang, 'uplift_rate')}",
+                    min_value=0.0,
+                    max_value=1.0,
+                    value=float(policy.get("uplift_rate", 0.1)),
+                    step=0.01,
+                    key=f"uplift_{action_name}",
+                )
+                cost = st.slider(
+                    f"{action_name} | {t(lang, 'cost_rate')}",
+                    min_value=0.0,
+                    max_value=0.5,
+                    value=float(policy.get("cost_rate", 0.05)),
+                    step=0.01,
+                    key=f"cost_{action_name}",
+                )
+                overrides[action_name] = {
+                    "uplift_rate": uplift,
+                    "cost_rate": cost,
+                    "base": policy.get("base", "ltv"),
+                }
+
+        scenario_actions = simulate_action_portfolio(
+            recommendations_df=df,
+            top_n=10,
+            policy_overrides=overrides,
+        )
+        scenario_summary = {
+            "baseline_revenue_90d": float(scenario_actions["baseline_revenue_90d"].sum()),
+            "scenario_revenue_90d": float(scenario_actions["scenario_revenue_90d"].sum()),
+            "delta_revenue_90d": float(
+                scenario_actions["scenario_revenue_90d"].sum()
+                - scenario_actions["baseline_revenue_90d"].sum()
+            ),
+            "roi_simulated": float(
+                scenario_actions["net_impact"].sum() / scenario_actions["action_cost"].sum()
+            )
+            if float(scenario_actions["action_cost"].sum()) > 0
+            else 0.0,
+        }
+        sc1, sc2, sc3, sc4 = st.columns(4)
+        sc1.metric(
+            t(lang, "baseline"),
+            format_currency(float(scenario_summary["baseline_revenue_90d"]), lang),
+        )
+        sc2.metric(
+            t(lang, "scenario"),
+            format_currency(float(scenario_summary["scenario_revenue_90d"]), lang),
+        )
+        sc3.metric(
+            t(lang, "delta_revenue"),
+            format_currency(float(scenario_summary["delta_revenue_90d"]), lang),
+        )
+        sc4.metric(t(lang, "roi"), f"{float(scenario_summary['roi_simulated']):.2f}x")
+        st.dataframe(
+            scenario_actions[
+                [
+                    "customer_id",
+                    "recommended_action",
+                    "expected_uplift",
+                    "action_cost",
+                    "net_impact",
+                    "roi_simulated",
+                ]
+            ],
+            use_container_width=True,
+            hide_index=True,
+        )
+
     c1, c2 = st.columns(2)
     with c1:
         if not channel_eff.empty:
@@ -715,3 +839,14 @@ with tab_business:
 
     st.markdown(f"#### {t(lang, 'top_actions')}")
     st.dataframe(top10, use_container_width=True, hide_index=True, height=420)
+    semantic_metric_rows = pd.DataFrame(semantic_metrics.get("metrics", []))
+    if not semantic_metric_rows.empty:
+        st.markdown(f"#### {t(lang, 'semantic_metrics')}")
+        semantic_metric_rows = semantic_metric_rows.rename(
+            columns={
+                "label": "Metric",
+                "owner": t(lang, "owner"),
+                "expression": t(lang, "expression"),
+            }
+        )
+        st.dataframe(semantic_metric_rows, use_container_width=True, hide_index=True)

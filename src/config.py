@@ -14,6 +14,9 @@ class PipelineConfig:
     silver_dir: Path
     gold_dir: Path
     processed_dir: Path
+    warehouse_dir: Path
+    warehouse_db_path: Path
+    semantic_metrics_path: Path
     seed: int
     log_level: str
 
@@ -25,6 +28,7 @@ class PipelineConfig:
             self.silver_dir,
             self.gold_dir,
             self.processed_dir,
+            self.warehouse_dir,
         ]:
             directory.mkdir(parents=True, exist_ok=True)
 
@@ -42,6 +46,9 @@ class PipelineConfig:
             silver_dir=data_dir / "silver",
             gold_dir=data_dir / "gold",
             processed_dir=data_dir / "processed",
+            warehouse_dir=data_dir / "warehouse",
+            warehouse_db_path=data_dir / "warehouse" / "revenue_intelligence.db",
+            semantic_metrics_path=root / "metrics" / "semantic_metrics.json",
             seed=seed,
             log_level=log_level,
         )
