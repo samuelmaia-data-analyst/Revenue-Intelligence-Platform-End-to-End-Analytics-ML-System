@@ -17,6 +17,17 @@ class PipelineConfig:
     seed: int
     log_level: str
 
+    def ensure_directories(self) -> None:
+        for directory in [
+            self.data_dir,
+            self.raw_dir,
+            self.bronze_dir,
+            self.silver_dir,
+            self.gold_dir,
+            self.processed_dir,
+        ]:
+            directory.mkdir(parents=True, exist_ok=True)
+
     @classmethod
     def from_env(cls, project_root: Path | None = None) -> PipelineConfig:
         root = project_root or Path(__file__).resolve().parents[1]

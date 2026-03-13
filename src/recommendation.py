@@ -1,17 +1,27 @@
 import pandas as pd
 
+from src.business_rules import (
+    HIGH_CHURN_THRESHOLD,
+    HIGH_VALUE_QUANTILE,
+    LOW_CHURN_THRESHOLD,
+    LOW_VALUE_QUANTILE,
+)
+
 
 def build_recommendations(ltv_df: pd.DataFrame, cac_df: pd.DataFrame) -> pd.DataFrame:
     channel_cac = cac_df[["channel", "cac"]].copy()
     out = ltv_df.merge(channel_cac, on="channel", how="left").fillna({"cac": 0})
     out["ltv_cac_ratio"] = out["ltv"] / out["cac"].replace(0, 1)
+    high_value_cutoff = out["ltv"].quantile(HIGH_VALUE_QUANTILE)
+    low_value_cutoff = out["ltv"].quantile(LOW_VALUE_QUANTILE)
+    median_cac = out["cac"].median()
 
     def map_action(row: pd.Series) -> str:
-        if row["churn_probability"] > 0.7:
+        if row["churn_probability"] > HIGH_CHURN_THRESHOLD:
             return "Retention Campaign"
-        if row["ltv"] > out["ltv"].quantile(0.7) and row["churn_probability"] < 0.4:
+        if row["ltv"] > high_value_cutoff and row["churn_probability"] < LOW_CHURN_THRESHOLD:
             return "Upsell Offer"
-        if row["ltv"] < out["ltv"].quantile(0.3) and row["cac"] > out["cac"].median():
+        if row["ltv"] < low_value_cutoff and row["cac"] > median_cac:
             return "Reduce Acquisition Spend"
         return "Nurture"
 

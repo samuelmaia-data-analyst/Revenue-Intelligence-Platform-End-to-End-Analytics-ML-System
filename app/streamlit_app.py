@@ -85,6 +85,12 @@ I18N = {
         "ltv_cac_channel": "LTV/CAC by Channel",
         "impact_customer": "Simulated Net Impact by Customer (Top-10)",
         "top_actions": "Top-10 Prioritized Actions",
+        "revenue_proxy": "Revenue Proxy",
+        "portfolio_size": "Portfolio Size",
+        "best_channel": "Best Channel",
+        "model_drivers": "Model Drivers",
+        "driver_feature": "Feature",
+        "driver_importance": "Importance",
     },
     "pt-br": {
         "page_title": "Painel Executivo de Receita",
@@ -150,6 +156,12 @@ I18N = {
         "ltv_cac_channel": "LTV/CAC por Canal",
         "impact_customer": "Net Impact Simulado por Cliente (Top-10)",
         "top_actions": "Top-10 Ações Priorizadas",
+        "revenue_proxy": "Proxy de Receita",
+        "portfolio_size": "Tamanho da Carteira",
+        "best_channel": "Melhor Canal",
+        "model_drivers": "Drivers do Modelo",
+        "driver_feature": "Feature",
+        "driver_importance": "Importância",
     },
 }
 
@@ -489,6 +501,20 @@ with tab_action:
     )
 
 with tab_overview:
+    business_context = report.get("business_context", {})
+    if business_context:
+        bc1, bc2, bc3 = st.columns(3)
+        bc1.metric(
+            t(lang, "revenue_proxy"),
+            format_currency(float(business_context.get("revenue_proxy", 0)), lang),
+        )
+        bc2.metric(t(lang, "portfolio_size"), int(business_context.get("portfolio_size", 0)))
+        best_channel = business_context.get("best_channel_efficiency", {})
+        bc3.metric(
+            t(lang, "best_channel"),
+            f"{best_channel.get('channel', 'n/a')} | {float(best_channel.get('ltv_cac_ratio', 0)):.2f}",
+        )
+
     left, right = st.columns(2)
     with left:
         action_dist = df["recommended_action"].value_counts().reset_index()
@@ -596,6 +622,26 @@ with tab_risk:
         )
         fig_next.update_layout(showlegend=False, yaxis_tickformat=".0%")
         st.plotly_chart(apply_chart_style(fig_next), use_container_width=True, theme=None)
+
+    driver_left, driver_right = st.columns(2)
+    for column, model_key in zip(
+        [driver_left, driver_right],
+        ["churn", "next_purchase_30d"],
+        strict=False,
+    ):
+        with column:
+            drivers = pd.DataFrame(model_report.get(model_key, {}).get("top_business_drivers", []))
+            st.markdown(f"#### {t(lang, 'model_drivers')} | {model_key}")
+            if drivers.empty:
+                st.caption("n/a")
+            else:
+                drivers = drivers.rename(
+                    columns={
+                        "feature": t(lang, "driver_feature"),
+                        "importance": t(lang, "driver_importance"),
+                    }
+                )
+                st.dataframe(drivers, use_container_width=True, hide_index=True)
 
 with tab_business:
     business_kpis = outcomes.get("kpis", {})

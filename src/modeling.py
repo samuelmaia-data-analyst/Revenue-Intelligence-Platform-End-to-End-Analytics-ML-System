@@ -143,6 +143,46 @@ def _compute_data_version(df: pd.DataFrame) -> str:
     return hashlib.md5(hashed).hexdigest()
 
 
+def _extract_model_drivers(pipeline: Pipeline) -> list[dict[str, float | str]]:
+    preprocessor = pipeline.named_steps["preprocessor"]
+    feature_names = preprocessor.get_feature_names_out().tolist()
+    classifier = pipeline.named_steps["clf"]
+
+    if hasattr(classifier, "feature_importances_"):
+        scores = classifier.feature_importances_
+    elif hasattr(classifier, "coef_"):
+        scores = np.abs(classifier.coef_[0])
+    else:
+        return []
+
+    drivers = pd.DataFrame({"feature": feature_names, "importance": scores})
+    drivers = drivers.sort_values("importance", ascending=False).head(8)
+    return drivers.to_dict(orient="records")
+
+
+def _build_business_model_summary(
+    model_name: str,
+    results: dict,
+    pipeline: Pipeline,
+) -> dict:
+    top_drivers = _extract_model_drivers(pipeline)
+    interpretation = {
+        "churn": "Use churn risk to prioritize retention budget toward customers with high value and deteriorating recency.",
+        "next_purchase_30d": "Use next-purchase propensity to target upsell and timing-sensitive CRM actions.",
+    }
+    return {
+        "model_name": model_name,
+        "split_strategy": results["split_strategy"],
+        "cv_roc_auc_mean": results["cv_roc_auc_mean"],
+        "cv_roc_auc_std": results["cv_roc_auc_std"],
+        "temporal_test_roc_auc": results["temporal_test_roc_auc"],
+        "train_size": results["train_size"],
+        "test_size": results["test_size"],
+        "top_business_drivers": top_drivers,
+        "business_interpretation": interpretation[model_name],
+    }
+
+
 def train_and_score_models(df: pd.DataFrame, output_dir: Path) -> tuple[dict, dict, pd.DataFrame]:
     output_dir.mkdir(parents=True, exist_ok=True)
     work_df = df.copy().dropna(subset=["signup_date"])
@@ -230,25 +270,15 @@ def train_and_score_models(df: pd.DataFrame, output_dir: Path) -> tuple[dict, di
     )
 
     work_df.to_csv(output_dir / "scored_customers.csv", index=False)
+    churn_summary = _build_business_model_summary("churn", churn_results, churn_model)
+    next_purchase_summary = _build_business_model_summary(
+        "next_purchase_30d", next_purchase_results, next_purchase_model
+    )
     report = {
-        "churn": {
-            "cv_roc_auc_mean": churn_results["cv_roc_auc_mean"],
-            "cv_roc_auc_std": churn_results["cv_roc_auc_std"],
-            "temporal_test_roc_auc": churn_results["temporal_test_roc_auc"],
-            "split_strategy": churn_results["split_strategy"],
-            "train_size": churn_results["train_size"],
-            "test_size": churn_results["test_size"],
-        },
-        "next_purchase_30d": {
-            "cv_roc_auc_mean": next_purchase_results["cv_roc_auc_mean"],
-            "cv_roc_auc_std": next_purchase_results["cv_roc_auc_std"],
-            "temporal_test_roc_auc": next_purchase_results["temporal_test_roc_auc"],
-            "split_strategy": next_purchase_results["split_strategy"],
-            "train_size": next_purchase_results["train_size"],
-            "test_size": next_purchase_results["test_size"],
-        },
+        "churn": churn_summary,
+        "next_purchase_30d": next_purchase_summary,
     }
     with (output_dir / "metrics_report.json").open("w", encoding="utf-8") as f:
         json.dump(report, f, indent=2)
 
-    return churn_results, next_purchase_results, work_df
+    return churn_summary, next_purchase_summary, work_df

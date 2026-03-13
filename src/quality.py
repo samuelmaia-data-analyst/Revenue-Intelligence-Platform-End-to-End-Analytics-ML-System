@@ -1,0 +1,71 @@
+from __future__ import annotations
+
+import json
+from dataclasses import asdict, dataclass
+from pathlib import Path
+
+import pandas as pd
+
+from src.exceptions import DataQualityError
+
+
+@dataclass(frozen=True)
+class DatasetQualityReport:
+    dataset_name: str
+    row_count: int
+    duplicate_rows: int
+    null_counts: dict[str, int]
+    referential_issues: int
+
+
+def validate_required_columns(df: pd.DataFrame, required: set[str], dataset_name: str) -> None:
+    missing = required.difference(df.columns)
+    if missing:
+        raise DataQualityError(f"{dataset_name} missing required columns: {sorted(missing)}")
+
+
+def build_dataset_quality_report(
+    df: pd.DataFrame,
+    dataset_name: str,
+    primary_key: str | None = None,
+    foreign_key: str | None = None,
+    valid_values: set[int] | None = None,
+) -> DatasetQualityReport:
+    duplicate_rows = int(df[primary_key].duplicated().sum()) if primary_key else int(df.duplicated().sum())
+    referential_issues = 0
+    if foreign_key and valid_values is not None and foreign_key in df.columns:
+        referential_issues = int((~df[foreign_key].isin(valid_values)).sum())
+
+    return DatasetQualityReport(
+        dataset_name=dataset_name,
+        row_count=int(len(df)),
+        duplicate_rows=duplicate_rows,
+        null_counts={col: int(value) for col, value in df.isna().sum().to_dict().items()},
+        referential_issues=referential_issues,
+    )
+
+
+def enforce_quality_gate(reports: list[DatasetQualityReport]) -> None:
+    issues: list[str] = []
+    for report in reports:
+        if report.row_count == 0:
+            issues.append(f"{report.dataset_name} is empty")
+        if report.duplicate_rows > 0:
+            issues.append(f"{report.dataset_name} has {report.duplicate_rows} duplicate keys/rows")
+        if report.referential_issues > 0:
+            issues.append(
+                f"{report.dataset_name} has {report.referential_issues} referential integrity issues"
+            )
+    if issues:
+        raise DataQualityError("; ".join(issues))
+
+
+def write_quality_report(reports: list[DatasetQualityReport], output_path: Path) -> dict:
+    payload = {
+        "datasets": [asdict(report) for report in reports],
+        "total_datasets": len(reports),
+    }
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8") as file:
+        json.dump(payload, file, indent=2)
+    return payload

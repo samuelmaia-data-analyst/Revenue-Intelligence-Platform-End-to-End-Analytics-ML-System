@@ -29,9 +29,18 @@ def test_executive_report_contains_required_sections(tmp_path: Path) -> None:
             "temporal_test_roc_auc": 0.69,
         },
         next_purchase_results={
+            "model_name": "next_purchase_30d",
             "split_strategy": "temporal",
             "cv_roc_auc_mean": 0.66,
             "temporal_test_roc_auc": 0.64,
+        },
+        kpi_snapshot={
+            "avg_ltv": 2500.0,
+            "avg_cac": 300.0,
+            "avg_ltv_cac_ratio": 8.78,
+            "revenue_proxy": 7500.0,
+            "portfolio_size": 3,
+            "best_channel_efficiency": {"channel": "Organic", "ltv_cac_ratio": 4.0},
         },
         output_path=output,
     )
@@ -39,6 +48,7 @@ def test_executive_report_contains_required_sections(tmp_path: Path) -> None:
     assert output.exists()
     assert "top_kpis" in report
     assert "base_size" in report
+    assert "business_context" in report
     assert "data_refresh_utc" in report
     assert "recommendations_top_20" in report
     assert len(report["recommendations_top_20"]) == 3
@@ -65,7 +75,17 @@ def test_executive_summary_contains_requested_sections(tmp_path: Path) -> None:
     )
 
     output = tmp_path / "executive_summary.json"
-    summary = build_executive_summary(recommendations, scored, unit, output)
+    summary = build_executive_summary(
+        recommendations,
+        scored,
+        unit,
+        {
+            "revenue_proxy": 600.0,
+            "avg_arpu": 20.0,
+            "portfolio_size": 3,
+        },
+        output,
+    )
 
     assert output.exists()
     assert "data_refresh_utc" in summary
@@ -73,6 +93,7 @@ def test_executive_summary_contains_requested_sections(tmp_path: Path) -> None:
     assert "ltv_cac_by_channel" in summary
     assert "top_churn_risk_customers" in summary
     assert "top_20_recommended_actions" in summary
+    assert summary["kpis"]["portfolio_size"] == 3
 
 
 def test_business_outcomes_generates_kpis_and_top_actions(tmp_path: Path) -> None:

@@ -3,11 +3,21 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from src.business_rules import (
+    CHURN_OVERRIDE_PROBABILITY,
+    DEFAULT_RETENTION_PROBABILITY,
+    GROSS_MARGIN,
+)
 
-def calculate_ltv(df: pd.DataFrame, gross_margin: float = 0.68) -> pd.DataFrame:
+
+def calculate_ltv(df: pd.DataFrame, gross_margin: float = GROSS_MARGIN) -> pd.DataFrame:
     out = df.copy()
     if "churn_probability" not in out.columns:
-        out["churn_probability"] = np.where(out["is_churned"] == 1, 0.8, 0.2)
+        out["churn_probability"] = np.where(
+            out["is_churned"] == 1,
+            CHURN_OVERRIDE_PROBABILITY,
+            DEFAULT_RETENTION_PROBABILITY,
+        )
     out["expected_retention_months"] = 1 / np.clip(out["churn_probability"], 0.05, 0.99)
     out["ltv"] = out["arpu"] * out["expected_retention_months"] * gross_margin
     out["ltv"] = out["ltv"].clip(lower=0)
@@ -86,7 +96,7 @@ def cohort_analysis(orders_path: Path, customers_path: Path) -> pd.DataFrame:
 
 
 def unit_economics(
-    ltv_df: pd.DataFrame, cac_df: pd.DataFrame, gross_margin: float = 0.68
+    ltv_df: pd.DataFrame, cac_df: pd.DataFrame, gross_margin: float = GROSS_MARGIN
 ) -> pd.DataFrame:
     channel_arpu = ltv_df.groupby("channel")["arpu"].mean().reset_index(name="avg_arpu")
     out = cac_df.merge(channel_arpu, on="channel", how="left").fillna({"avg_arpu": 0})
@@ -94,3 +104,32 @@ def unit_economics(
     out["contribution_margin"] = out["avg_arpu"] * gross_margin - out["cac"] / 6
     out["payback_period_months"] = out["cac"] / (out["avg_arpu"] * gross_margin).replace(0, np.nan)
     return out.replace([np.inf, -np.inf], np.nan).fillna(0)
+
+
+def build_business_kpi_snapshot(
+    recommendations_df: pd.DataFrame,
+    scored_df: pd.DataFrame,
+    unit_economics_df: pd.DataFrame,
+) -> dict:
+    revenue_proxy = float(scored_df["monetary"].sum())
+    avg_arpu = float(scored_df["arpu"].mean())
+    avg_ltv = float(recommendations_df["ltv"].mean())
+    avg_cac = float(recommendations_df["cac"].mean())
+    avg_ltv_cac = float(recommendations_df["ltv_cac_ratio"].mean())
+    high_risk_share = float((recommendations_df["churn_probability"] >= 0.7).mean())
+
+    best_channel = (
+        unit_economics_df.sort_values("ltv_cac_ratio", ascending=False)
+        .head(1)[["channel", "ltv_cac_ratio"]]
+        .to_dict(orient="records")
+    )
+    return {
+        "revenue_proxy": revenue_proxy,
+        "avg_arpu": avg_arpu,
+        "avg_ltv": avg_ltv,
+        "avg_cac": avg_cac,
+        "avg_ltv_cac_ratio": avg_ltv_cac,
+        "high_churn_risk_pct": high_risk_share,
+        "portfolio_size": int(recommendations_df["customer_id"].nunique()),
+        "best_channel_efficiency": best_channel[0] if best_channel else {},
+    }
