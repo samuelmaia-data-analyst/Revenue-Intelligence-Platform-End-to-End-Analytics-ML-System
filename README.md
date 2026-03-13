@@ -14,6 +14,11 @@ LinkedIn: https://linkedin.com/in/samuelmaia-analytics
 
 > Secure-by-default serving API: versioned endpoints (`/api/v1/*`), authenticated scoring with `X-API-Key`/Bearer token, and release runbook for reproducible operations.
 
+## Business Context
+
+This project simulates a B2B subscription business that needs to improve revenue quality, retention efficiency, and commercial prioritization.
+Instead of treating analytics as a reporting layer only, the repository is structured as a decision system that connects data engineering, KPI modeling, churn prediction, recommendation logic, API delivery, and executive consumption.
+
 ## Business Impact (Latest Run)
 
 - Simulated net impact (Top 10 actions): **2,550.13**
@@ -30,6 +35,14 @@ LinkedIn: https://linkedin.com/in/samuelmaia-analytics
 - Commercial teams need one prioritized view of who to retain, upsell, or deprioritize.
 - Finance and growth need transparent unit economics (`LTV/CAC`) by channel to reallocate spend fast.
 - Leadership needs a single weekly board pack with KPI trends, risk signals, and top actions.
+
+## Stakeholders
+
+- Revenue Operations: prioritization of accounts and actions
+- Marketing: channel efficiency and acquisition quality
+- Product and Customer Success: churn drivers and retention opportunities
+- Finance: unit economics and ROI visibility
+- Executive leadership: consolidated KPI and scenario view
 
 ## Who Should Care About This
 
@@ -88,6 +101,8 @@ make serve-api
 Revenue Intelligence Platform is an end-to-end decision system that converts customer behavior data into commercial priorities.
 
 This version includes a mature layered data architecture (`raw -> bronze -> silver -> gold`) with a formal Star Schema and structured SQL domains for analytics.
+
+It is designed to answer a practical leadership question: where should the company act first to protect revenue and improve growth efficiency?
 
 ## Business Outcomes
 
