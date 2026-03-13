@@ -347,8 +347,18 @@ Current automated coverage includes:
 
 ## Future Improvements
 
-- add true production scheduler deployment examples for Prefect or Airflow
+The following capabilities already exist in the repository in a local or optional form:
+
+- optional Prefect orchestration flow
+- SQLite warehouse persistence
+- drift monitoring and calibration diagnostics
+- interactive scenario planning in the dashboard
+- dbt models and tests on top of the semantic metric layer
+
+Next production-grade improvements:
+
+- add true deployed scheduler examples for Prefect or Airflow
 - move SQLite persistence to a cloud warehouse target such as BigQuery, Snowflake, or Postgres
 - add alerting thresholds and notification hooks for drift and quality regressions
-- expose write-back workflow for approved actions from the dashboard
+- expose a write-back workflow for approved actions from the dashboard
 - add dbt exposures, docs site publishing, and source freshness checks

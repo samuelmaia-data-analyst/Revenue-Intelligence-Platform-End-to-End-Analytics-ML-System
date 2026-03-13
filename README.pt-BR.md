@@ -347,7 +347,17 @@ Cobertura automatizada atual:
 
 ## Melhorias Futuras
 
-- exemplos de deployment real com Prefect ou Airflow
+As capacidades abaixo já existem no repositório em forma local ou opcional:
+
+- fluxo opcional de orquestração com Prefect
+- persistência em warehouse SQLite
+- monitoramento de drift e calibração
+- scenario planning interativo no dashboard
+- modelos e testes dbt sobre a camada semântica
+
+Próximos passos em nível production-grade:
+
+- exemplos reais de scheduler implantado com Prefect ou Airflow
 - migração do SQLite local para warehouse cloud como BigQuery, Snowflake ou Postgres
 - alertas automáticos para regressões de qualidade e drift
 - workflow de aprovação e write-back de ações a partir do dashboard
