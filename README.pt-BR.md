@@ -383,7 +383,7 @@ As capacidades abaixo já existem no repositório em forma local ou opcional:
 - persistência configurável com SQLite e Postgres opcional
 - monitoramento de drift, calibração e geração de alertas
 - scenario planning interativo e write-back no dashboard
-- modelos, testes, exposures e freshness checks no dbt
+- modelos, testes, exposures, freshness checks e docs publishing endurecido no dbt
 
 Próximos passos em nível production-grade:
 
@@ -391,4 +391,3 @@ Próximos passos em nível production-grade:
 - adapters de warehouse para BigQuery e Snowflake
 - sinks de alerta para Slack, Teams ou PagerDuty com secrets gerenciados
 - papéis de aprovação, trilha de auditoria e sync downstream com CRM
-- hardening do publish de docs dbt com profiles por ambiente e SLAs de freshness

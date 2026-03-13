@@ -383,7 +383,7 @@ The following capabilities already exist in the repository in a local or optiona
 - configurable warehouse persistence with SQLite and optional Postgres
 - drift monitoring, calibration diagnostics, and alert report generation
 - interactive scenario planning and write-back in the dashboard
-- dbt models, tests, exposures, and freshness checks on top of the semantic metric layer
+- dbt models, tests, exposures, freshness checks, and hardened docs publishing on top of the semantic metric layer
 
 Next production-grade improvements:
 
@@ -391,4 +391,3 @@ Next production-grade improvements:
 - add warehouse adapters for BigQuery and Snowflake
 - add Slack, Teams, or PagerDuty alert sinks with secret-managed credentials
 - add approval roles, audit trail states, and downstream CRM sync for write-back
-- harden dbt docs publishing with environment-aware profiles and source freshness SLAs
