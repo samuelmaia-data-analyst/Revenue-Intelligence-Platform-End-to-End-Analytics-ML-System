@@ -6,6 +6,8 @@ This repository follows a production-oriented structure with explicit boundaries
 - `services/`: runtime services (HTTP APIs, workers).
 - `contracts/`: input/output schemas used across pipeline, API and tests.
 - `app/`: Streamlit product UI.
+- `dbt/`: semantic warehouse models and dbt-native tests.
+- `metrics/`: declarative metric definitions shared across analytics governance layers.
 - `tests/`: automated quality gates.
 - `data/`: local development data and generated artifacts.
 

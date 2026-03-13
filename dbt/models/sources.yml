@@ -1,0 +1,29 @@
+version: 2
+
+sources:
+  - name: warehouse
+    schema: main
+    tables:
+      - name: scored_customers
+        columns:
+          - name: customer_id
+            tests:
+              - not_null
+              - unique
+      - name: recommendations
+        columns:
+          - name: customer_id
+            tests:
+              - not_null
+              - unique
+      - name: unit_economics
+        columns:
+          - name: channel
+            tests:
+              - not_null
+              - unique
+      - name: top_10_actions
+        columns:
+          - name: customer_id
+            tests:
+              - not_null

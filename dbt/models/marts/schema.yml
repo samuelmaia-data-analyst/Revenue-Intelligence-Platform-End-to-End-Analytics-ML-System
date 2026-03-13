@@ -1,0 +1,59 @@
+version: 2
+
+models:
+  - name: stg_scored_customers
+    columns:
+      - name: customer_id
+        tests:
+          - not_null
+          - unique
+
+  - name: stg_recommendations
+    columns:
+      - name: customer_id
+        tests:
+          - not_null
+          - unique
+      - name: recommended_action
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Retention Campaign', 'Upsell Offer', 'Reduce Acquisition Spend', 'Nurture']
+
+  - name: stg_unit_economics
+    columns:
+      - name: channel
+        tests:
+          - not_null
+          - unique
+
+  - name: portfolio_semantic_metrics
+    columns:
+      - name: revenue_proxy
+        tests:
+          - not_null
+      - name: avg_ltv
+        tests:
+          - not_null
+      - name: avg_cac
+        tests:
+          - not_null
+      - name: avg_ltv_cac_ratio
+        tests:
+          - not_null
+      - name: high_churn_risk_pct
+        tests:
+          - not_null
+
+  - name: channel_semantic_metrics
+    columns:
+      - name: channel
+        tests:
+          - not_null
+          - unique
+
+  - name: action_priority_board
+    columns:
+      - name: customer_id
+        tests:
+          - not_null

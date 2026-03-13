@@ -1,6 +1,7 @@
 PYTHON ?= python
+DBT ?= dbt
 
-.PHONY: install install-dev pipeline serve-app serve-api lint format test quality docker-build-app docker-build-api docker-build
+.PHONY: install install-dev pipeline serve-app serve-api lint format test quality dbt-run dbt-test dbt-docs docker-build-app docker-build-api docker-build
 
 install:
 	$(PYTHON) -m pip install --upgrade pip
@@ -30,6 +31,15 @@ test:
 	$(PYTHON) -m pytest -q
 
 quality: lint test
+
+dbt-run:
+	$(DBT) --project-dir dbt run
+
+dbt-test:
+	$(DBT) --project-dir dbt test
+
+dbt-docs:
+	$(DBT) --project-dir dbt docs generate
 
 docker-build-app:
 	docker build -t revenue-intelligence .

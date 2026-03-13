@@ -247,6 +247,21 @@ Isso aproxima o projeto de uma plataforma analítica real e reduz dependência d
 - `metrics/semantic_metrics.json`: definições semânticas no estilo dbt
 - `semantic_metrics_catalog.json`: catálogo exportado para consumidores downstream
 
+## Camada Semântica com dbt
+
+O repositório agora inclui um projeto dbt dedicado sobre o warehouse SQLite:
+
+- [dbt/dbt_project.yml](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/dbt/dbt_project.yml)
+- [dbt/models/marts/finance/portfolio_semantic_metrics.sql](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/dbt/models/marts/finance/portfolio_semantic_metrics.sql)
+- [dbt/models/marts/finance/channel_semantic_metrics.sql](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/dbt/models/marts/finance/channel_semantic_metrics.sql)
+
+O que isso adiciona:
+
+- modelos staging sobre as tabelas do warehouse
+- marts semânticos orientados a finanças
+- testes nativos do dbt na camada curada
+- alinhamento entre `metrics/semantic_metrics.json` e o modelo semântico no dbt
+
 ## Estrutura do Repositório
 
 ```text
@@ -318,6 +333,7 @@ Cobertura automatizada atual:
 - outputs de drift monitoring
 - export do catálogo semântico
 - lógica de scenario simulation
+- estrutura do projeto dbt e alinhamento com a camada semântica
 
 ## Por Que o Projeto Está Mais Sênior
 
@@ -335,4 +351,4 @@ Cobertura automatizada atual:
 - migração do SQLite local para warehouse cloud como BigQuery, Snowflake ou Postgres
 - alertas automáticos para regressões de qualidade e drift
 - workflow de aprovação e write-back de ações a partir do dashboard
-- modelos e testes dbt sobre a camada semântica de métricas
+- exposures, docs site e source freshness checks no dbt

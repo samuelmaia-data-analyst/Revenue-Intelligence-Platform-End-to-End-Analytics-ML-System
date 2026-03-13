@@ -247,6 +247,21 @@ This keeps the project closer to a real analytics platform and reduces coupling 
 - `metrics/semantic_metrics.json`: dbt-style semantic metric definitions
 - `semantic_metrics_catalog.json`: exported catalog used by downstream consumers
 
+## dbt Semantic Layer
+
+The repository now includes a dedicated dbt project on top of the SQLite warehouse:
+
+- [dbt/dbt_project.yml](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/dbt/dbt_project.yml)
+- [dbt/models/marts/finance/portfolio_semantic_metrics.sql](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/dbt/models/marts/finance/portfolio_semantic_metrics.sql)
+- [dbt/models/marts/finance/channel_semantic_metrics.sql](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/dbt/models/marts/finance/channel_semantic_metrics.sql)
+
+What it adds:
+
+- staging models over the warehouse tables
+- finance-oriented semantic metric marts
+- dbt-native tests for curated models
+- alignment between `metrics/semantic_metrics.json` and the dbt semantic model
+
 ## Repository Structure
 
 ```text
@@ -318,6 +333,7 @@ Current automated coverage includes:
 - drift monitoring outputs
 - semantic metric catalog export
 - scenario simulation logic
+- dbt project structure and semantic model alignment
 
 ## Why This Looks Senior
 
@@ -335,4 +351,4 @@ Current automated coverage includes:
 - move SQLite persistence to a cloud warehouse target such as BigQuery, Snowflake, or Postgres
 - add alerting thresholds and notification hooks for drift and quality regressions
 - expose write-back workflow for approved actions from the dashboard
-- add dbt models and tests on top of the semantic metric layer
+- add dbt exposures, docs site publishing, and source freshness checks
