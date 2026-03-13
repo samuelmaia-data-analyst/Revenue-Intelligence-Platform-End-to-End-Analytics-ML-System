@@ -1,295 +1,235 @@
-# Revenue Intelligence Platform - Executive Analytics & ML System
+# Revenue Intelligence Platform
+
+End-to-end revenue intelligence platform that turns customer behavior data into reproducible analytics, business KPIs, ML predictions, and executive actions.
 
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.43-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.6-F7931E?logo=scikitlearn&logoColor=white)](https://scikit-learn.org/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![CI](https://github.com/samuelmaia-analytics/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/actions/workflows/ci.yml/badge.svg)](https://github.com/samuelmaia-analytics/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 
 [Leia em Português](README.pt-BR.md)
-LinkedIn: https://linkedin.com/in/samuelmaia-analytics
-
-## API Security Spotlight
-
-> Secure-by-default serving API: versioned endpoints (`/api/v1/*`), authenticated scoring with `X-API-Key`/Bearer token, and release runbook for reproducible operations.
-
-## Business Impact (Latest Run)
-
-- Simulated net impact (Top 10 actions): **2,550.13**
-- Simulated ROI (Top 10 actions): **1.58x**
-- Revenue uplift over baseline (90d, Top 10 actions): **+4,165.63**
-
-## Product Preview
-
-![Executive Overview](docs/assets/executive-overview.svg)
-![Action List](docs/assets/action-list.svg)
-
-## What Problem It Solves
-
-- Commercial teams need one prioritized view of who to retain, upsell, or deprioritize.
-- Finance and growth need transparent unit economics (`LTV/CAC`) by channel to reallocate spend fast.
-- Leadership needs a single weekly board pack with KPI trends, risk signals, and top actions.
-
-## Who Should Care About This
-
-- Recruiters: validates end-to-end ownership (data engineering, ML, API, dashboard, CI/CD) in one production-style repository.
-- Heads of Data/Analytics: shows governance discipline (contracts, versioned models, quality gates, runbook) and business KPI alignment.
-- Tech/Analytics Leads: provides a reusable blueprint for turning behavioral data into prioritized actions with measurable ROI.
-
-## Summary
-
-- [API Security Spotlight](#api-security-spotlight)
-- [Product Preview](#product-preview)
-- [What Problem It Solves](#what-problem-it-solves)
-- [Who Should Care About This](#who-should-care-about-this)
-- [Live App](#live-app)
-- [30-Second Quickstart](#30-second-quickstart)
-- [Executive Summary](#executive-summary)
-- [Business Impact (Latest Run)](#business-impact-latest-run)
-- [Business Outcomes](#business-outcomes)
-- [Scope and Capabilities](#scope-and-capabilities)
-- [Architecture](#architecture)
-- [Data Lineage](#data-lineage)
-- [Repository Structure](#repository-structure)
-- [Data Source](#data-source)
-- [Star Schema (Gold)](#star-schema-gold)
-- [SQL Organization](#sql-organization)
-- [Local Run (Windows / PowerShell)](#local-run-windows--powershell)
-- [CLI](#cli)
-- [Task Automation (Makefile)](#task-automation-makefile)
-- [Serving API (FastAPI)](#serving-api-fastapi)
-- [Data Contract](#data-contract)
-- [Operating Standards](#operating-standards)
-- [Runbook](#runbook)
-- [Engineering Quality](#engineering-quality)
-- [CI](#ci)
-- [Docker](#docker)
-- [Main Outputs](#main-outputs)
-- [Streamlit Cloud](#streamlit-cloud)
 
 ## Live App
 
 Streamlit Cloud:
+
 - https://revenue-intelligence-platform.streamlit.app/
 
-## 30-Second Quickstart
+## Business Problem
 
-```powershell
-py -3.11 -m venv .venv
-.\.venv\Scripts\activate
-python -m pip install -r requirements.txt -r requirements-dev.txt
-make pipeline
-make serve-api
-```
+Commercial teams rarely need another notebook. They need a decision system that answers:
 
-## Executive Summary
+- Which customers are most likely to churn and worth saving?
+- Which segments are most likely to buy again and worth upselling?
+- Which acquisition channels are efficient enough to scale?
+- What is the expected business impact of the next 10 actions?
 
-Revenue Intelligence Platform is an end-to-end decision system that converts customer behavior data into commercial priorities.
+This repository is structured as a real analytics platform instead of a single experiment. It preserves the original scope, but now makes the flow explicit from raw data to executive insight.
 
-This version includes a mature layered data architecture (`raw -> bronze -> silver -> gold`) with a formal Star Schema and structured SQL domains for analytics.
-
-## Business Outcomes
-
-- Prioritized customer action list with estimated financial impact
-- Channel efficiency visibility with `LTV/CAC` and unit economics
-- Customer-level churn risk and next purchase probability
-- Executive narrative for weekly business reviews
-
-## Scope and Capabilities
-
-- Data ingestion from Kaggle source with synthetic fallback
-- Layered pipeline: raw, bronze, silver, gold
-- Feature engineering and customer-level scoring
-- Star schema outputs for analytics interoperability
-- KPI layer: LTV, CAC, RFM, Cohort Retention, Unit Economics
-- ML layer: churn + next purchase prediction
-- Recommendation engine for next best action
-- Executive Streamlit dashboard with governance and exports
-  (`Executive Overview`, `Risk & Growth`, `Action List`)
-- Structured SQL domains (`ddl/` and `analytics/`)
-
-## Architecture
+## Platform View
 
 ```mermaid
 flowchart LR
-    A[Kaggle Source Dataset] --> B[Raw Layer]
-    B --> C[Data Lake]
-    C --> D[Bronze - auditable ingestion]
-    D --> E[Silver - cleaning and standardization]
-    E --> F[Warehouse - Gold Star Schema]
-    F --> G[Analytics Layer]
-    F --> H[ML Layer]
-    H --> I[Recommendation Engine]
-    H --> J[API Layer]
-    G --> K[Dashboard]
-    I --> K
+    A[Raw Customer Behavior Data] --> B[Ingestion]
+    B --> C[Bronze]
+    C --> D[Silver]
+    D --> E[Feature Engineering]
+    D --> F[Gold Star Schema]
+    E --> G[ML Training & Scoring]
+    D --> H[Business KPI Layer]
+    G --> I[Recommendations]
+    H --> J[Executive Reporting]
+    I --> J
+    F --> K[Dashboard / API / SQL]
     J --> K
-    K --> L[Docker / Cloud Deployment]
 ```
 
-## Data Lineage
+## Architecture
 
-```mermaid
-flowchart TB
-    subgraph R[Raw]
-        R1[customers.csv]
-        R2[orders.csv]
-        R3[marketing_spend.csv]
-    end
+### Layered flow
 
-    subgraph B[Bronze]
-        B1[bronze_customers.csv]
-        B2[bronze_orders.csv]
-        B3[bronze_marketing_spend.csv]
-    end
+- `src/ingestion.py`: raw dataset ingestion and bronze persistence
+- `src/transformation.py`: silver standardization and customer feature engineering
+- `src/warehouse.py`: gold star schema for analytics interoperability
+- `src/metrics.py`: centralized revenue KPI calculations and business metric snapshots
+- `src/analytics.py`: analytics artifact generation independent from model training
+- `src/modeling.py`: preprocessing, training, scoring, model registry, and business-facing interpretation
+- `src/recommendation.py`: action prioritization logic
+- `src/reporting.py`: executive outputs and simulation artifacts
+- `src/quality.py`: data quality gates and integrity reports
+- `src/orchestration.py`: reproducible end-to-end pipeline orchestration
+- `src/config.py`: runtime configuration and path management
 
-    subgraph S[Silver]
-        S1[silver_customers.csv]
-        S2[silver_orders.csv]
-        S3[silver_marketing_spend.csv]
-    end
+### Reproducibility and controls
 
-    subgraph G[Gold]
-        G1[dim_customers.csv]
-        G2[dim_date.csv]
-        G3[dim_channel.csv]
-        G4[fact_orders.csv]
-    end
+- deterministic seed via `PipelineConfig`
+- explicit directories for `raw`, `bronze`, `silver`, `gold`, `processed`
+- generated `pipeline_manifest.json` with stage timings and output inventory
+- generated `quality_report.json` with row counts, duplicates, nulls, and referential checks
+- versioned model registry in `data/processed/registry`
 
-    subgraph P[Processed]
-        P1[scored_customers.csv]
-        P2[recommendations.csv]
-        P3[executive_report.json]
-        P4[business_outcomes.json]
-        P5[top_10_actions.csv]
-    end
+Supporting documentation:
 
-    R --> B --> S --> G
-    S --> P
-    G --> P
-```
+- [docs/architecture.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/architecture.md)
+
+## Analytics Workflow
+
+### Raw -> transformed -> analytics -> ML -> insight
+
+1. Raw source is loaded from the Kaggle file in `data/raw/` or generated synthetically as a deterministic fallback.
+2. Bronze keeps an auditable copy with ingestion metadata.
+3. Silver applies schema checks, deduplication, typing, null handling, and referential cleanup.
+4. Feature engineering creates a customer-level analytical base with recency, frequency, monetary value, tenure, ARPU, and forward-looking targets.
+5. Gold publishes `dim_*` and `fact_orders.csv` so analytics can run independently from the ML layer.
+6. Centralized KPI logic computes LTV, CAC, RFM, cohort retention, unit economics, and a KPI snapshot.
+7. ML trains churn and next-purchase models with temporal evaluation and business driver summaries.
+8. Recommendation logic translates scores into action types.
+9. Reporting packages the results into executive artifacts, action simulations, and dashboard-ready tables.
+
+## ML Approach
+
+### Targets
+
+- `is_churned`: no purchase in the forward 90-day window for eligible customers
+- `next_purchase_30d`: purchase propensity in the forward 30-day window
+
+### Features
+
+- behavioral: `recency_days`, `frequency`, `monetary`, `avg_order_value`
+- lifecycle: `tenure_days`, `arpu`
+- business context: `channel`, `segment`
+
+### Modeling choices
+
+- churn: `RandomForestClassifier`
+- next purchase: `LogisticRegression`
+- preprocessing: numeric scaling + categorical one-hot encoding
+- validation: temporal split with stratified fallback when needed
+
+### Why this matters for the business
+
+- churn predictions support retention budget allocation
+- next purchase propensity supports upsell timing and CRM prioritization
+- model outputs are converted into clear actions, not left as isolated scores
+- `metrics_report.json` now includes top business drivers for each model
+
+## Centralized Revenue KPIs
+
+Business KPI logic is no longer scattered across notebooks or reporting code.
+
+Key metrics:
+
+- `LTV`
+- `CAC`
+- `LTV/CAC`
+- `ARPU`
+- `RFM segmentation`
+- `Cohort retention`
+- `Contribution margin`
+- `Payback period`
+- `High churn risk share`
+- `Top-10 action impact simulation`
+
+Primary code:
+
+- [src/metrics.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/metrics.py)
+- [src/business_rules.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/business_rules.py)
+
+## Executive Outputs
+
+Main generated artifacts in `data/processed/`:
+
+- `customer_features.csv`
+- `scored_customers.csv`
+- `recommendations.csv`
+- `ltv.csv`
+- `cac_by_channel.csv`
+- `rfm_segments.csv`
+- `cohort_retention.csv`
+- `unit_economics.csv`
+- `kpi_snapshot.json`
+- `metrics_report.json`
+- `executive_report.json`
+- `executive_summary.json`
+- `business_outcomes.json`
+- `top_10_actions.csv`
+- `quality_report.json`
+- `pipeline_manifest.json`
+
+These outputs support different audiences:
+
+- operators: scored portfolio and recommended action list
+- finance/growth: unit economics and channel efficiency
+- leadership: executive summary and business outcome simulation
+- engineering: data quality report, model registry, manifest
+
+## Dashboard and Storytelling
+
+The Streamlit app is positioned as an executive operating layer, not only a chart viewer.
+
+Current storytelling outputs include:
+
+- business context cards
+- portfolio KPI view
+- channel efficiency
+- cohort retention
+- risk and growth lenses
+- model performance summary
+- top business drivers from both models
+- prioritized action list
+- simulated impact for the top 10 interventions
+
+App entrypoint:
+
+- [app/streamlit_app.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/app/streamlit_app.py)
+
+## API
+
+FastAPI serving layer:
+
+- health endpoint with telemetry and model registry metadata
+- authenticated scoring endpoint
+- versioned routes under `/api/v1/*`
+
+Primary service:
+
+- [services/api/main.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/services/api/main.py)
 
 ## Repository Structure
 
 ```text
-revenue-intelligence-platform/
+.
 |- app/
-|  \- streamlit_app.py
 |- contracts/
-|  |- data_contract.py (compatibility shim)
-|  \- v1/
-|     \- data_contract.py
-|- api/
-|  \- main.py (compatibility shim)
-|- services/
-|  \- api/
-|     \- main.py
 |- data/
 |  |- raw/
 |  |- bronze/
 |  |- silver/
 |  |- gold/
 |  \- processed/
+|- docs/
 |- notebooks/
-|- src/
+|- services/
+|  \- api/
 |- sql/
-|  |- ddl/
-|  \- analytics/
+|- src/
+|- tests/
 |- main.py
-|- requirements.txt
-|- requirements-dev.txt
-|- pytest.ini
-|- Dockerfile
-|- Dockerfile.api
-|- README.md
-\- README.pt-BR.md
+\- README.md
 ```
 
-## Data Source
-
-Primary file:
-- `data/raw/E-commerce Customer Behavior - Sheet1.csv`
-
-Source:
-- Kaggle dataset: `E-commerce Customer Behavior Dataset`
-
-Automatically mapped into:
-- `customers.csv`
-- `orders.csv`
-- `marketing_spend.csv`
-
-Then normalized into:
-- `data/bronze/*.csv`
-- `data/silver/*.csv`
-- `data/gold/dim_*.csv` and `data/gold/fact_*.csv`
-
-## Star Schema (Gold)
-
-- Dimensions: `dim_date`, `dim_customers`, `dim_channel`
-- Fact: `fact_orders`
-- Standardized measures: `order_amount`, `order_count`
-
-```mermaid
-erDiagram
-    DIM_CUSTOMERS ||--o{ FACT_ORDERS : customer_id
-    DIM_DATE ||--o{ FACT_ORDERS : date_key
-    DIM_CHANNEL ||--o{ FACT_ORDERS : channel_key
-
-    DIM_CUSTOMERS {
-        int customer_id PK
-        date signup_date
-        string channel
-        string segment
-    }
-
-    DIM_DATE {
-        int date_key PK
-        date date
-        int year
-        int month
-        int week_of_year
-        string day_of_week
-    }
-
-    DIM_CHANNEL {
-        int channel_key PK
-        string channel
-    }
-
-    FACT_ORDERS {
-        string order_id PK
-        int customer_id FK
-        int channel_key FK
-        int date_key FK
-        date order_date
-        float order_amount
-        int order_count
-    }
-```
-
-## SQL Organization
-
-- `sql/ddl/`: schema creation scripts per table/domain
-- `sql/analytics/`: executive queries (revenue KPIs, channel efficiency, churn watchlist)
-- `sql/create_tables.sql`: consolidated bootstrap script
-
-## Local Run (Windows / PowerShell)
+## Local Run
 
 ```powershell
 py -3.11 -m venv .venv
 .\.venv\Scripts\activate
 python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+python -m pip install -r requirements.txt -r requirements-dev.txt
 python main.py
 python -m streamlit run .\app\streamlit_app.py
+python -m uvicorn services.api.main:app --reload --host 0.0.0.0 --port 8000
 ```
-
-Environment overrides:
-- `RIP_DATA_DIR`
-- `RIP_SEED`
-- `RIP_LOG_LEVEL`
-- `RIP_APP_LANG_MODE` (`bilingual` or `international`)
 
 ## CLI
 
@@ -298,209 +238,46 @@ python -m src.pipeline run
 python -m src.pipeline run --seed 123 --log-level DEBUG
 ```
 
-## Task Automation (Makefile)
+### Environment overrides
 
-```bash
-make install-dev
-make pipeline
-make serve-api
-make quality
-make docker-build
-```
+- `RIP_DATA_DIR`
+- `RIP_SEED`
+- `RIP_LOG_LEVEL`
+- `RIP_APP_LANG_MODE`
+- `RIP_MODEL_DIR`
+- `RIP_API_AUTH_MODE`
+- `RIP_API_KEYS`
 
-## Serving API (FastAPI)
-
-Start API locally:
+## Testing and Quality
 
 ```powershell
-python -m uvicorn services.api.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-Available endpoints:
-- `GET /api/v1/health`: service status, input schema, model versions (`run_id`, `data_version`) and telemetry
-- `POST /api/v1/score`: churn + next purchase prediction for one or multiple customers
-- Backward-compatible aliases: `GET /health` and `POST /score`
-
-Security and quota (`/api/v1/score`):
-- API key required in `demo` mode (default): `X-API-Key` or `Authorization: Bearer <key>` (`X-API-Token` kept as legacy alias)
-- In-memory rate limit per token/IP (`RIP_API_RATE_LIMIT_PER_MINUTE`, default `60`)
-- Auth mode: `RIP_API_AUTH_MODE=demo|strict|off`
-- Key env vars: `RIP_API_KEYS` (comma-separated), `RIP_API_KEY` (single key fallback)
-
-Production telemetry (health + logs):
-- `prediction_latency_ms`
-- `request_volume`
-- `model_version_usage`
-
-Example `curl` with API key:
-
-```bash
-curl -X POST "http://localhost:8000/api/v1/score" \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: rip-demo-token-v1" \
-  -d '{
-    "records": [
-      {
-        "recency_days": 21,
-        "frequency": 7,
-        "monetary": 1450.0,
-        "avg_order_value": 207.0,
-        "tenure_days": 360,
-        "arpu": 148.0,
-        "channel": "Organic",
-        "segment": "SMB"
-      }
-    ]
-  }'
-```
-
-Example request body:
-
-```json
-{
-  "records": [
-    {
-      "recency_days": 21,
-      "frequency": 7,
-      "monetary": 1450.0,
-      "avg_order_value": 207.0,
-      "tenure_days": 360,
-      "arpu": 148.0,
-      "channel": "Organic",
-      "segment": "SMB"
-    }
-  ]
-}
-```
-
-## Data Contract
-
-Versioned contract source of truth is `contracts/v1/data_contract.py`:
-- Input serving schema: `ScoreRequest` / `ScoreInputRecord`
-- Gold output schema: `DimCustomersContract`, `DimDateContract`, `DimChannelContract`, `FactOrdersContract`
-- `contracts/data_contract.py` remains as backward-compatible import path.
-
-Automated validation:
-- `tests/test_output_contract.py` validates required columns from the contract.
-
-## Operating Standards
-
-- Service entrypoint: `services/api/main.py` (canonical), `api/main.py` (backward-compatible shim).
-- Contract source of truth: `contracts/v1/data_contract.py` (`contracts/data_contract.py` and `src/data_contract.py` kept as compatibility import paths).
-- Repository structure standard: `docs/repository_structure.md`.
-- PR governance: `.github/pull_request_template.md` and CI workflow `.github/workflows/ci.yml`.
-
-## Runbook
-
-### Dev
-- Install dependencies: `make install-dev`
-- Generate artifacts locally: `make pipeline`
-- Start serving API: `make serve-api`
-- Start Streamlit app: `make serve-app`
-
-### CI
-- Required checks: `ruff`, `black --check`, `pytest -q`
-- Image checks: `docker build` (app) and `docker build -f Dockerfile.api` (API)
-- Workflow source: `.github/workflows/ci.yml`
-
-### Release
-- Build images: `make docker-build`
-- Verify API health in runtime: `GET /api/v1/health`
-- Validate scoring contract in runtime: `POST /api/v1/score`
-- Keep release notes short and business-first (impact/ROI/uplift deltas).
-- Register API/contract breaking changes in `CHANGELOG.md` under `Breaking Changes`.
-- Release notes source: `docs/releases/v1.0.0.md`
-- If the sidebar shows only `1 tag`, publish the GitHub Release explicitly:
-  `gh release create v1.0.0 --title "v1.0.0" --notes-file docs/releases/v1.0.0.md`
-- If the release already exists, update it:
-  `gh release edit v1.0.0 --title "v1.0.0" --notes-file docs/releases/v1.0.0.md`
-- Validate in GitHub UI: `https://github.com/samuelmaia-analytics/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/releases`
-
-### Incident
-- If `/api/v1/health` returns `degraded`, regenerate artifacts with `make pipeline`
-- Confirm model registry files in `data/processed/registry/*`
-- Rollback option: use legacy `*.joblib` artifacts already supported by the API fallback
-
-## Engineering Quality
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-.\.venv\Scripts\python.exe -m black .
-.\.venv\Scripts\python.exe -m ruff check . --fix
 .\.venv\Scripts\python.exe -m pytest -q
-pre-commit install
-pre-commit run --all-files
 ```
 
-Current quality gates:
-- `tests/test_output_contract.py` validates output file generation and minimum Gold schema columns.
-- `main.py` bootstraps pipeline execution with `PipelineConfig.from_env(...)` for deterministic runtime settings.
+Current automated coverage includes:
 
-## Docker
+- pipeline output contract validation
+- API behavior
+- transformation integrity
+- reporting outputs
+- centralized KPI behavior
+- preprocessing checks
+- data quality gate behavior
 
-```bash
-docker build -t revenue-intelligence .
-docker run -p 8501:8501 revenue-intelligence
+## Why This Looks Senior
 
-docker build -f Dockerfile.api -t revenue-intelligence-api .
-docker run -p 8000:8000 revenue-intelligence-api
-```
+- clear separation between analytics and ML
+- KPI layer treated as a business contract
+- reproducible execution with manifest and registry
+- data quality built into the pipeline, not treated as an afterthought
+- model interpretation linked to commercial action
+- outputs designed for leadership storytelling and operational follow-through
+- project structured as a platform blueprint, not a one-off notebook experiment
 
-## Main Outputs
+## Future Improvements
 
-- `data/processed/scored_customers.csv`
-- `data/processed/recommendations.csv`
-- `data/processed/cohort_retention.csv`
-- `data/processed/unit_economics.csv`
-- `data/processed/executive_report.json` (main app report with KPIs, model metrics and top 20 actions)
-- `data/processed/executive_summary.json` (compact executive summary)
-- `data/processed/business_outcomes.json` (business KPIs, LTV/CAC by channel and baseline-vs-scenario simulation)
-- `data/processed/top_10_actions.csv` (top 10 prioritized actions with uplift, cost, net impact and simulated ROI)
-- `data/processed/metrics_report.json` (auxiliary ML metrics artifact)
-- `data/processed/registry/churn/model_v1/model.pkl` + `model_metadata.json` (versioned model registry)
-- `data/processed/registry/churn/latest.json` (latest pointer)
-- `data/processed/registry/next_purchase_30d/model_v1/model.pkl` + `model_metadata.json` (versioned model registry)
-- `data/processed/registry/next_purchase_30d/latest.json` (latest pointer)
-- `data/processed/dim_customers.csv`
-- `data/processed/dim_date.csv`
-- `data/processed/dim_channel.csv`
-- `data/processed/fact_orders.csv`
-
-## Streamlit Cloud
-
-- Main file path: `app/streamlit_app.py`
-- Dependency file: `requirements.txt`
-- Kaggle CSV is versioned in `data/raw/` for deterministic cloud runs
-- App language mode:
-  - `RIP_APP_LANG_MODE=bilingual`: language switcher with `Portuguese (BR)` and `International (EN)`
-  - `RIP_APP_LANG_MODE=international`: app locked to English only
-
-## CI
-
-GitHub Actions workflow at `.github/workflows/ci.yml` runs:
-- `pip check` (dependency consistency)
-- `ruff`
-- `black --check`
-- `pytest -q`
-- `docker build` for Streamlit image
-- `docker build -f Dockerfile.api` for serving API image
-
-PR routine:
-- `.github/pull_request_template.md` enforces lint/test/docker checklist and business-impact note.
-
-Pipeline hardening:
-- pip cache enabled via `actions/setup-python`
-- `concurrency` enabled (`cancel-in-progress: true`)
-- minimal workflow permissions (`contents: read`)
-
-```mermaid
-flowchart LR
-    A[checkout] --> B[setup-python 3.11 + pip cache]
-    B --> C[install requirements]
-    C --> D[pip check]
-    D --> E[ruff]
-    E --> F[black --check]
-    F --> G[pytest -q]
-```
-
-
+- orchestrate with Airflow or Prefect for scheduled production runs
+- persist outputs in a warehouse instead of CSV artifacts
+- add drift monitoring and model calibration diagnostics
+- expose scenario planning controls directly in the dashboard
+- add dbt-style semantic metric definitions for finance-grade governance
