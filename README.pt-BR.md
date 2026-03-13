@@ -77,9 +77,11 @@ flowchart LR
 ### Controles de reprodutibilidade
 
 - `PipelineConfig` com seed determinística
-- diretórios explícitos para `raw`, `bronze`, `silver`, `gold` e `processed`
+- diretórios explícitos para `raw`, `bronze`, `silver`, `gold`, `processed` e `warehouse`
 - `pipeline_manifest.json` com estágios, tempos e inventário de saídas
 - `quality_report.json` com duplicidades, nulos e integridade referencial
+- `monitoring_report.json` com diagnósticos de drift e calibração
+- `semantic_metrics_catalog.json` derivado de definições declarativas
 - model registry versionado em `data/processed/registry`
 
 Documentação complementar:
@@ -99,6 +101,7 @@ Documentação complementar:
 7. A camada de ML treina churn e próxima compra com avaliação temporal e leitura orientada ao negócio.
 8. A camada de recomendação converte score em ação.
 9. A camada de reporting empacota os outputs para liderança, operação e dashboard.
+10. Os outputs principais também são persistidos em SQLite para consumo tipo warehouse.
 
 ## Abordagem de Machine Learning
 
@@ -311,6 +314,10 @@ Cobertura automatizada atual:
 - KPIs centralizados
 - pré-processamento
 - quality gate
+- persistência em warehouse
+- outputs de drift monitoring
+- export do catálogo semântico
+- lógica de scenario simulation
 
 ## Por Que o Projeto Está Mais Sênior
 
@@ -324,8 +331,8 @@ Cobertura automatizada atual:
 
 ## Melhorias Futuras
 
-- orquestração com Airflow ou Prefect
-- persistência em warehouse em vez de somente CSV
-- monitoramento de drift e calibração
-- scenario planning interativo no dashboard
-- camada semântica de métricas para governança financeira mais forte
+- exemplos de deployment real com Prefect ou Airflow
+- migração do SQLite local para warehouse cloud como BigQuery, Snowflake ou Postgres
+- alertas automáticos para regressões de qualidade e drift
+- workflow de aprovação e write-back de ações a partir do dashboard
+- modelos e testes dbt sobre a camada semântica de métricas

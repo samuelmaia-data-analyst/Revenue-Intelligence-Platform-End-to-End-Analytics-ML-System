@@ -77,9 +77,11 @@ flowchart LR
 ### Reproducibility and controls
 
 - deterministic seed via `PipelineConfig`
-- explicit directories for `raw`, `bronze`, `silver`, `gold`, `processed`
+- explicit directories for `raw`, `bronze`, `silver`, `gold`, `processed`, `warehouse`
 - generated `pipeline_manifest.json` with stage timings and output inventory
 - generated `quality_report.json` with row counts, duplicates, nulls, and referential checks
+- generated `monitoring_report.json` with drift and calibration diagnostics
+- generated `semantic_metrics_catalog.json` from declarative metric definitions
 - versioned model registry in `data/processed/registry`
 
 Supporting documentation:
@@ -99,6 +101,7 @@ Supporting documentation:
 7. ML trains churn and next-purchase models with temporal evaluation and business driver summaries.
 8. Recommendation logic translates scores into action types.
 9. Reporting packages the results into executive artifacts, action simulations, and dashboard-ready tables.
+10. Core analytical outputs are persisted into SQLite for warehouse-style downstream consumption.
 
 ## ML Approach
 
@@ -311,6 +314,10 @@ Current automated coverage includes:
 - centralized KPI behavior
 - preprocessing checks
 - data quality gate behavior
+- warehouse persistence
+- drift monitoring outputs
+- semantic metric catalog export
+- scenario simulation logic
 
 ## Why This Looks Senior
 
@@ -324,8 +331,8 @@ Current automated coverage includes:
 
 ## Future Improvements
 
-- orchestrate with Airflow or Prefect for scheduled production runs
-- persist outputs in a warehouse instead of CSV artifacts
-- add drift monitoring and model calibration diagnostics
-- expose scenario planning controls directly in the dashboard
-- add dbt-style semantic metric definitions for finance-grade governance
+- add true production scheduler deployment examples for Prefect or Airflow
+- move SQLite persistence to a cloud warehouse target such as BigQuery, Snowflake, or Postgres
+- add alerting thresholds and notification hooks for drift and quality regressions
+- expose write-back workflow for approved actions from the dashboard
+- add dbt models and tests on top of the semantic metric layer
