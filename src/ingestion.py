@@ -3,6 +3,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from src.io_utils import atomic_write_csv
+
 CHANNELS = ["Organic", "Paid Search", "Social Ads", "Referral", "Partnership"]
 KAGGLE_FILE = "E-commerce Customer Behavior - Sheet1.csv"
 
@@ -186,9 +188,9 @@ def save_raw_datasets(raw_dir: Path, seed: int = 42) -> tuple[Path, Path, Path]:
     orders_path = raw_dir / "orders.csv"
     marketing_path = raw_dir / "marketing_spend.csv"
 
-    customers.to_csv(customers_path, index=False)
-    orders.to_csv(orders_path, index=False)
-    marketing.to_csv(marketing_path, index=False)
+    atomic_write_csv(customers_path, customers)
+    atomic_write_csv(orders_path, orders)
+    atomic_write_csv(marketing_path, marketing)
 
     return customers_path, orders_path, marketing_path
 
@@ -214,8 +216,8 @@ def build_bronze_layer(
     bronze_orders_path = bronze_dir / "bronze_orders.csv"
     bronze_marketing_path = bronze_dir / "bronze_marketing_spend.csv"
 
-    customers.to_csv(bronze_customers_path, index=False)
-    orders.to_csv(bronze_orders_path, index=False)
-    marketing.to_csv(bronze_marketing_path, index=False)
+    atomic_write_csv(bronze_customers_path, customers)
+    atomic_write_csv(bronze_orders_path, orders)
+    atomic_write_csv(bronze_marketing_path, marketing)
 
     return bronze_customers_path, bronze_orders_path, bronze_marketing_path

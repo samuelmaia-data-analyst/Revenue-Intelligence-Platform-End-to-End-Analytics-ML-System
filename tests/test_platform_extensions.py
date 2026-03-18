@@ -1,3 +1,4 @@
+import sqlite3
 from pathlib import Path
 
 import pandas as pd
@@ -21,6 +22,14 @@ def test_persist_frames_to_sqlite_creates_database_tables(tmp_path: Path) -> Non
 
     assert db_path.exists()
     assert set(tables) == {"recommendations", "unit_economics"}
+
+    with sqlite3.connect(db_path) as connection:
+        persisted = pd.read_sql_query(
+            "SELECT customer_id, ltv FROM recommendations ORDER BY customer_id",
+            connection,
+        )
+
+    assert persisted["customer_id"].tolist() == [1, 2]
 
 
 def test_build_monitoring_report_creates_drift_and_calibration_outputs(tmp_path: Path) -> None:

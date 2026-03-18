@@ -1,372 +1,212 @@
 # Revenue Intelligence Platform
 
-End-to-end revenue intelligence platform that turns customer behavior data into reproducible analytics, business KPIs, ML predictions, and executive actions.
+Production-minded batch analytics platform that turns customer behavior data into reproducible revenue intelligence outputs.
 
-[![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.43-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
-[![scikit-learn](https://img.shields.io/badge/scikit--learn-1.6-F7931E?logo=scikitlearn&logoColor=white)](https://scikit-learn.org/)
-[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
-[![CI](https://github.com/samuelmaia-analytics/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/actions/workflows/ci.yml/badge.svg)](https://github.com/samuelmaia-analytics/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/actions/workflows/ci.yml)
+This repository is intentionally small. The goal is not to simulate a large enterprise stack. The goal is to show disciplined engineering around a realistic analytics workflow: ingest, validate, curate, score, report, persist, and trace every run.
 
-[Leia em Português](README.pt-BR.md)
+[Portuguese version](README.pt-BR.md)
 
-## Live App
+## What This Repository Demonstrates
 
-Streamlit Cloud:
+- a single official batch pipeline entrypoint
+- reprocessable and deterministic curated outputs
+- run-level manifests, logs, snapshots, and retention
+- atomic writes for critical artifacts
+- environment-driven configuration via `.env`
+- lightweight but real governance through contracts and generated dictionary
+- quality gates that include lint, formatting, type-checking, tests, package build, and container validation
 
-- https://revenue-intelligence-platform.streamlit.app/
+## System Scope
 
-## Why This Project Stands Out
+The platform transforms raw customer and order behavior into:
 
-- Built as a platform, not a notebook: clear layers for ingestion, transformation, analytics, ML, reporting, API, and dashboard
-- Business-first outputs: churn risk, next-purchase propensity, channel efficiency, prioritized actions, and impact simulation
-- Reproducible and production-minded: pipeline manifest, data quality report, model registry, tests, and versioned serving API
-- Platform operations: optional Prefect flow, SQLite warehouse persistence, drift monitoring, calibration diagnostics, and semantic metrics
-- Operational controls: scheduler deployment examples, alert thresholds, notification hooks, write-back workflow, and dbt governance assets
+- churn risk scores
+- next-purchase propensity
+- channel efficiency and unit economics
+- cohort retention outputs
+- executive KPI snapshots
+- prioritized action recommendations
+- queryable warehouse tables
 
-## Executive Snapshot
+This is a batch-first system. Streamlit, FastAPI, dbt, Airflow, and Prefect are optional consumers or wrappers around the batch core, not competing sources of orchestration truth.
 
-- Business problem: convert customer behavior data into revenue protection and growth decisions
-- Core users: Revenue Ops, Marketing, Finance, Customer Success, and leadership
-- Primary outcomes: prioritized accounts, centralized KPIs, explainable model outputs, and executive storytelling
+## Official Operating Path
 
-## Business Problem
+Run the pipeline with:
 
-Commercial teams rarely need another notebook. They need a decision system that answers:
-
-- Which customers are most likely to churn and worth saving?
-- Which segments are most likely to buy again and worth upselling?
-- Which acquisition channels are efficient enough to scale?
-- What is the expected business impact of the next 10 actions?
-
-This repository is structured as a real analytics platform instead of a single experiment. It preserves the original scope, but now makes the flow explicit from raw data to executive insight.
-
-## Platform View
-
-```mermaid
-flowchart LR
-    A[Raw Customer Behavior Data] --> B[Ingestion]
-    B --> C[Bronze]
-    C --> D[Silver]
-    D --> E[Feature Engineering]
-    D --> F[Gold Star Schema]
-    E --> G[ML Training & Scoring]
-    D --> H[Business KPI Layer]
-    G --> I[Recommendations]
-    H --> J[Executive Reporting]
-    I --> J
-    F --> K[Dashboard / API / SQL]
-    J --> K
+```powershell
+python -m src.pipeline run
 ```
+
+That command is the primary supported execution path.
+
+Key modules:
+
+- [src/pipeline.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/pipeline.py): CLI
+- [src/orchestration.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/orchestration.py): end-to-end pipeline
+- [src/config.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/config.py): runtime configuration
+- [src/ingestion.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/ingestion.py): raw and bronze ingestion
+- [src/transformation.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/transformation.py): silver validation and feature engineering
+- [src/modeling.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/modeling.py): training, scoring, and model registry
+- [src/reporting.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/reporting.py): executive artifacts
+- [src/persistence.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/persistence.py): warehouse persistence
+- [src/governance.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/governance.py): generated governance assets
 
 ## Architecture
 
-### Layered flow
-
-- `src/ingestion.py`: raw dataset ingestion and bronze persistence
-- `src/transformation.py`: silver standardization and customer feature engineering
-- `src/warehouse.py`: gold star schema for analytics interoperability
-- `src/metrics.py`: centralized revenue KPI calculations and business metric snapshots
-- `src/analytics.py`: analytics artifact generation independent from model training
-- `src/modeling.py`: preprocessing, training, scoring, model registry, and business-facing interpretation
-- `src/recommendation.py`: action prioritization logic
-- `src/reporting.py`: executive outputs and simulation artifacts
-- `src/quality.py`: data quality gates and integrity reports
-- `src/orchestration.py`: reproducible end-to-end pipeline orchestration
-- `src/config.py`: runtime configuration and path management
-
-### Reproducibility and controls
-
-- deterministic seed via `PipelineConfig`
-- explicit directories for `raw`, `bronze`, `silver`, `gold`, `processed`, `warehouse`
-- generated `pipeline_manifest.json` with stage timings and output inventory
-- generated `quality_report.json` with row counts, duplicates, nulls, and referential checks
-- generated `monitoring_report.json` with drift and calibration diagnostics
-- generated `semantic_metrics_catalog.json` from declarative metric definitions
-- versioned model registry in `data/processed/registry`
-
-Supporting documentation:
-
-- [docs/architecture.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/architecture.md)
-
-## Analytics Workflow
-
-### Raw -> transformed -> analytics -> ML -> insight
-
-1. Raw source is loaded from the Kaggle file in `data/raw/` or generated synthetically as a deterministic fallback.
-2. Bronze keeps an auditable copy with ingestion metadata.
-3. Silver applies schema checks, deduplication, typing, null handling, and referential cleanup.
-4. Feature engineering creates a customer-level analytical base with recency, frequency, monetary value, tenure, ARPU, and forward-looking targets.
-5. Gold publishes `dim_*` and `fact_orders.csv` so analytics can run independently from the ML layer.
-6. Centralized KPI logic computes LTV, CAC, RFM, cohort retention, unit economics, and a KPI snapshot.
-7. ML trains churn and next-purchase models with temporal evaluation and business driver summaries.
-8. Recommendation logic translates scores into action types.
-9. Reporting packages the results into executive artifacts, action simulations, and dashboard-ready tables.
-10. Core analytical outputs are persisted into SQLite for warehouse-style downstream consumption.
-
-## ML Approach
-
-### Targets
-
-- `is_churned`: no purchase in the forward 90-day window for eligible customers
-- `next_purchase_30d`: purchase propensity in the forward 30-day window
-
-### Features
-
-- behavioral: `recency_days`, `frequency`, `monetary`, `avg_order_value`
-- lifecycle: `tenure_days`, `arpu`
-- business context: `channel`, `segment`
-
-### Modeling choices
-
-- churn: `RandomForestClassifier`
-- next purchase: `LogisticRegression`
-- preprocessing: numeric scaling + categorical one-hot encoding
-- validation: temporal split with stratified fallback when needed
-
-### Why this matters for the business
-
-- churn predictions support retention budget allocation
-- next purchase propensity supports upsell timing and CRM prioritization
-- model outputs are converted into clear actions, not left as isolated scores
-- `metrics_report.json` now includes top business drivers for each model
-
-## Centralized Revenue KPIs
-
-Business KPI logic is no longer scattered across notebooks or reporting code.
-
-Key metrics:
-
-- `LTV`
-- `CAC`
-- `LTV/CAC`
-- `ARPU`
-- `RFM segmentation`
-- `Cohort retention`
-- `Contribution margin`
-- `Payback period`
-- `High churn risk share`
-- `Top-10 action impact simulation`
-
-Primary code:
-
-- [src/metrics.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/metrics.py)
-- [src/business_rules.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/business_rules.py)
-
-## Executive Outputs
-
-Main generated artifacts in `data/processed/`:
-
-- `customer_features.csv`
-- `scored_customers.csv`
-- `recommendations.csv`
-- `ltv.csv`
-- `cac_by_channel.csv`
-- `rfm_segments.csv`
-- `cohort_retention.csv`
-- `unit_economics.csv`
-- `kpi_snapshot.json`
-- `metrics_report.json`
-- `executive_report.json`
-- `executive_summary.json`
-- `business_outcomes.json`
-- `top_10_actions.csv`
-- `quality_report.json`
-- `pipeline_manifest.json`
-- `monitoring_report.json`
-- `semantic_metrics_catalog.json`
-- `data/warehouse/revenue_intelligence.db`
-
-These outputs support different audiences:
-
-- operators: scored portfolio and recommended action list
-- finance/growth: unit economics and channel efficiency
-- leadership: executive summary and business outcome simulation
-- engineering: data quality report, model registry, manifest
-
-## Dashboard and Storytelling
-
-The Streamlit app is positioned as an executive operating layer, not only a chart viewer.
-
-Current storytelling outputs include:
-
-- business context cards
-- portfolio KPI view
-- channel efficiency
-- cohort retention
-- risk and growth lenses
-- model performance summary
-- top business drivers from both models
-- drift status and calibration signal
-- interactive scenario planning controls
-- prioritized action list
-- simulated impact for the top 10 interventions
-
-App entrypoint:
-
-- [app/streamlit_app.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/app/streamlit_app.py)
-
-## API
-
-FastAPI serving layer:
-
-- health endpoint with telemetry and model registry metadata
-- authenticated scoring endpoint
-- versioned routes under `/api/v1/*`
-
-Primary service:
-
-- [services/api/main.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/services/api/main.py)
-
-## Scheduled Orchestration
-
-The repository now includes an optional Prefect entrypoint for scheduled production-style runs:
-
-- [src/prefect_flow.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/prefect_flow.py)
-
-Example:
-
-```powershell
-python -c "from src.prefect_flow import run_prefect_flow; run_prefect_flow()"
-```
-
-If Prefect is not installed, the module fails with a clear runtime message instead of silently degrading.
-
-## Warehouse Persistence
-
-The pipeline now persists core analytics tables into a configurable warehouse target:
-
-- database path: `data/warehouse/revenue_intelligence.db`
-- tables: `dim_customers`, `dim_date`, `dim_channel`, `fact_orders`, `customer_features`, `scored_customers`, `recommendations`, `unit_economics`, `top_10_actions`
-- supported targets in code: `sqlite` and optional `postgres` via `RIP_WAREHOUSE_TARGET`
-
-This keeps the project closer to a real analytics platform and reduces coupling to CSV-only consumption.
-
-## Monitoring and Governance
-
-- `monitoring_report.json`: feature drift status and calibration diagnostics
-- `monitoring_baseline.json`: reference distribution snapshot for future runs
-- `alerts_report.json`: threshold evaluation and alert payload for quality/monitoring regressions
-- `metrics/semantic_metrics.json`: dbt-style semantic metric definitions
-- `semantic_metrics_catalog.json`: exported catalog used by downstream consumers
-
-## Write-Back Workflow
-
-The dashboard now supports approval and write-back of recommended actions:
-
-- approved records are written to `data/processed/approved_actions.csv`
-- approved records are appended to the configured warehouse table `approved_actions`
-- this closes the loop between insight generation and operational action
-
-## dbt Semantic Layer
-
-The repository now includes a dedicated dbt project on top of the SQLite warehouse:
-
-- [dbt/dbt_project.yml](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/dbt/dbt_project.yml)
-- [dbt/models/marts/finance/portfolio_semantic_metrics.sql](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/dbt/models/marts/finance/portfolio_semantic_metrics.sql)
-- [dbt/models/marts/finance/channel_semantic_metrics.sql](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/dbt/models/marts/finance/channel_semantic_metrics.sql)
-
-What it adds:
-
-- staging models over the warehouse tables
-- finance-oriented semantic metric marts
-- dbt-native tests for curated models
-- dbt exposures for dashboard/API consumers
-- source freshness checks with explicit SLAs for warehouse-fed models
-- environment-aware dbt profiles for local, CI, and Postgres-backed execution
-- alignment between `metrics/semantic_metrics.json` and the dbt semantic model
-
-dbt docs publishing is also hardened:
-
-- CI-specific dbt target for deterministic docs generation
-- `dbt debug` before docs build
-- `dbt source freshness` before publish
-- GitHub Pages publishing workflow for dbt docs artifacts
-
-## Repository Structure
-
 ```text
-.
-|- app/
-|- contracts/
-|- data/
-|  |- raw/
-|  |- bronze/
-|  |- silver/
-|  |- gold/
-|  \- processed/
-|- docs/
-|- notebooks/
-|- services/
-|  \- api/
-|- sql/
-|- src/
-|- tests/
-|- main.py
-\- README.md
+raw input
+  -> ingestion
+  -> bronze
+  -> silver validation
+  -> customer features
+  -> gold warehouse tables
+  -> ML scoring
+  -> curated metrics and recommendations
+  -> reporting artifacts
+  -> manifests, logs, snapshots, retention
 ```
 
-## Local Run
+Architecture notes:
+
+- the project uses explicit file-based layers because they are reproducible and easy to inspect locally
+- SQLite is the default warehouse target because it keeps the system runnable without external infrastructure
+- governance is intentionally lightweight and focused on the highest-signal outputs
+
+See [docs/architecture.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/architecture.md) and [docs/repository_structure.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/repository_structure.md).
+
+## Operational Outputs
+
+One successful run produces, at minimum:
+
+- `data/processed/pipeline_manifest.json`
+- `data/processed/raw_input_metadata.json`
+- `data/processed/quality_report.json`
+- `data/processed/freshness_report.json`
+- `data/processed/kpi_snapshot.json`
+- `data/processed/data_dictionary.json`
+- `data/warehouse/revenue_intelligence.db`
+- `data/runs/<run_id>/pipeline.log`
+- `data/snapshots/<run_id>/`
+- `data/manifests/<run_id>.success.json`
+
+If a run fails, the pipeline emits:
+
+- `data/manifests/<run_id>.failure.json`
+
+## Reliability Model
+
+The repository is designed to show disciplined batch operation, not just business logic.
+
+Implemented controls:
+
+- atomic CSV and JSON writes
+- atomic SQLite replacement
+- explicit `run_id`
+- input fingerprinting
+- raw input metadata snapshots
+- source-aware freshness checks
+- success and failure manifests
+- snapshot retention by count and age
+- failure manifest retention by age
+
+## Local Setup
 
 ```powershell
 py -3.11 -m venv .venv
 .\.venv\Scripts\activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt -r requirements-dev.txt
-python main.py
-python -m streamlit run .\app\streamlit_app.py
-python -m uvicorn services.api.main:app --reload --host 0.0.0.0 --port 8000
+copy .env.example .env
+python -m src.pipeline run
 ```
 
-## CLI
+Useful commands:
 
 ```powershell
-python -m src.pipeline run
-python -m src.pipeline run --seed 123 --log-level DEBUG
+make pipeline
+make dictionary
+make lint
+make type-check
+make test
+make quality
+make package
 ```
 
-### Environment overrides
+## Configuration
 
+Runtime settings are loaded from `.env` and environment variables.
+
+Important variables:
+
+- `RIP_ENV`
 - `RIP_DATA_DIR`
 - `RIP_SEED`
 - `RIP_LOG_LEVEL`
-- `RIP_APP_LANG_MODE`
-- `RIP_MODEL_DIR`
+- `RIP_FRESHNESS_MAX_AGE_HOURS`
+- `RIP_SNAPSHOT_RETENTION_RUNS`
+- `RIP_SNAPSHOT_RETENTION_DAYS`
+- `RIP_FAILURE_RETENTION_DAYS`
 - `RIP_WAREHOUSE_TARGET`
 - `RIP_WAREHOUSE_URL`
-- `RIP_API_AUTH_MODE`
-- `RIP_API_KEYS`
-- `RIP_ALERT_WEBHOOK_URL`
-- `RIP_ALERT_DRIFT_FEATURE_COUNT_WARN`
-- `RIP_ALERT_BRIER_SCORE_WARN`
+- `RIP_SEMANTIC_METRICS_PATH`
 
-## Testing and Quality
+Reference template:
 
-```powershell
-.\.venv\Scripts\python.exe -m pytest -q
-```
+- [.env.example](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/.env.example)
 
-Current automated coverage includes:
+## Quality Standards
 
-- pipeline output contract validation
-- API behavior
-- transformation integrity
-- reporting outputs
-- centralized KPI behavior
-- preprocessing checks
-- data quality gate behavior
-- warehouse persistence
-- drift monitoring outputs
-- semantic metric catalog export
-- scenario simulation logic
-- dbt project structure and semantic model alignment
-- alert generation
-- write-back persistence
-- operational asset coverage
+The repository is expected to stay green on:
 
-## Future Improvements
+- `ruff`
+- `black`
+- `isort`
+- `mypy`
+- `pytest`
+- `build`
 
-- add managed deployment templates for Prefect Cloud, MWAA, or Astronomer
-- add warehouse adapters for BigQuery and Snowflake
-- add Slack, Teams, or PagerDuty alert sinks with secret-managed credentials
-- add approval roles, audit trail states, and downstream CRM sync for write-back
+CI also validates:
+
+- Docker image build
+- container smoke execution of the official CLI
+- upload of smoke-run artifacts
+
+## Optional Interfaces
+
+Optional interfaces exist, but they are secondary to the batch core:
+
+- Streamlit UI: `python -m streamlit run app/streamlit_app.py`
+- FastAPI service: `python -m uvicorn services.api.main:app --reload`
+- dbt project: `dbt --project-dir dbt run`
+- Airflow and Prefect examples in `orchestration/`
+
+## Contributing
+
+Use the repository as a small production-minded system, not as a dumping ground for features.
+
+Read:
+
+- [CONTRIBUTING.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/CONTRIBUTING.md)
+- [.github/pull_request_template.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/.github/pull_request_template.md)
+
+## Technical Trade-offs
+
+- scikit-learn baselines are sufficient for the intended scope, but this is not presented as a large-scale online serving system
+- file-based governance improves reproducibility, but it is not a substitute for a full metadata platform
+- scheduler examples exist for operational flavor, but the repository remains CLI-first by design
+
+## Roadmap
+
+Near-term upgrade track:
+
+- explicit backfill window support in CLI
+- proportional retry for failure-prone stages
+- one additional governed upstream contract surface
+- stage-level modularization of the pipeline core
+- tighter package boundaries around the batch core
+
+Tracking artifacts:
+
+- [docs/staff_upgrade_master_issue.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/staff_upgrade_master_issue.md)
+- [docs/issues/project_board.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/issues/project_board.md)

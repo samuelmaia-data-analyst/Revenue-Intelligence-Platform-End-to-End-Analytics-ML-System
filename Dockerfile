@@ -1,5 +1,8 @@
 FROM python:3.11-slim
 
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
 COPY requirements.txt .
@@ -9,5 +12,8 @@ COPY . .
 
 EXPOSE 8501
 
-CMD ["streamlit", "run", "app/streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+RUN useradd --create-home appuser && chown -R appuser:appuser /app
+USER appuser
+
+CMD ["python", "-m", "src.pipeline", "run"]
 

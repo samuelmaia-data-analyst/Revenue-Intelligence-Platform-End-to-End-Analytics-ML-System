@@ -1,5 +1,4 @@
 import hashlib
-import json
 import pickle
 from pathlib import Path
 
@@ -13,6 +12,7 @@ from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
+from src.io_utils import atomic_write_csv, atomic_write_json
 from src.model_registry import register_model
 
 try:
@@ -46,6 +46,18 @@ def _safe_roc_auc(y_true: pd.Series, y_prob: np.ndarray) -> float:
     return float(roc_auc_score(y_true, y_prob))
 
 
+def _positive_class_probability(model: Pipeline, features: pd.DataFrame) -> np.ndarray:
+    probabilities = model.predict_proba(features)
+    classifier = model.named_steps["clf"]
+    classes = getattr(classifier, "classes_", [])
+    if len(classes) == 1:
+        positive_class = int(classes[0])
+        fill_value = 1.0 if positive_class == 1 else 0.0
+        return np.full(shape=len(features), fill_value=fill_value, dtype=float)
+    positive_index = list(classes).index(1)
+    return probabilities[:, positive_index]
+
+
 def _temporal_split_indices(
     df: pd.DataFrame, split_ratio: float = 0.8
 ) -> tuple[pd.Index, pd.Index]:
@@ -66,6 +78,9 @@ def _build_evaluation_split(df: pd.DataFrame, y: pd.Series) -> tuple[pd.Index, p
     if y.nunique() < 2:
         return train_idx, test_idx, "temporal_single_class"
 
+    if int(y.value_counts().min()) < 2 or len(y) < 5:
+        return train_idx, test_idx, "temporal_minority_class_fallback"
+
     train_idx, test_idx = train_test_split(y.index, test_size=0.2, random_state=42, stratify=y)
     return pd.Index(train_idx), pd.Index(test_idx), "stratified_fallback"
 
@@ -76,6 +91,11 @@ def _evaluate_pipeline_temporal(
     train_idx, test_idx, split_strategy = _build_evaluation_split(ordered_df, y)
     x_train, x_test = x.loc[train_idx], x.loc[test_idx]
     y_train, y_test = y.loc[train_idx], y.loc[test_idx]
+
+    if y_train.nunique() < 2 and y.nunique() >= 2:
+        x_train = x
+        y_train = y
+        split_strategy = f"{split_strategy}_full_fit"
 
     class_count = y_train.value_counts()
     min_class_count = int(class_count.min()) if not class_count.empty else 0
@@ -90,7 +110,7 @@ def _evaluate_pipeline_temporal(
         cv_std = float("nan")
 
     pipeline.fit(x_train, y_train)
-    y_prob = pipeline.predict_proba(x_test)[:, 1]
+    y_prob = _positive_class_probability(pipeline, x_test)
     roc_auc = _safe_roc_auc(y_test, y_prob)
     if y_test.nunique() > 1:
         fpr, tpr, _ = roc_curve(y_test, y_prob)
@@ -183,7 +203,11 @@ def _build_business_model_summary(
     }
 
 
-def train_and_score_models(df: pd.DataFrame, output_dir: Path) -> tuple[dict, dict, pd.DataFrame]:
+def train_and_score_models(
+    df: pd.DataFrame,
+    output_dir: Path,
+    run_id: str | None = None,
+) -> tuple[dict, dict, pd.DataFrame]:
     output_dir.mkdir(parents=True, exist_ok=True)
     work_df = df.copy().dropna(subset=["signup_date"])
     preprocessor, numeric_features, categorical_features = _build_preprocessor()
@@ -210,7 +234,7 @@ def train_and_score_models(df: pd.DataFrame, output_dir: Path) -> tuple[dict, di
         churn_pipeline, x_churn, churn_df["is_churned"], churn_df
     )
     churn_model = churn_results["model"]
-    work_df["churn_probability"] = churn_model.predict_proba(work_df[feature_cols])[:, 1]
+    work_df["churn_probability"] = _positive_class_probability(churn_model, work_df[feature_cols])
 
     next_df = eval_df.dropna(subset=["next_purchase_30d"]).copy()
     next_df["next_purchase_30d"] = next_df["next_purchase_30d"].astype(int)
@@ -227,9 +251,10 @@ def train_and_score_models(df: pd.DataFrame, output_dir: Path) -> tuple[dict, di
         next_purchase_pipeline, x_next, next_df["next_purchase_30d"], next_df
     )
     next_purchase_model = next_purchase_results["model"]
-    work_df["next_purchase_probability"] = next_purchase_model.predict_proba(work_df[feature_cols])[
-        :, 1
-    ]
+    work_df["next_purchase_probability"] = _positive_class_probability(
+        next_purchase_model,
+        work_df[feature_cols],
+    )
 
     _persist_model(churn_model, output_dir / "churn_model.joblib")
     _persist_model(next_purchase_model, output_dir / "next_purchase_model.joblib")
@@ -251,6 +276,7 @@ def train_and_score_models(df: pd.DataFrame, output_dir: Path) -> tuple[dict, di
         },
         input_features=feature_cols,
         target_name="is_churned",
+        run_id=run_id,
     )
     register_model(
         model_name="next_purchase_30d",
@@ -267,9 +293,10 @@ def train_and_score_models(df: pd.DataFrame, output_dir: Path) -> tuple[dict, di
         },
         input_features=feature_cols,
         target_name="next_purchase_30d",
+        run_id=run_id,
     )
 
-    work_df.to_csv(output_dir / "scored_customers.csv", index=False)
+    atomic_write_csv(output_dir / "scored_customers.csv", work_df)
     churn_summary = _build_business_model_summary("churn", churn_results, churn_model)
     next_purchase_summary = _build_business_model_summary(
         "next_purchase_30d", next_purchase_results, next_purchase_model
@@ -278,7 +305,6 @@ def train_and_score_models(df: pd.DataFrame, output_dir: Path) -> tuple[dict, di
         "churn": churn_summary,
         "next_purchase_30d": next_purchase_summary,
     }
-    with (output_dir / "metrics_report.json").open("w", encoding="utf-8") as f:
-        json.dump(report, f, indent=2)
+    atomic_write_json(output_dir / "metrics_report.json", report)
 
     return churn_summary, next_purchase_summary, work_df

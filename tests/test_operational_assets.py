@@ -1,13 +1,16 @@
 from pathlib import Path
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_scheduler_examples_exist() -> None:
     expected = [
         PROJECT_ROOT / "orchestration" / "README.md",
-        PROJECT_ROOT / "orchestration" / "airflow" / "dags" / "revenue_intelligence_platform_dag.py",
+        PROJECT_ROOT
+        / "orchestration"
+        / "airflow"
+        / "dags"
+        / "revenue_intelligence_platform_dag.py",
         PROJECT_ROOT / "orchestration" / "prefect" / "revenue_intelligence_deployment.yaml",
         PROJECT_ROOT / ".github" / "workflows" / "dbt-docs.yml",
     ]

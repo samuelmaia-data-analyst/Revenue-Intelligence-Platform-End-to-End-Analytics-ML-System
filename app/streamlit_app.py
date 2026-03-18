@@ -260,7 +260,18 @@ def card(title: str, value: str, subtitle: str = "") -> str:
 
 def load_data(
     processed_dir: Path,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict, dict, pd.DataFrame, dict, dict, dict, pd.DataFrame]:
+) -> tuple[
+    pd.DataFrame,
+    pd.DataFrame,
+    pd.DataFrame,
+    dict,
+    dict,
+    pd.DataFrame,
+    dict,
+    dict,
+    dict,
+    pd.DataFrame,
+]:
     required = [
         "recommendations.csv",
         "cohort_retention.csv",
@@ -291,7 +302,18 @@ def load_data(
         alerts = json.load(f)
     approvals_path = processed_dir / "approved_actions.csv"
     approved_actions = pd.read_csv(approvals_path) if approvals_path.exists() else pd.DataFrame()
-    return rec, cohort, unit, report, outcomes, top10, monitoring, semantic_metrics, alerts, approved_actions
+    return (
+        rec,
+        cohort,
+        unit,
+        report,
+        outcomes,
+        top10,
+        monitoring,
+        semantic_metrics,
+        alerts,
+        approved_actions,
+    )
 
 
 def normalize_lang(option: str) -> str:
@@ -419,7 +441,18 @@ st.markdown(
 )
 
 processed_dir = PROJECT_ROOT / "data" / "processed"
-rec, cohort, unit, report, outcomes, top10, monitoring, semantic_metrics, alerts, approved_actions = load_data(processed_dir)
+(
+    rec,
+    cohort,
+    unit,
+    report,
+    outcomes,
+    top10,
+    monitoring,
+    semantic_metrics,
+    alerts,
+    approved_actions,
+) = load_data(processed_dir)
 
 with st.sidebar:
     if LANG_MODE == "bilingual":
@@ -547,7 +580,9 @@ with tab_action:
     approver = st.text_input(t(lang, "approver"), value="executive_demo")
     approval_note = st.text_input(t(lang, "approval_note"), value="")
     selectable_ids = board["customer_id"].astype(int).tolist()
-    selected_customers = st.multiselect(t(lang, "select_customers"), selectable_ids, max_selections=10)
+    selected_customers = st.multiselect(
+        t(lang, "select_customers"), selectable_ids, max_selections=10
+    )
     if st.button(t(lang, "approve_actions"), use_container_width=True) and selected_customers:
         cfg = PipelineConfig.from_env(PROJECT_ROOT)
         approved = board[board["customer_id"].isin(selected_customers)].copy()
@@ -567,7 +602,9 @@ with tab_action:
     if approved_actions.empty:
         st.caption("n/a")
     else:
-        st.dataframe(approved_actions.tail(20), use_container_width=True, hide_index=True, height=240)
+        st.dataframe(
+            approved_actions.tail(20), use_container_width=True, hide_index=True, height=240
+        )
 
 with tab_overview:
     business_context = report.get("business_context", {})
@@ -718,9 +755,11 @@ with tab_risk:
     churn_calibration = monitoring.get("calibration", {}).get("churn", {})
     m2.metric(
         t(lang, "calibration"),
-        f"{float(churn_calibration.get('brier_score', 0)):.3f}"
-        if churn_calibration.get("status") == "ok"
-        else "n/a",
+        (
+            f"{float(churn_calibration.get('brier_score', 0)):.3f}"
+            if churn_calibration.get("status") == "ok"
+            else "n/a"
+        ),
     )
     drift_rows = []
     for feature_name, drift_info in monitoring.get("feature_drift", {}).items():
@@ -826,11 +865,11 @@ with tab_business:
                 scenario_actions["scenario_revenue_90d"].sum()
                 - scenario_actions["baseline_revenue_90d"].sum()
             ),
-            "roi_simulated": float(
-                scenario_actions["net_impact"].sum() / scenario_actions["action_cost"].sum()
-            )
-            if float(scenario_actions["action_cost"].sum()) > 0
-            else 0.0,
+            "roi_simulated": (
+                float(scenario_actions["net_impact"].sum() / scenario_actions["action_cost"].sum())
+                if float(scenario_actions["action_cost"].sum()) > 0
+                else 0.0
+            ),
         }
         sc1, sc2, sc3, sc4 = st.columns(4)
         sc1.metric(

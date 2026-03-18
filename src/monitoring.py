@@ -3,11 +3,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 from sklearn.calibration import calibration_curve
 from sklearn.metrics import brier_score_loss
 
+from src.io_utils import atomic_write_json
 
 NUMERIC_MONITOR_COLUMNS = [
     "recency_days",
@@ -19,7 +19,9 @@ NUMERIC_MONITOR_COLUMNS = [
 ]
 
 
-def _summarize_numeric_distribution(df: pd.DataFrame, columns: list[str]) -> dict[str, dict[str, float]]:
+def _summarize_numeric_distribution(
+    df: pd.DataFrame, columns: list[str]
+) -> dict[str, dict[str, float]]:
     summary: dict[str, dict[str, float]] = {}
     for column in columns:
         if column not in df.columns:
@@ -123,9 +125,6 @@ def build_monitoring_report(
             "next_purchase_30d": next_purchase_calibration,
         },
     }
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("w", encoding="utf-8") as file:
-        json.dump(report, file, indent=2, ensure_ascii=False)
-    with baseline_path.open("w", encoding="utf-8") as file:
-        json.dump({"numeric_summary": current_summary}, file, indent=2, ensure_ascii=False)
+    atomic_write_json(output_path, report)
+    atomic_write_json(baseline_path, {"numeric_summary": current_summary})
     return report

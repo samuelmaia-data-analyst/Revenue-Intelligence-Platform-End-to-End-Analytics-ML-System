@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.io_utils import replace_sqlite_database
+
 try:
     from sqlalchemy import create_engine
 except ModuleNotFoundError:  # pragma: no cover - optional dependency
@@ -12,13 +14,7 @@ except ModuleNotFoundError:  # pragma: no cover - optional dependency
 
 
 def persist_frames_to_sqlite(frames: dict[str, pd.DataFrame], database_path: Path) -> list[str]:
-    database_path.parent.mkdir(parents=True, exist_ok=True)
-    written_tables: list[str] = []
-    with sqlite3.connect(database_path) as connection:
-        for table_name, frame in frames.items():
-            frame.to_sql(table_name, connection, if_exists="replace", index=False)
-            written_tables.append(table_name)
-    return written_tables
+    return replace_sqlite_database(database_path, frames)
 
 
 def persist_frames_to_postgres(frames: dict[str, pd.DataFrame], warehouse_url: str) -> list[str]:

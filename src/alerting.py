@@ -6,6 +6,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from urllib import request
 
+from src.io_utils import atomic_write_json
+
 
 def _default_thresholds() -> dict[str, float | int]:
     return {
@@ -79,9 +81,7 @@ def build_alert_report(
         "status": "warning" if alerts else "ok",
         "alerts": alerts,
     }
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("w", encoding="utf-8") as file:
-        json.dump(report, file, indent=2, ensure_ascii=False)
+    atomic_write_json(output_path, report)
     return report
 
 

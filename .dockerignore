@@ -1,13 +1,17 @@
 .git
 .github
 .idea
+.mypy_cache
 .pytest_cache
 .ruff_cache
 .venv
+dist
+build
 __pycache__
 *.pyc
 *.pyo
 *.pyd
+.env
 
 docs
 notebooks
@@ -15,4 +19,7 @@ tests
 
 data/bronze
 data/gold
+data/manifests
+data/runs
+data/snapshots
 data/silver

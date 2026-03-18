@@ -1,12 +1,11 @@
 from __future__ import annotations
 
+import sys
 from datetime import datetime
 from pathlib import Path
-import sys
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 if str(PROJECT_ROOT) not in sys.path:
@@ -28,9 +27,7 @@ with DAG(
     catchup=False,
     tags=["revenue-intelligence", "analytics", "ml"],
 ) as dag:
-    pipeline_task = PythonOperator(
+    PythonOperator(
         task_id="run_revenue_intelligence_pipeline",
         python_callable=execute_pipeline,
     )
-
-    pipeline_task

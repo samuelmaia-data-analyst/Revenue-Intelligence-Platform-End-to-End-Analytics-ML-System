@@ -1,7 +1,5 @@
-from pathlib import Path
-
 import json
-
+from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -19,7 +17,9 @@ def test_dbt_project_files_exist() -> None:
 
 
 def test_dbt_semantic_metrics_align_with_catalog() -> None:
-    catalog = json.loads((PROJECT_ROOT / "metrics" / "semantic_metrics.json").read_text(encoding="utf-8"))
+    catalog = json.loads(
+        (PROJECT_ROOT / "metrics" / "semantic_metrics.json").read_text(encoding="utf-8")
+    )
     semantic_metric_names = {metric["name"] for metric in catalog["metrics"]}
     model_sql = (
         PROJECT_ROOT / "dbt" / "models" / "marts" / "finance" / "portfolio_semantic_metrics.sql"
@@ -30,9 +30,9 @@ def test_dbt_semantic_metrics_align_with_catalog() -> None:
 
 
 def test_dbt_schema_contains_core_models() -> None:
-    schema_text = (
-        PROJECT_ROOT / "dbt" / "models" / "marts" / "schema.yml"
-    ).read_text(encoding="utf-8")
+    schema_text = (PROJECT_ROOT / "dbt" / "models" / "marts" / "schema.yml").read_text(
+        encoding="utf-8"
+    )
     for model_name in [
         "portfolio_semantic_metrics",
         "channel_semantic_metrics",

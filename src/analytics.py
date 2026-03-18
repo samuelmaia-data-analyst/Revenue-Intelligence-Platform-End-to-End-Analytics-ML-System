@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pandas as pd
 
+from src.io_utils import atomic_write_csv, atomic_write_json
 from src.metrics import (
     build_business_kpi_snapshot,
     calculate_cac,
@@ -42,10 +42,9 @@ def build_analytics_outputs(
         "recommendations.csv": recommendations_df,
     }
     for filename, frame in artifacts.items():
-        frame.to_csv(processed_dir / filename, index=False)
+        atomic_write_csv(processed_dir / filename, frame)
 
-    with (processed_dir / "kpi_snapshot.json").open("w", encoding="utf-8") as file:
-        json.dump(kpi_snapshot, file, indent=2, ensure_ascii=False)
+    atomic_write_json(processed_dir / "kpi_snapshot.json", kpi_snapshot)
 
     return {
         "ltv": ltv_df,

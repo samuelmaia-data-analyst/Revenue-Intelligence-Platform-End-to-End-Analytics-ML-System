@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from src.config import PipelineConfig
 from src.orchestration import run_pipeline
@@ -19,7 +20,7 @@ def _ensure_prefect_installed() -> None:
         )
 
 
-def build_prefect_flow():
+def build_prefect_flow() -> Any:
     _ensure_prefect_installed()
 
     @task(name="resolve-config")

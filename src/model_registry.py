@@ -9,6 +9,8 @@ from uuid import uuid4
 
 from sklearn.pipeline import Pipeline
 
+from src.io_utils import atomic_write_json
+
 try:
     import joblib
 except ModuleNotFoundError:  # pragma: no cover
@@ -48,6 +50,26 @@ def _next_model_version(registry_root: Path) -> tuple[int, str]:
     return next_version, f"model_v{next_version}"
 
 
+def _find_existing_version_by_data_version(
+    registry_root: Path, data_version: str
+) -> tuple[int, str] | None:
+    pattern = re.compile(r"^model_v(\d+)$")
+    for child in registry_root.iterdir():
+        if not child.is_dir():
+            continue
+        match = pattern.match(child.name)
+        if not match:
+            continue
+        metadata_path = child / "model_metadata.json"
+        if not metadata_path.exists():
+            continue
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        if metadata.get("data_version") == data_version:
+            version_number = int(match.group(1))
+            return version_number, child.name
+    return None
+
+
 def _latest_model_dir(registry_root: Path) -> Path:
     pattern = re.compile(r"^model_v(\d+)$")
     versioned_dirs: list[tuple[int, Path]] = []
@@ -79,12 +101,19 @@ def register_model(
     metrics: dict[str, float | int | str | None],
     input_features: list[str],
     target_name: str,
+    run_id: str | None = None,
 ) -> dict:
     registry_root = output_dir / "registry" / model_name
     registry_root.mkdir(parents=True, exist_ok=True)
-    version_number, version_label = _next_model_version(registry_root)
-    registry_dir = registry_root / version_label
-    registry_dir.mkdir(parents=True, exist_ok=False)
+    existing_version = _find_existing_version_by_data_version(registry_root, data_version)
+    if existing_version is None:
+        version_number, version_label = _next_model_version(registry_root)
+        registry_dir = registry_root / version_label
+        registry_dir.mkdir(parents=True, exist_ok=False)
+    else:
+        version_number, version_label = existing_version
+        registry_dir = registry_root / version_label
+        registry_dir.mkdir(parents=True, exist_ok=True)
 
     model_path = registry_dir / "model.pkl"
     metadata_path = registry_dir / "model_metadata.json"
@@ -92,7 +121,7 @@ def register_model(
 
     metadata = {
         "model_name": model_name,
-        "run_id": str(uuid4()),
+        "run_id": run_id or str(uuid4()),
         "created_at_utc": datetime.now(UTC).isoformat(),
         "data_version": data_version,
         "model_version": version_label,
@@ -102,22 +131,20 @@ def register_model(
         "target_name": target_name,
         "model_file": model_path.name,
     }
-    with metadata_path.open("w", encoding="utf-8") as metadata_file:
-        json.dump(metadata, metadata_file, indent=2, ensure_ascii=False)
+    atomic_write_json(metadata_path, metadata)
 
     latest_pointer = registry_root / "latest.json"
-    with latest_pointer.open("w", encoding="utf-8") as latest_file:
-        json.dump(
-            {
-                "model_name": model_name,
-                "latest_model_version": version_label,
-                "latest_model_version_number": version_number,
-                "updated_at_utc": metadata["created_at_utc"],
-            },
-            latest_file,
-            indent=2,
-            ensure_ascii=False,
-        )
+    atomic_write_json(
+        latest_pointer,
+        {
+            "model_name": model_name,
+            "latest_model_version": version_label,
+            "latest_model_version_number": version_number,
+            "updated_at_utc": metadata["created_at_utc"],
+            "run_id": metadata["run_id"],
+            "data_version": data_version,
+        },
+    )
     return metadata
 
 

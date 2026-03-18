@@ -1,0 +1,59 @@
+name: Bug report
+description: Report a defect in the batch pipeline, operational outputs, API, or repository tooling.
+title: "[Bug] "
+labels:
+  - type:reliability
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Describe the defect in one or two precise sentences.
+      placeholder: The pipeline writes a success manifest even when warehouse persistence fails.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Batch pipeline
+        - Config and runtime
+        - Warehouse persistence
+        - Governance/contracts
+        - API
+        - CI or developer tooling
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Provide exact commands, inputs, or conditions.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Include relevant log snippets, manifest fields, traceback excerpts, or artifact names.
+  - type: textarea
+    id: impact
+    attributes:
+      label: Technical impact
+      description: Explain the operational, reliability, or maintenance impact.
+    validations:
+      required: true

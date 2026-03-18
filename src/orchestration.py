@@ -1,22 +1,25 @@
 from __future__ import annotations
 
-import json
 import logging
 import shutil
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from time import perf_counter
+from typing import TypeAlias, TypeVar
 
 import pandas as pd
 
-from src.analytics import build_analytics_outputs
 from src.alerting import build_alert_report, dispatch_alerts
+from src.analytics import build_analytics_outputs
 from src.config import PipelineConfig
 from src.exceptions import PipelineStageError
+from src.governance import build_data_dictionary
 from src.ingestion import build_bronze_layer, save_raw_datasets
+from src.io_utils import atomic_copy_file, atomic_copy_tree, atomic_write_json
 from src.logging_utils import configure_logging
-from src.monitoring import build_monitoring_report
 from src.modeling import train_and_score_models
+from src.monitoring import build_monitoring_report
 from src.persistence import persist_frames
 from src.quality import (
     build_dataset_quality_report,
@@ -25,42 +28,23 @@ from src.quality import (
     write_quality_report,
 )
 from src.reporting import build_business_outcomes, build_executive_report, build_executive_summary
+from src.runtime import RunContext, compute_file_fingerprint, is_older_than, utc_now_minus_days
 from src.semantic_metrics import build_metric_catalog
 from src.transformation import build_customer_features, build_silver_layer
 from src.warehouse import build_star_schema
 
 LOGGER = logging.getLogger("revenue_intelligence.pipeline")
+T = TypeVar("T")
+RawDatasetMetadata: TypeAlias = dict[str, object]
+RawInputMetadata: TypeAlias = dict[str, object]
 
 
 def _copy_gold_outputs(cfg: PipelineConfig) -> None:
     for table in ["dim_customers.csv", "dim_date.csv", "dim_channel.csv", "fact_orders.csv"]:
-        shutil.copy2(cfg.gold_dir / table, cfg.processed_dir / table)
+        atomic_copy_file(cfg.gold_dir / table, cfg.processed_dir / table)
 
 
-def _write_manifest(cfg: PipelineConfig, stage_timings: dict[str, float], outputs: list[str]) -> dict:
-    manifest = {
-        "pipeline_name": "revenue_intelligence_platform",
-        "generated_at_utc": datetime.now(UTC).isoformat(),
-        "seed": cfg.seed,
-        "data_dir": str(cfg.data_dir),
-        "layers": {
-            "raw": str(cfg.raw_dir),
-            "bronze": str(cfg.bronze_dir),
-            "silver": str(cfg.silver_dir),
-            "gold": str(cfg.gold_dir),
-            "processed": str(cfg.processed_dir),
-            "warehouse": str(cfg.warehouse_db_path),
-        },
-        "warehouse_target": cfg.warehouse_target,
-        "stage_timings_seconds": {name: round(value, 3) for name, value in stage_timings.items()},
-        "outputs": outputs,
-    }
-    with (cfg.processed_dir / "pipeline_manifest.json").open("w", encoding="utf-8") as file:
-        json.dump(manifest, file, indent=2)
-    return manifest
-
-
-def _run_stage(stage_name: str, func):
+def _run_stage(stage_name: str, func: Callable[[], T]) -> tuple[T, float]:
     start = perf_counter()
     try:
         result = func()
@@ -69,176 +53,429 @@ def _run_stage(stage_name: str, func):
     return result, perf_counter() - start
 
 
-def run_pipeline(cfg: PipelineConfig) -> None:
-    configure_logging(cfg.log_level)
-    cfg.ensure_directories()
-    LOGGER.info("Pipeline started | data_dir=%s | seed=%s", cfg.data_dir, cfg.seed)
-
-    stage_timings: dict[str, float] = {}
-
-    (raw_paths, elapsed) = _run_stage(
-        "ingestion.raw",
-        lambda: save_raw_datasets(cfg.raw_dir, seed=cfg.seed),
-    )
-    stage_timings["ingestion.raw"] = elapsed
-    customers_path, orders_path, marketing_path = raw_paths
-
-    (bronze_paths, elapsed) = _run_stage(
-        "ingestion.bronze",
-        lambda: build_bronze_layer(customers_path, orders_path, marketing_path, cfg.bronze_dir),
-    )
-    stage_timings["ingestion.bronze"] = elapsed
-    bronze_customers, bronze_orders, bronze_marketing = bronze_paths
-
-    (silver_paths, elapsed) = _run_stage(
-        "transformation.silver",
-        lambda: build_silver_layer(bronze_customers, bronze_orders, bronze_marketing, cfg.silver_dir),
-    )
-    stage_timings["transformation.silver"] = elapsed
-    silver_customers, silver_orders, silver_marketing = silver_paths
-
-    customers_df = pd.read_csv(silver_customers, parse_dates=["signup_date"])
-    orders_df = pd.read_csv(silver_orders, parse_dates=["order_date"])
-    marketing_df = pd.read_csv(silver_marketing)
-
-    validate_required_columns(customers_df, {"customer_id", "signup_date", "channel", "segment"}, "silver_customers")
-    validate_required_columns(orders_df, {"order_id", "customer_id", "order_date", "order_value"}, "silver_orders")
-    validate_required_columns(marketing_df, {"channel", "marketing_spend"}, "silver_marketing")
-    quality_reports = [
-        build_dataset_quality_report(customers_df, "silver_customers", primary_key="customer_id"),
-        build_dataset_quality_report(
-            orders_df,
-            "silver_orders",
-            primary_key="order_id",
-            foreign_key="customer_id",
-            valid_values=set(customers_df["customer_id"].tolist()),
-        ),
-        build_dataset_quality_report(marketing_df, "silver_marketing", primary_key="channel"),
-    ]
-    enforce_quality_gate(quality_reports)
-    quality_payload = write_quality_report(quality_reports, cfg.processed_dir / "quality_report.json")
-
-    (features_df, elapsed) = _run_stage(
-        "transformation.features",
-        lambda: build_customer_features(silver_customers, silver_orders, cfg.processed_dir),
-    )
-    stage_timings["transformation.features"] = elapsed
-
-    (_, elapsed) = _run_stage(
-        "warehouse.gold",
-        lambda: build_star_schema(silver_customers, silver_orders, cfg.gold_dir),
-    )
-    stage_timings["warehouse.gold"] = elapsed
-    _copy_gold_outputs(cfg)
-
-    ((churn_results, next_purchase_results, scored_df), elapsed) = _run_stage(
-        "ml.training",
-        lambda: train_and_score_models(features_df, cfg.processed_dir),
-    )
-    stage_timings["ml.training"] = elapsed
-
-    (analytics_outputs, elapsed) = _run_stage(
-        "analytics.metrics",
-        lambda: build_analytics_outputs(
-            scored_df=scored_df,
-            silver_customers_path=silver_customers,
-            silver_orders_path=silver_orders,
-            silver_marketing_path=silver_marketing,
-            processed_dir=cfg.processed_dir,
-        ),
-    )
-    stage_timings["analytics.metrics"] = elapsed
-
-    recommendations_df = analytics_outputs["recommendations"]
-    unit_df = analytics_outputs["unit_economics"]
-    kpi_snapshot = analytics_outputs["kpi_snapshot"]
-
-    (_, elapsed) = _run_stage(
-        "governance.semantic_metrics",
-        lambda: build_metric_catalog(
-            cfg.semantic_metrics_path,
-            cfg.processed_dir / "semantic_metrics_catalog.json",
-        ),
-    )
-    stage_timings["governance.semantic_metrics"] = elapsed
-
-    (monitoring_payload, elapsed) = _run_stage(
-        "monitoring.model",
-        lambda: build_monitoring_report(
-            scored_df=scored_df,
-            labeled_df=scored_df,
-            output_path=cfg.processed_dir / "monitoring_report.json",
-            baseline_path=cfg.processed_dir / "monitoring_baseline.json",
-        ),
-    )
-    stage_timings["monitoring.model"] = elapsed
-
-    (alerts_payload, elapsed) = _run_stage(
-        "monitoring.alerting",
-        lambda: build_alert_report(
-            monitoring_report=monitoring_payload,
-            quality_report=quality_payload,
-            output_path=cfg.alerts_output_path,
-        ),
-    )
-    stage_timings["monitoring.alerting"] = elapsed
-    dispatch_alerts(alerts_payload)
-
-    (_, elapsed) = _run_stage(
-        "insights.reporting",
-        lambda: (
-            build_executive_report(
-                recommendations_df=recommendations_df,
-                churn_results=churn_results,
-                next_purchase_results=next_purchase_results,
-                kpi_snapshot=kpi_snapshot,
-                output_path=cfg.processed_dir / "executive_report.json",
-            ),
-            build_executive_summary(
-                recommendations_df=recommendations_df,
-                scored_df=scored_df,
-                unit_economics_df=unit_df,
-                kpi_snapshot=kpi_snapshot,
-                output_path=cfg.processed_dir / "executive_summary.json",
-            ),
-            build_business_outcomes(
-                recommendations_df=recommendations_df,
-                unit_economics_df=unit_df,
-                outcomes_path=cfg.processed_dir / "business_outcomes.json",
-                top_actions_path=cfg.processed_dir / "top_10_actions.csv",
-            ),
-        ),
-    )
-    stage_timings["insights.reporting"] = elapsed
-
-    warehouse_frames = {
-        "dim_customers": pd.read_csv(cfg.processed_dir / "dim_customers.csv"),
-        "dim_date": pd.read_csv(cfg.processed_dir / "dim_date.csv"),
-        "dim_channel": pd.read_csv(cfg.processed_dir / "dim_channel.csv"),
-        "fact_orders": pd.read_csv(cfg.processed_dir / "fact_orders.csv"),
-        "customer_features": pd.read_csv(cfg.processed_dir / "customer_features.csv"),
-        "scored_customers": pd.read_csv(cfg.processed_dir / "scored_customers.csv"),
-        "recommendations": pd.read_csv(cfg.processed_dir / "recommendations.csv"),
-        "unit_economics": pd.read_csv(cfg.processed_dir / "unit_economics.csv"),
-        "top_10_actions": pd.read_csv(cfg.processed_dir / "top_10_actions.csv"),
+def _build_raw_input_metadata(raw_paths: list[Path]) -> RawInputMetadata:
+    datasets: list[RawDatasetMetadata] = []
+    for path in raw_paths:
+        frame = pd.read_csv(path)
+        modified_at = datetime.fromtimestamp(path.stat().st_mtime, tz=UTC).isoformat()
+        datasets.append(
+            {
+                "dataset_name": path.stem,
+                "path": str(path),
+                "row_count": int(len(frame)),
+                "column_count": int(len(frame.columns)),
+                "columns": frame.columns.tolist(),
+                "fingerprint": compute_file_fingerprint([path]),
+                "source_updated_at_utc": modified_at,
+            }
+        )
+    return {
+        "generated_at_utc": datetime.now(UTC).isoformat(),
+        "dataset_count": len(datasets),
+        "datasets": datasets,
     }
-    (_, elapsed) = _run_stage(
-        "warehouse.sqlite",
-        lambda: persist_frames(
-            warehouse_frames,
-            warehouse_target=cfg.warehouse_target,
-            sqlite_path=cfg.warehouse_db_path,
-            warehouse_url=cfg.warehouse_url,
-        ),
-    )
-    stage_timings[f"warehouse.{cfg.warehouse_target}"] = elapsed
 
-    manifest = _write_manifest(
-        cfg,
-        stage_timings=stage_timings,
-        outputs=sorted(
-            set(path.name for path in cfg.processed_dir.glob("*") if path.is_file())
-            | {cfg.warehouse_db_path.name}
-        ),
+
+def _build_source_aware_freshness_snapshot(
+    raw_metadata: RawInputMetadata,
+    max_age_hours: int,
+) -> dict[str, object]:
+    evaluated_at = datetime.now(UTC)
+    threshold_seconds = max_age_hours * 3600
+    checks: list[dict[str, object]] = []
+    datasets = raw_metadata.get("datasets", [])
+    for dataset in datasets if isinstance(datasets, list) else []:
+        if not isinstance(dataset, dict):
+            continue
+        source_updated_at = datetime.fromisoformat(str(dataset["source_updated_at_utc"]))
+        age_seconds = (evaluated_at - source_updated_at).total_seconds()
+        checks.append(
+            {
+                "dataset_name": dataset["dataset_name"],
+                "path": dataset["path"],
+                "source_updated_at_utc": dataset["source_updated_at_utc"],
+                "row_count": dataset["row_count"],
+                "fingerprint": dataset["fingerprint"],
+                "age_hours": round(age_seconds / 3600, 3),
+                "status": "fresh" if age_seconds <= threshold_seconds else "stale",
+            }
+        )
+    return {
+        "evaluated_at_utc": evaluated_at.isoformat(),
+        "max_age_hours": max_age_hours,
+        "status": "ok" if all(item["status"] == "fresh" for item in checks) else "warning",
+        "checks": checks,
+    }
+
+
+def _quality_snapshot(quality_payload: dict) -> dict[str, object]:
+    duplicates = sum(int(item["duplicate_rows"]) for item in quality_payload["datasets"])
+    referential = sum(int(item["referential_issues"]) for item in quality_payload["datasets"])
+    null_total = sum(
+        int(value)
+        for dataset in quality_payload["datasets"]
+        for value in dataset.get("null_counts", {}).values()
     )
-    LOGGER.info("Pipeline completed successfully | outputs=%s", len(manifest["outputs"]))
+    return {
+        "dataset_count": quality_payload["total_datasets"],
+        "duplicate_rows": duplicates,
+        "referential_issues": referential,
+        "null_count_total": null_total,
+    }
+
+
+def _persist_run_snapshot(cfg: PipelineConfig, run_context: RunContext) -> None:
+    atomic_copy_tree(cfg.processed_dir, run_context.snapshot_dir / "processed")
+    atomic_copy_tree(cfg.gold_dir, run_context.snapshot_dir / "gold")
+    atomic_copy_file(cfg.warehouse_db_path, run_context.snapshot_dir / cfg.warehouse_db_path.name)
+
+
+def _apply_retention(cfg: PipelineConfig) -> None:
+    snapshots = [path for path in cfg.snapshots_dir.iterdir() if path.is_dir()]
+    snapshots.sort(key=lambda item: item.stat().st_mtime, reverse=True)
+    for snapshot in snapshots[cfg.snapshot_retention_runs :]:
+        shutil.rmtree(snapshot, ignore_errors=True)
+
+    cutoff_snapshot = utc_now_minus_days(cfg.snapshot_retention_days)
+    for snapshot in list(cfg.snapshots_dir.iterdir()):
+        if snapshot.is_dir() and is_older_than(snapshot, cutoff_snapshot):
+            shutil.rmtree(snapshot, ignore_errors=True)
+
+    cutoff_failure = utc_now_minus_days(cfg.failure_retention_days)
+    for manifest in cfg.manifests_dir.glob("*.failure.json"):
+        if is_older_than(manifest, cutoff_failure):
+            manifest.unlink(missing_ok=True)
+
+
+def _write_run_manifest(
+    cfg: PipelineConfig,
+    run_context: RunContext,
+    stage_timings: dict[str, float],
+    raw_input_metadata: dict,
+    quality_payload: dict,
+    kpi_snapshot: dict,
+    freshness_snapshot: dict,
+    outputs: list[str],
+) -> dict:
+    manifest = {
+        "pipeline_name": "revenue_intelligence_platform",
+        "status": "success",
+        "run_id": run_context.run_id,
+        "started_at_utc": run_context.started_at_utc,
+        "completed_at_utc": datetime.now(UTC).isoformat(),
+        "environment": cfg.env_name,
+        "seed": cfg.seed,
+        "input_fingerprint": run_context.input_fingerprint,
+        "data_dir": str(cfg.data_dir),
+        "warehouse_target": cfg.warehouse_target,
+        "layers": {
+            "raw": str(cfg.raw_dir),
+            "bronze": str(cfg.bronze_dir),
+            "silver": str(cfg.silver_dir),
+            "gold": str(cfg.gold_dir),
+            "processed": str(cfg.processed_dir),
+            "warehouse": str(cfg.warehouse_db_path),
+            "snapshot": str(run_context.snapshot_dir),
+            "logs": str(run_context.log_path),
+        },
+        "stage_timings_seconds": {name: round(value, 3) for name, value in stage_timings.items()},
+        "raw_input_metadata_path": str(cfg.processed_dir / "raw_input_metadata.json"),
+        "raw_inputs": raw_input_metadata,
+        "freshness_snapshot": freshness_snapshot,
+        "quality_snapshot": _quality_snapshot(quality_payload),
+        "kpi_snapshot": kpi_snapshot,
+        "outputs": outputs,
+    }
+    atomic_write_json(cfg.processed_dir / "pipeline_manifest.json", manifest)
+    atomic_write_json(run_context.success_manifest_path, manifest)
+    return manifest
+
+
+def _write_failure_manifest(
+    cfg: PipelineConfig,
+    run_context: RunContext,
+    stage_timings: dict[str, float],
+    exc: Exception,
+) -> None:
+    payload = {
+        "pipeline_name": "revenue_intelligence_platform",
+        "status": "failed",
+        "run_id": run_context.run_id,
+        "started_at_utc": run_context.started_at_utc,
+        "failed_at_utc": datetime.now(UTC).isoformat(),
+        "environment": cfg.env_name,
+        "input_fingerprint": run_context.input_fingerprint,
+        "error_type": exc.__class__.__name__,
+        "error_message": str(exc),
+        "stage_timings_seconds": {name: round(value, 3) for name, value in stage_timings.items()},
+        "log_path": str(run_context.log_path),
+    }
+    atomic_write_json(run_context.failure_manifest_path, payload)
+
+
+class RevenueIntelligencePipeline:
+    def __init__(self, cfg: PipelineConfig) -> None:
+        self.cfg = cfg
+        self.stage_timings: dict[str, float] = {}
+
+    def _stage(self, stage_name: str, func: Callable[[], T]) -> T:
+        result, elapsed = _run_stage(stage_name, func)
+        self.stage_timings[stage_name] = elapsed
+        LOGGER.info("Stage completed | stage=%s | elapsed=%.3fs", stage_name, elapsed)
+        return result
+
+    def run(self) -> dict:
+        self.cfg.ensure_directories()
+        run_context = RunContext.build(
+            manifests_dir=self.cfg.manifests_dir,
+            runs_dir=self.cfg.runs_dir,
+            snapshots_dir=self.cfg.snapshots_dir,
+            input_files=(
+                [path for path in self.cfg.raw_dir.iterdir() if path.is_file()]
+                if self.cfg.raw_dir.exists()
+                else []
+            ),
+        )
+        run_context.run_dir.mkdir(parents=True, exist_ok=True)
+        configure_logging(
+            self.cfg.log_level, log_path=run_context.log_path, run_id=run_context.run_id
+        )
+        LOGGER.info(
+            "Pipeline started | env=%s | data_dir=%s | seed=%s | fingerprint=%s",
+            self.cfg.env_name,
+            self.cfg.data_dir,
+            self.cfg.seed,
+            run_context.input_fingerprint,
+        )
+
+        try:
+            raw_paths = self._stage(
+                "ingestion.raw",
+                lambda: save_raw_datasets(self.cfg.raw_dir, seed=self.cfg.seed),
+            )
+            raw_input_metadata = self._stage(
+                "ingestion.metadata",
+                lambda: _build_raw_input_metadata([Path(path) for path in raw_paths]),
+            )
+            atomic_write_json(
+                self.cfg.processed_dir / "raw_input_metadata.json",
+                raw_input_metadata,
+            )
+            customers_path, orders_path, marketing_path = raw_paths
+            bronze_customers, bronze_orders, bronze_marketing = self._stage(
+                "ingestion.bronze",
+                lambda: build_bronze_layer(
+                    customers_path,
+                    orders_path,
+                    marketing_path,
+                    self.cfg.bronze_dir,
+                ),
+            )
+
+            silver_customers, silver_orders, silver_marketing = self._stage(
+                "validation.silver",
+                lambda: build_silver_layer(
+                    bronze_customers,
+                    bronze_orders,
+                    bronze_marketing,
+                    self.cfg.silver_dir,
+                ),
+            )
+
+            customers_df = pd.read_csv(silver_customers, parse_dates=["signup_date"])
+            orders_df = pd.read_csv(silver_orders, parse_dates=["order_date"])
+            marketing_df = pd.read_csv(silver_marketing)
+            validate_required_columns(
+                customers_df,
+                {"customer_id", "signup_date", "channel", "segment"},
+                "silver_customers",
+            )
+            validate_required_columns(
+                orders_df,
+                {"order_id", "customer_id", "order_date", "order_value"},
+                "silver_orders",
+            )
+            validate_required_columns(
+                marketing_df,
+                {"channel", "marketing_spend"},
+                "silver_marketing",
+            )
+            quality_reports = [
+                build_dataset_quality_report(
+                    customers_df,
+                    "silver_customers",
+                    primary_key="customer_id",
+                ),
+                build_dataset_quality_report(
+                    orders_df,
+                    "silver_orders",
+                    primary_key="order_id",
+                    foreign_key="customer_id",
+                    valid_values=set(customers_df["customer_id"].tolist()),
+                ),
+                build_dataset_quality_report(
+                    marketing_df,
+                    "silver_marketing",
+                    primary_key="channel",
+                ),
+            ]
+            enforce_quality_gate(quality_reports)
+            quality_payload = write_quality_report(
+                quality_reports,
+                self.cfg.processed_dir / "quality_report.json",
+            )
+
+            freshness_snapshot = _build_source_aware_freshness_snapshot(
+                raw_input_metadata,
+                self.cfg.freshness_max_age_hours,
+            )
+            atomic_write_json(self.cfg.processed_dir / "freshness_report.json", freshness_snapshot)
+
+            features_df = self._stage(
+                "transformation.features",
+                lambda: build_customer_features(
+                    silver_customers, silver_orders, self.cfg.processed_dir
+                ),
+            )
+
+            self._stage(
+                "modeling.gold",
+                lambda: build_star_schema(silver_customers, silver_orders, self.cfg.gold_dir),
+            )
+            _copy_gold_outputs(self.cfg)
+
+            churn_results, next_purchase_results, scored_df = self._stage(
+                "modeling.ml",
+                lambda: train_and_score_models(
+                    features_df,
+                    self.cfg.processed_dir,
+                    run_id=run_context.run_id,
+                ),
+            )
+
+            analytics_outputs = self._stage(
+                "metrics.curated",
+                lambda: build_analytics_outputs(
+                    scored_df=scored_df,
+                    silver_customers_path=silver_customers,
+                    silver_orders_path=silver_orders,
+                    silver_marketing_path=silver_marketing,
+                    processed_dir=self.cfg.processed_dir,
+                ),
+            )
+            recommendations_df = analytics_outputs["recommendations"]
+            unit_df = analytics_outputs["unit_economics"]
+            kpi_snapshot = analytics_outputs["kpi_snapshot"]
+
+            self._stage(
+                "governance.semantic_metrics",
+                lambda: build_metric_catalog(
+                    self.cfg.semantic_metrics_path,
+                    self.cfg.processed_dir / "semantic_metrics_catalog.json",
+                ),
+            )
+            self._stage(
+                "governance.data_dictionary",
+                lambda: build_data_dictionary(self.cfg.data_dictionary_path),
+            )
+
+            monitoring_payload = self._stage(
+                "monitoring.model",
+                lambda: build_monitoring_report(
+                    scored_df=scored_df,
+                    labeled_df=scored_df,
+                    output_path=self.cfg.processed_dir / "monitoring_report.json",
+                    baseline_path=self.cfg.processed_dir / "monitoring_baseline.json",
+                ),
+            )
+
+            alerts_payload = self._stage(
+                "monitoring.alerting",
+                lambda: build_alert_report(
+                    monitoring_report=monitoring_payload,
+                    quality_report=quality_payload,
+                    output_path=self.cfg.alerts_output_path,
+                ),
+            )
+            dispatch_alerts(alerts_payload)
+
+            self._stage(
+                "reporting.executive",
+                lambda: (
+                    build_executive_report(
+                        recommendations_df=recommendations_df,
+                        churn_results=churn_results,
+                        next_purchase_results=next_purchase_results,
+                        kpi_snapshot=kpi_snapshot,
+                        output_path=self.cfg.processed_dir / "executive_report.json",
+                    ),
+                    build_executive_summary(
+                        recommendations_df=recommendations_df,
+                        scored_df=scored_df,
+                        unit_economics_df=unit_df,
+                        kpi_snapshot=kpi_snapshot,
+                        output_path=self.cfg.processed_dir / "executive_summary.json",
+                    ),
+                    build_business_outcomes(
+                        recommendations_df=recommendations_df,
+                        unit_economics_df=unit_df,
+                        outcomes_path=self.cfg.processed_dir / "business_outcomes.json",
+                        top_actions_path=self.cfg.processed_dir / "top_10_actions.csv",
+                    ),
+                ),
+            )
+
+            warehouse_frames = {
+                "dim_customers": pd.read_csv(self.cfg.processed_dir / "dim_customers.csv"),
+                "dim_date": pd.read_csv(self.cfg.processed_dir / "dim_date.csv"),
+                "dim_channel": pd.read_csv(self.cfg.processed_dir / "dim_channel.csv"),
+                "fact_orders": pd.read_csv(self.cfg.processed_dir / "fact_orders.csv"),
+                "customer_features": pd.read_csv(self.cfg.processed_dir / "customer_features.csv"),
+                "scored_customers": pd.read_csv(self.cfg.processed_dir / "scored_customers.csv"),
+                "recommendations": pd.read_csv(self.cfg.processed_dir / "recommendations.csv"),
+                "unit_economics": pd.read_csv(self.cfg.processed_dir / "unit_economics.csv"),
+                "top_10_actions": pd.read_csv(self.cfg.processed_dir / "top_10_actions.csv"),
+            }
+            self._stage(
+                f"warehouse.{self.cfg.warehouse_target}",
+                lambda: persist_frames(
+                    warehouse_frames,
+                    warehouse_target=self.cfg.warehouse_target,
+                    sqlite_path=self.cfg.warehouse_db_path,
+                    warehouse_url=self.cfg.warehouse_url,
+                ),
+            )
+
+            self._stage("operations.snapshot", lambda: _persist_run_snapshot(self.cfg, run_context))
+            self._stage("operations.retention", lambda: _apply_retention(self.cfg))
+
+            outputs = sorted(
+                set(path.name for path in self.cfg.processed_dir.glob("*") if path.is_file())
+                | {self.cfg.warehouse_db_path.name}
+            )
+            manifest = _write_run_manifest(
+                self.cfg,
+                run_context=run_context,
+                stage_timings=self.stage_timings,
+                raw_input_metadata=raw_input_metadata,
+                quality_payload=quality_payload,
+                kpi_snapshot=kpi_snapshot,
+                freshness_snapshot=freshness_snapshot,
+                outputs=outputs,
+            )
+            LOGGER.info("Pipeline completed successfully | outputs=%s", len(outputs))
+            return manifest
+        except Exception as exc:
+            _write_failure_manifest(
+                self.cfg,
+                run_context=run_context,
+                stage_timings=self.stage_timings,
+                exc=exc,
+            )
+            LOGGER.exception("Pipeline failed")
+            raise
+
+
+def run_pipeline(cfg: PipelineConfig) -> dict:
+    pipeline = RevenueIntelligencePipeline(cfg)
+    return pipeline.run()

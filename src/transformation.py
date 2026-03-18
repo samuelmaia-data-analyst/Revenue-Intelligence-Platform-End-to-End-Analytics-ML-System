@@ -3,6 +3,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from src.io_utils import atomic_write_csv
+
 
 def _validate_columns(df: pd.DataFrame, required: set[str], table_name: str) -> None:
     missing = required.difference(df.columns)
@@ -60,9 +62,9 @@ def build_silver_layer(
     silver_orders_path = silver_dir / "silver_orders.csv"
     silver_marketing_path = silver_dir / "silver_marketing_spend.csv"
 
-    customers.to_csv(silver_customers_path, index=False)
-    orders.to_csv(silver_orders_path, index=False)
-    marketing.to_csv(silver_marketing_path, index=False)
+    atomic_write_csv(silver_customers_path, customers)
+    atomic_write_csv(silver_orders_path, orders)
+    atomic_write_csv(silver_marketing_path, marketing)
     return silver_customers_path, silver_orders_path, silver_marketing_path
 
 
@@ -127,5 +129,5 @@ def build_customer_features(
     )
     features["as_of_date"] = as_of_date
 
-    features.to_csv(output_dir / "customer_features.csv", index=False)
+    atomic_write_csv(output_dir / "customer_features.csv", features)
     return features

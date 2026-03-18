@@ -1,7 +1,9 @@
 import argparse
+import json
 from pathlib import Path
 
 from src.config import PipelineConfig
+from src.governance import build_data_dictionary
 from src.orchestration import run_pipeline
 
 
@@ -24,59 +26,56 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         help="Override log level.",
     )
+    artifacts_cmd = subparsers.add_parser(
+        "artifacts",
+        help="Generate governance artifacts without running the full pipeline.",
+    )
+    artifacts_cmd.add_argument(
+        "--data-dictionary-path",
+        type=str,
+        default=None,
+        help="Override data dictionary output path.",
+    )
     return parser
+
+
+def _resolve_config(args: argparse.Namespace) -> PipelineConfig:
+    cfg = PipelineConfig.from_env(Path(__file__).resolve().parents[1])
+    data_dir = Path(args.data_dir) if getattr(args, "data_dir", None) else None
+    seed = getattr(args, "seed", None)
+    log_level = getattr(args, "log_level", None)
+    return cfg.with_overrides(data_dir=data_dir, seed=seed, log_level=log_level)
 
 
 def main() -> None:
     parser = _build_parser()
     args = parser.parse_args()
 
-    if args.command != "run":
+    if args.command is None:
         parser.print_help()
         return
 
-    cfg = PipelineConfig.from_env(Path(__file__).resolve().parents[1])
-    if args.data_dir:
-        data_dir = Path(args.data_dir)
-        cfg = PipelineConfig(
-            project_root=cfg.project_root,
-            data_dir=data_dir,
-            raw_dir=data_dir / "raw",
-            bronze_dir=data_dir / "bronze",
-            silver_dir=data_dir / "silver",
-            gold_dir=data_dir / "gold",
-            processed_dir=data_dir / "processed",
-            warehouse_dir=data_dir / "warehouse",
-            warehouse_db_path=data_dir / "warehouse" / "revenue_intelligence.db",
-            semantic_metrics_path=cfg.semantic_metrics_path,
-            warehouse_target=cfg.warehouse_target,
-            warehouse_url=cfg.warehouse_url,
-            alerts_output_path=data_dir / "processed" / "alerts_report.json",
-            approvals_output_path=data_dir / "processed" / "approved_actions.csv",
-            seed=args.seed if args.seed is not None else cfg.seed,
-            log_level=args.log_level or cfg.log_level,
-        )
-    elif args.seed is not None or args.log_level:
-        cfg = PipelineConfig(
-            project_root=cfg.project_root,
-            data_dir=cfg.data_dir,
-            raw_dir=cfg.raw_dir,
-            bronze_dir=cfg.bronze_dir,
-            silver_dir=cfg.silver_dir,
-            gold_dir=cfg.gold_dir,
-            processed_dir=cfg.processed_dir,
-            warehouse_dir=cfg.warehouse_dir,
-            warehouse_db_path=cfg.warehouse_db_path,
-            semantic_metrics_path=cfg.semantic_metrics_path,
-            warehouse_target=cfg.warehouse_target,
-            warehouse_url=cfg.warehouse_url,
-            alerts_output_path=cfg.alerts_output_path,
-            approvals_output_path=cfg.approvals_output_path,
-            seed=args.seed if args.seed is not None else cfg.seed,
-            log_level=args.log_level or cfg.log_level,
-        )
+    if args.command == "run":
+        cfg = _resolve_config(args)
+        run_pipeline(cfg)
+        return
 
-    run_pipeline(cfg)
+    if args.command == "artifacts":
+        cfg = PipelineConfig.from_env(Path(__file__).resolve().parents[1])
+        output_path = (
+            Path(args.data_dictionary_path)
+            if args.data_dictionary_path
+            else cfg.data_dictionary_path
+        )
+        dictionary = build_data_dictionary(output_path)
+        print(
+            json.dumps(
+                {"data_dictionary_path": str(output_path), "tables": len(dictionary["tables"])}
+            )
+        )
+        return
+
+    parser.print_help()
 
 
 if __name__ == "__main__":

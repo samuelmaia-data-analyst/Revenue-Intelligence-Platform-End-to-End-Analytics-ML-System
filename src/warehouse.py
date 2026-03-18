@@ -2,6 +2,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.io_utils import atomic_write_csv
+
 
 def build_star_schema(customers_path: Path, orders_path: Path, output_dir: Path) -> None:
     customers = pd.read_csv(customers_path, parse_dates=["signup_date"])
@@ -41,7 +43,7 @@ def build_star_schema(customers_path: Path, orders_path: Path, output_dir: Path)
     fact_orders["order_amount"] = fact_orders["order_value"]
     fact_orders["order_count"] = 1
 
-    dim_channel.to_csv(output_dir / "dim_channel.csv", index=False)
-    dim_customers.to_csv(output_dir / "dim_customers.csv", index=False)
-    dim_date.to_csv(output_dir / "dim_date.csv", index=False)
-    fact_orders.to_csv(output_dir / "fact_orders.csv", index=False)
+    atomic_write_csv(output_dir / "dim_channel.csv", dim_channel)
+    atomic_write_csv(output_dir / "dim_customers.csv", dim_customers)
+    atomic_write_csv(output_dir / "dim_date.csv", dim_date)
+    atomic_write_csv(output_dir / "fact_orders.csv", fact_orders)

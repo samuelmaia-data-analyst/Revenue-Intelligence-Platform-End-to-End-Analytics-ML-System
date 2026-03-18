@@ -1,0 +1,49 @@
+name: Change request
+description: Propose a high-signal improvement to reliability, architecture, governance, or maintainability.
+title: "[Change] "
+labels:
+  - type:architecture
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What concrete weakness or risk does this change address?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Describe the change in implementation terms, not just intent.
+    validations:
+      required: true
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Technical rationale
+      description: Why is this change defensible and proportionate for this repository?
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - P0 critical
+        - P1 high
+        - P2 medium
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List observable outcomes or tests that would make this complete.
+    validations:
+      required: true
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: Non-goals
+      description: State what should explicitly not be added as part of this change.

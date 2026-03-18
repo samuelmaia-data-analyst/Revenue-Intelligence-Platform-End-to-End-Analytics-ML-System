@@ -1,10 +1,15 @@
-import json
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import SupportsFloat, cast
 
 import pandas as pd
 
 from src.business_rules import RECOMMENDATION_POLICIES
+from src.io_utils import atomic_write_csv, atomic_write_json
+
+
+def _as_float(value: SupportsFloat) -> float:
+    return float(value)
 
 
 def simulate_action_portfolio(
@@ -31,21 +36,35 @@ def simulate_action_portfolio(
     def _simulate_row(row: pd.Series) -> pd.Series:
         action = row["recommended_action"]
         policy = active_policies.get(action, active_policies["Nurture"])
+        uplift_rate = _as_float(cast(SupportsFloat, policy["uplift_rate"]))
+        cost_rate = _as_float(cast(SupportsFloat, policy["cost_rate"]))
         if action == "Retention Campaign":
-            expected_uplift = row["ltv"] * row["churn_probability"] * float(policy["uplift_rate"])
+            expected_uplift = (
+                _as_float(cast(SupportsFloat, row["ltv"]))
+                * _as_float(cast(SupportsFloat, row["churn_probability"]))
+                * uplift_rate
+            )
         elif action == "Upsell Offer":
             expected_uplift = (
-                row["ltv"] * row["next_purchase_probability"] * float(policy["uplift_rate"])
+                _as_float(cast(SupportsFloat, row["ltv"]))
+                * _as_float(cast(SupportsFloat, row["next_purchase_probability"]))
+                * uplift_rate
             )
         elif action == "Reduce Acquisition Spend":
-            expected_uplift = row["cac"] * float(policy["uplift_rate"])
+            expected_uplift = _as_float(cast(SupportsFloat, row["cac"])) * uplift_rate
         else:
             expected_uplift = (
-                row["ltv"] * row["next_purchase_probability"] * float(policy["uplift_rate"])
+                _as_float(cast(SupportsFloat, row["ltv"]))
+                * _as_float(cast(SupportsFloat, row["next_purchase_probability"]))
+                * uplift_rate
             )
 
-        cost_base = row["ltv"] if policy["base"] == "ltv" else row["cac"]
-        action_cost = cost_base * float(policy["cost_rate"])
+        cost_base = (
+            _as_float(cast(SupportsFloat, row["ltv"]))
+            if policy["base"] == "ltv"
+            else _as_float(cast(SupportsFloat, row["cac"]))
+        )
+        action_cost = cost_base * cost_rate
         net_impact = expected_uplift - action_cost
         roi = net_impact / action_cost if action_cost > 0 else 0.0
         return pd.Series(
@@ -102,16 +121,16 @@ def build_executive_report(
             "rows_in_recommendation_table": int(len(recommendations_df)),
         },
         "top_kpis": {
-            "avg_ltv": float(kpi_snapshot["avg_ltv"]),
-            "avg_cac": float(kpi_snapshot["avg_cac"]),
-            "avg_ltv_cac_ratio": float(kpi_snapshot["avg_ltv_cac_ratio"]),
+            "avg_ltv": _as_float(kpi_snapshot["avg_ltv"]),
+            "avg_cac": _as_float(kpi_snapshot["avg_cac"]),
+            "avg_ltv_cac_ratio": _as_float(kpi_snapshot["avg_ltv_cac_ratio"]),
             "avg_churn_probability": float(recommendations_df["churn_probability"].mean()),
             "avg_next_purchase_probability": float(
                 recommendations_df["next_purchase_probability"].mean()
             ),
         },
         "business_context": {
-            "revenue_proxy": float(kpi_snapshot["revenue_proxy"]),
+            "revenue_proxy": _as_float(kpi_snapshot["revenue_proxy"]),
             "portfolio_size": int(kpi_snapshot["portfolio_size"]),
             "best_channel_efficiency": kpi_snapshot["best_channel_efficiency"],
         },
@@ -122,9 +141,7 @@ def build_executive_report(
         "recommendations_top_20": top_20,
     }
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("w", encoding="utf-8") as file:
-        json.dump(report, file, indent=2, ensure_ascii=False)
+    atomic_write_json(output_path, report)
     return report
 
 
@@ -155,8 +172,8 @@ def build_executive_summary(
     summary = {
         "data_refresh_utc": datetime.now(UTC).isoformat(),
         "kpis": {
-            "total_revenue_proxy": float(kpi_snapshot["revenue_proxy"]),
-            "avg_arpu": float(kpi_snapshot["avg_arpu"]),
+            "total_revenue_proxy": _as_float(kpi_snapshot["revenue_proxy"]),
+            "avg_arpu": _as_float(kpi_snapshot["avg_arpu"]),
             "avg_churn_probability": float(recommendations_df["churn_probability"].mean()),
             "portfolio_size": int(kpi_snapshot["portfolio_size"]),
         },
@@ -165,9 +182,7 @@ def build_executive_summary(
         "top_20_recommended_actions": top_actions,
     }
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("w", encoding="utf-8") as file:
-        json.dump(summary, file, indent=2, ensure_ascii=False)
+    atomic_write_json(output_path, summary)
     return summary
 
 
@@ -203,8 +218,7 @@ def build_business_outcomes(
         }
     )
 
-    top_actions_path.parent.mkdir(parents=True, exist_ok=True)
-    top_actions_export.to_csv(top_actions_path, index=False)
+    atomic_write_csv(top_actions_path, top_actions_export)
 
     baseline_revenue = float(top_actions_export["baseline_revenue_90d"].sum())
     scenario_revenue = float(top_actions_export["scenario_revenue_90d"].sum())
@@ -249,7 +263,5 @@ def build_business_outcomes(
         "top_10_actions": top_actions_export.to_dict(orient="records"),
     }
 
-    outcomes_path.parent.mkdir(parents=True, exist_ok=True)
-    with outcomes_path.open("w", encoding="utf-8") as file:
-        json.dump(outcomes, file, indent=2, ensure_ascii=False)
+    atomic_write_json(outcomes_path, outcomes)
     return outcomes

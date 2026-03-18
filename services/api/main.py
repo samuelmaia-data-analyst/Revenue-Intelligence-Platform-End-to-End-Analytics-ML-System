@@ -11,7 +11,7 @@ from typing import Any
 import pandas as pd
 from fastapi import FastAPI, Header, HTTPException, Request, Response
 
-from contracts.data_contract import ScoreInputRecord, ScoreRequest, ScoreResponse
+from contracts.data_contract import ScoreInputRecord, ScorePrediction, ScoreRequest, ScoreResponse
 from src.model_registry import load_registered_model
 
 LOGGER = logging.getLogger("revenue_intelligence.api")
@@ -290,19 +290,19 @@ def score(
     churn_scores = CHURN_BUNDLE["model"].predict_proba(features)[:, 1].tolist()
     next_scores = NEXT_BUNDLE["model"].predict_proba(features)[:, 1].tolist()
 
-    predictions = []
+    predictions: list[ScorePrediction] = []
     for churn_probability, next_purchase_probability in zip(
         churn_scores, next_scores, strict=False
     ):
         predictions.append(
-            {
-                "churn_probability": float(churn_probability),
-                "next_purchase_probability": float(next_purchase_probability),
-                "suggested_action": _suggest_action(
+            ScorePrediction(
+                churn_probability=float(churn_probability),
+                next_purchase_probability=float(next_purchase_probability),
+                suggested_action=_suggest_action(
                     churn_probability=float(churn_probability),
                     next_purchase_probability=float(next_purchase_probability),
                 ),
-            }
+            )
         )
 
     versions = {

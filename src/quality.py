@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import pandas as pd
 
 from src.exceptions import DataQualityError
+from src.io_utils import atomic_write_json
 
 
 @dataclass(frozen=True)
@@ -31,7 +31,9 @@ def build_dataset_quality_report(
     foreign_key: str | None = None,
     valid_values: set[int] | None = None,
 ) -> DatasetQualityReport:
-    duplicate_rows = int(df[primary_key].duplicated().sum()) if primary_key else int(df.duplicated().sum())
+    duplicate_rows = (
+        int(df[primary_key].duplicated().sum()) if primary_key else int(df.duplicated().sum())
+    )
     referential_issues = 0
     if foreign_key and valid_values is not None and foreign_key in df.columns:
         referential_issues = int((~df[foreign_key].isin(valid_values)).sum())
@@ -65,7 +67,5 @@ def write_quality_report(reports: list[DatasetQualityReport], output_path: Path)
         "datasets": [asdict(report) for report in reports],
         "total_datasets": len(reports),
     }
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("w", encoding="utf-8") as file:
-        json.dump(payload, file, indent=2)
+    atomic_write_json(output_path, payload)
     return payload
