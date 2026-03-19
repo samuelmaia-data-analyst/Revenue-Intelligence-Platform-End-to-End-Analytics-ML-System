@@ -33,7 +33,10 @@ def main() -> None:
 
     try:
         with st.spinner(labels["loading"]):
-            data = load_dashboard_data(str(source_paths.gold_dir))
+            data = load_dashboard_data(
+                str(source_paths.gold_dir),
+                serving_db=str(source_paths.serving_db),
+            )
     except Exception as error:  # pragma: no cover - UI safety path
         st.error(labels["load_error"])
         st.exception(error)

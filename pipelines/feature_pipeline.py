@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from analytics.serving_store import materialize_gold_to_serving_store
 from pipelines.common import (
     LOGGER,
     DataContractError,
@@ -109,6 +110,7 @@ def run_feature_engineering(
     gold_dir: Path,
     *,
     run_context: RunContext | None = None,
+    serving_db_path: Path | None = None,
 ) -> dict[str, Path]:
     ensure_dir(gold_dir)
 
@@ -211,6 +213,13 @@ def run_feature_engineering(
         len(output_paths),
         gold_dir,
     )
+    if serving_db_path is not None:
+        materialize_gold_to_serving_store(
+            gold_dir,
+            serving_db_path,
+            run_id=run_context.run_id if run_context else None,
+        )
+        LOGGER.info("Serving store refreshed at %s", serving_db_path)
     return output_paths
 
 

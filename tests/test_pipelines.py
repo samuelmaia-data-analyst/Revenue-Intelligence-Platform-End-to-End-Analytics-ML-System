@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from pathlib import Path
 
 import pandas as pd
@@ -77,6 +78,7 @@ def test_end_to_end_pipelines(tmp_path: Path) -> None:
     bronze_dir = tmp_path / "bronze"
     silver_dir = tmp_path / "silver"
     gold_dir = tmp_path / "gold"
+    serving_db = tmp_path / "serving.db"
     raw_dir.mkdir()
     _build_minimal_raw_dataset(raw_dir)
 
@@ -87,7 +89,7 @@ def test_end_to_end_pipelines(tmp_path: Path) -> None:
     assert (silver_outputs["fct_orders"]).exists()
     assert (silver_outputs["dim_customers"]).exists()
 
-    gold_outputs = run_feature_engineering(silver_dir, gold_dir)
+    gold_outputs = run_feature_engineering(silver_dir, gold_dir, serving_db_path=serving_db)
     assert (gold_outputs["business_kpis"]).exists()
     kpi_df = pd.read_csv(gold_outputs["business_kpis"])
     assert "gmv_total" in set(kpi_df["metric"])
@@ -95,6 +97,12 @@ def test_end_to_end_pipelines(tmp_path: Path) -> None:
     assert metadata["stage"] == "feature_engineering"
     assert metadata["row_count"] == len(kpi_df)
     assert metadata["run_id"] is None
+    with sqlite3.connect(serving_db) as connection:
+        serving_tables = pd.read_sql_query(
+            "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
+            connection,
+        )
+    assert "business_kpis" in set(serving_tables["name"])
 
 
 def test_transformation_fails_with_clear_contract_error(tmp_path: Path) -> None:
@@ -294,6 +302,7 @@ def test_cli_pipeline_run_writes_manifest_and_run_id(
     gold_dir = tmp_path / "gold"
     models_dir = tmp_path / "models"
     runs_dir = tmp_path / "run_manifests"
+    run_artifacts_dir = tmp_path / "run_artifacts"
     raw_dir.mkdir()
     _build_minimal_raw_dataset(raw_dir)
 
@@ -301,8 +310,11 @@ def test_cli_pipeline_run_writes_manifest_and_run_id(
     monkeypatch.setenv("RIDP_BRONZE_DIR", str(bronze_dir))
     monkeypatch.setenv("RIDP_SILVER_DIR", str(silver_dir))
     monkeypatch.setenv("RIDP_GOLD_DIR", str(gold_dir))
+    monkeypatch.setenv("RIDP_SERVING_DB", str(tmp_path / "serving.db"))
     monkeypatch.setenv("RIDP_MODELS_DIR", str(models_dir))
     monkeypatch.setenv("RIDP_RUNS_DIR", str(runs_dir))
+    monkeypatch.setenv("RIDP_RUN_ARTIFACTS_DIR", str(run_artifacts_dir))
+    monkeypatch.setenv("RIDP_RUN_HISTORY_DB", str(runs_dir / "run_history.db"))
     monkeypatch.setattr(
         "sys.argv",
         ["ridp", "run-pipeline", "all", "--run-id", "test-run-001"],
@@ -318,8 +330,21 @@ def test_cli_pipeline_run_writes_manifest_and_run_id(
         "ingestion",
         "transformation",
     ]
+    assert Path(manifest["snapshot_root"]).exists()
+    assert (
+        run_artifacts_dir / "test-run-001" / "feature_engineering" / "business_kpis.csv"
+    ).exists()
+    assert (
+        run_artifacts_dir / "test-run-001" / "feature_engineering" / "business_kpis.metadata.json"
+    ).exists()
 
     business_kpis_metadata = json.loads(
         (gold_dir / "business_kpis.metadata.json").read_text(encoding="utf-8")
     )
     assert business_kpis_metadata["run_id"] == "test-run-001"
+    run_catalog = pd.read_csv(runs_dir / "run_catalog.csv")
+    assert run_catalog.iloc[0]["run_id"] == "test-run-001"
+    assert int(run_catalog.iloc[0]["artifact_count"]) >= 1
+    with sqlite3.connect(runs_dir / "run_history.db") as connection:
+        sql_history = pd.read_sql_query("SELECT * FROM run_history", connection)
+    assert sql_history.iloc[0]["run_id"] == "test-run-001"

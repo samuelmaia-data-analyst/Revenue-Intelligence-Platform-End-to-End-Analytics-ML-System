@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from pathlib import Path
 
 import pandas as pd
@@ -170,14 +171,104 @@ def test_load_run_history_reads_manifests_and_artifacts(tmp_path: Path) -> None:
     assert set(history.artifact_history["stage_name"]) == {"ingestion", "feature_engineering"}
 
 
+def test_load_run_history_reads_sqlite_registry(tmp_path: Path) -> None:
+    run_dir = tmp_path / "runs"
+    run_dir.mkdir()
+    with sqlite3.connect(run_dir / "run_history.db") as connection:
+        connection.execute("""
+            CREATE TABLE run_history (
+                run_id TEXT PRIMARY KEY,
+                command TEXT NOT NULL,
+                stage TEXT NOT NULL,
+                started_at_utc TEXT NOT NULL,
+                recorded_at_utc TEXT NOT NULL,
+                artifact_groups INTEGER NOT NULL,
+                artifact_count INTEGER NOT NULL,
+                snapshot_root TEXT
+            )
+            """)
+        connection.execute("""
+            INSERT INTO run_history VALUES (
+                'run-001',
+                'run-pipeline',
+                'all',
+                '2026-03-19T10:00:00+00:00',
+                '2026-03-19T10:01:00+00:00',
+                3,
+                9,
+                'data/run_artifacts/run-001'
+            )
+            """)
+        connection.commit()
+
+    history = load_run_history(str(run_dir))
+
+    assert history.sql_history.iloc[0]["run_id"] == "run-001"
+    assert int(history.sql_history.iloc[0]["artifact_count"]) == 9
+
+
+def test_load_dashboard_data_prefers_serving_store_when_available(tmp_path: Path) -> None:
+    gold_dir = tmp_path / "gold"
+    gold_dir.mkdir()
+    serving_db = tmp_path / "serving.db"
+    pd.DataFrame(
+        [{"metric": "gmv_total", "value": 999.0}, {"metric": "aov", "value": 111.0}]
+    ).to_csv(gold_dir / "business_kpis.csv", index=False)
+    pd.DataFrame([{"order_month": "2018-01", "revenue": 10.0}]).to_csv(
+        gold_dir / "kpi_monthly_revenue.csv", index=False
+    )
+    pd.DataFrame(
+        [
+            {
+                "customer_id": "c1",
+                "total_orders": 1,
+                "total_spent": 10.0,
+                "first_purchase": "2018-01-01 10:00:00",
+                "last_purchase": "2018-01-01 10:00:00",
+                "days_since_last_purchase": 10,
+                "avg_order_value": 10.0,
+            }
+        ]
+    ).to_csv(gold_dir / "customer_360.csv", index=False)
+    with sqlite3.connect(serving_db) as connection:
+        pd.DataFrame(
+            [{"metric": "gmv_total", "value": 412.0}, {"metric": "aov", "value": 137.33}]
+        ).to_sql("business_kpis", connection, if_exists="replace", index=False)
+        pd.DataFrame([{"order_month": "2018-06", "revenue": 170.0}]).to_sql(
+            "kpi_monthly_revenue", connection, if_exists="replace", index=False
+        )
+        pd.DataFrame(
+            [
+                {
+                    "customer_id": "c9",
+                    "total_orders": 2,
+                    "total_spent": 170.0,
+                    "first_purchase": "2018-02-01 10:00:00",
+                    "last_purchase": "2018-03-01 10:00:00",
+                    "days_since_last_purchase": 90,
+                    "avg_order_value": 85.0,
+                }
+            ]
+        ).to_sql("customer_360", connection, if_exists="replace", index=False)
+
+    dashboard_data = data_access.load_dashboard_data(str(gold_dir), str(serving_db))
+
+    assert dashboard_data.metrics["gmv_total"] == 412.0
+    assert dashboard_data.monthly_revenue.iloc[0]["order_month"] == "2018-06"
+    assert dashboard_data.customer_360.iloc[0]["customer_id"] == "c9"
+
+
 def test_resolve_dashboard_sources_falls_back_to_demo_assets_in_auto_mode(tmp_path: Path) -> None:
     directories = DataDirectories(
         raw=tmp_path / "raw",
         bronze=tmp_path / "bronze",
         silver=tmp_path / "silver",
         gold=tmp_path / "gold",
+        serving=tmp_path / "serving.db",
         models=tmp_path / "models",
         runs=tmp_path / "runs",
+        run_artifacts=tmp_path / "run_artifacts",
+        run_history_db=tmp_path / "runs" / "run_history.db",
     )
     settings = DashboardSettings(
         demo_mode="AUTO",
@@ -197,8 +288,11 @@ def test_resolve_dashboard_sources_respects_off_mode(tmp_path: Path) -> None:
         bronze=tmp_path / "bronze",
         silver=tmp_path / "silver",
         gold=tmp_path / "gold",
+        serving=tmp_path / "serving.db",
         models=tmp_path / "models",
         runs=tmp_path / "runs",
+        run_artifacts=tmp_path / "run_artifacts",
+        run_history_db=tmp_path / "runs" / "run_history.db",
     )
     settings = DashboardSettings(
         demo_mode="OFF",
@@ -221,8 +315,11 @@ def test_resolve_dashboard_sources_respects_sidebar_session_override(
         bronze=tmp_path / "bronze",
         silver=tmp_path / "silver",
         gold=tmp_path / "gold",
+        serving=tmp_path / "serving.db",
         models=tmp_path / "models",
         runs=tmp_path / "runs",
+        run_artifacts=tmp_path / "run_artifacts",
+        run_history_db=tmp_path / "runs" / "run_history.db",
     )
     settings = DashboardSettings(
         demo_mode="AUTO",

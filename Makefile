@@ -1,4 +1,14 @@
+ifeq ($(OS),Windows_NT)
+VENV_PYTHON := .venv\Scripts\python.exe
+else
+VENV_PYTHON := .venv/bin/python
+endif
+
+ifneq ($(wildcard $(VENV_PYTHON)),)
+PYTHON ?= $(VENV_PYTHON)
+else
 PYTHON ?= python
+endif
 
 install:
 	$(PYTHON) -m pip install -e .[dev]

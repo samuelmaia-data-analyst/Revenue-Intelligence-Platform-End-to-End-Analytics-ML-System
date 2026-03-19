@@ -37,6 +37,7 @@ After `make pipeline`:
 - `data/gold/*.csv`
 - matching `*.metadata.json` files for generated datasets
 - `data/run_manifests/*.json` for CLI-triggered runs
+- `data/serving/revenue_serving.db` for SQL-oriented serving reads
 
 After model training:
 
@@ -54,6 +55,8 @@ make test
 pre-commit install
 ```
 
+If `.venv` exists, the Makefile automatically uses that interpreter for local commands.
+
 ## Run traceability
 
 When the pipeline is launched through the CLI, use `--run-id` to correlate all outputs from a
@@ -67,6 +70,9 @@ Expected traceability:
 
 - every generated dataset metadata file contains the same `run_id`
 - `data/run_manifests/<run_id>.json` lists artifacts written by each pipeline stage
+- `data/run_artifacts/<run_id>/` preserves a physical copy of stage outputs for that run
+- `data/run_manifests/run_catalog.csv` keeps a simple index of recent executions
+- `data/run_manifests/run_history.db` stores the same run history in SQLite for ad hoc queries
 
 ## Dashboard source modes
 

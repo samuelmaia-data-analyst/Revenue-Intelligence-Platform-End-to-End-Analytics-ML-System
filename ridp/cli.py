@@ -5,7 +5,13 @@ import argparse
 from models.churn_model import train_churn_model
 from models.revenue_forecasting import forecast_revenue
 from pipelines.bootstrap_sample_data import write_sample_raw_data
-from pipelines.common import LOGGER, build_run_context, configure_logging, write_run_manifest
+from pipelines.common import (
+    LOGGER,
+    build_run_context,
+    configure_logging,
+    snapshot_stage_artifacts,
+    write_run_manifest,
+)
 from pipelines.feature_pipeline import run_feature_engineering
 from pipelines.ingestion_pipeline import run_ingestion
 from pipelines.transformation_pipeline import run_transformation
@@ -60,10 +66,17 @@ def main() -> None:
     if args.command == "run-pipeline":
         run_context = build_run_context(args.run_id)
         artifacts: dict[str, list[str]] = {}
+        artifact_snapshots: dict[str, list[str]] = {}
+        snapshot_root = dirs.run_artifacts / run_context.run_id
         if args.stage in {"ingestion", "all"}:
             artifacts["ingestion"] = [
                 str(path) for path in run_ingestion(dirs.raw, dirs.bronze, run_context=run_context)
             ]
+            artifact_snapshots["ingestion"] = snapshot_stage_artifacts(
+                snapshot_root,
+                stage="ingestion",
+                artifact_paths=artifacts["ingestion"],
+            )
         if args.stage in {"transformation", "all"}:
             artifacts["transformation"] = [
                 str(path)
@@ -73,6 +86,11 @@ def main() -> None:
                     run_context=run_context,
                 ).values()
             ]
+            artifact_snapshots["transformation"] = snapshot_stage_artifacts(
+                snapshot_root,
+                stage="transformation",
+                artifact_paths=artifacts["transformation"],
+            )
         if args.stage in {"features", "all"}:
             artifacts["feature_engineering"] = [
                 str(path)
@@ -80,14 +98,23 @@ def main() -> None:
                     dirs.silver,
                     dirs.gold,
                     run_context=run_context,
+                    serving_db_path=dirs.serving,
                 ).values()
             ]
+            artifact_snapshots["feature_engineering"] = snapshot_stage_artifacts(
+                snapshot_root,
+                stage="feature_engineering",
+                artifact_paths=artifacts["feature_engineering"],
+            )
         manifest_path = write_run_manifest(
             dirs.runs,
             command="run-pipeline",
             stage=args.stage,
             run_context=run_context,
             artifacts=artifacts,
+            artifact_snapshots=artifact_snapshots,
+            snapshot_root=str(snapshot_root),
+            history_db_path=dirs.run_history_db,
         )
         LOGGER.info("Pipeline stage completed: %s | run_id=%s", args.stage, run_context.run_id)
         LOGGER.info("Run manifest written to %s", manifest_path)

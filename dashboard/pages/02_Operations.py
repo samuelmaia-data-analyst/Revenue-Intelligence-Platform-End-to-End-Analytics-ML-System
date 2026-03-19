@@ -32,7 +32,10 @@ def main() -> None:
 
     try:
         with st.spinner(labels["loading"]):
-            data = load_dashboard_data(str(source_paths.gold_dir))
+            data = load_dashboard_data(
+                str(source_paths.gold_dir),
+                serving_db=str(source_paths.serving_db),
+            )
     except Exception as error:  # pragma: no cover - UI safety path
         st.error(labels["load_error"])
         st.exception(error)
@@ -53,7 +56,7 @@ def main() -> None:
 
     artifact_df = artifact_metadata(source_paths.gold_dir)
     with st.expander("Metadata Preview", expanded=False):
-        st.dataframe(artifact_df, use_container_width=True, hide_index=True)
+        st.dataframe(artifact_df, width="stretch", hide_index=True)
 
     render_footer(
         labels,

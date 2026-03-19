@@ -10,6 +10,7 @@ This project is designed to demonstrate practical senior-level data engineering 
 - explicit data contracts and fast failure on schema drift
 - separation between ingestion, transformation, feature engineering, analytics, models, and serving
 - operational traceability through logging, per-dataset metadata sidecars, and run manifests
+- lightweight SQL serving store for curated outputs and dashboard reads
 - automated quality gates with lint, typing, tests, and CI
 
 ## Business problem
@@ -140,8 +141,11 @@ RIDP_RAW_DIR=data/raw
 RIDP_BRONZE_DIR=data/bronze
 RIDP_SILVER_DIR=data/silver
 RIDP_GOLD_DIR=data/gold
+RIDP_SERVING_DB=data/serving/revenue_serving.db
 RIDP_MODELS_DIR=models/artifacts
 RIDP_RUNS_DIR=data/run_manifests
+RIDP_RUN_ARTIFACTS_DIR=data/run_artifacts
+RIDP_RUN_HISTORY_DB=data/run_manifests/run_history.db
 RIDP_LOG_LEVEL=INFO
 RIDP_DASHBOARD_DEMO_MODE=AUTO
 RIDP_DASHBOARD_DEMO_ASSETS_DIR=dashboard/demo_assets
@@ -189,6 +193,8 @@ make format
 make dashboard
 ```
 
+When `.venv` exists, `make` commands automatically prefer that interpreter over the global Python.
+
 ## Data flow and outputs
 
 `bronze`
@@ -210,10 +216,22 @@ make dashboard
 - `churn_features.csv`
 - `business_kpis.csv`
 
+`serving`
+
+- `revenue_serving.db`
+- SQLite materialization of curated gold outputs for lightweight SQL reads
+
 Each generated dataset also emits a `.metadata.json` file with schema and lineage context.
 
 CLI-triggered pipeline runs also emit a manifest under `data/run_manifests/` with a shared
 `run_id`, execution timestamps, and the artifacts produced by each stage.
+
+Each CLI run also snapshots stage outputs under `data/run_artifacts/<run_id>/` and updates
+`data/run_manifests/run_catalog.csv` for a lightweight execution index.
+The same run is also registered in `data/run_manifests/run_history.db`, making execution history
+queryable through SQLite.
+Gold outputs are also materialized into `data/serving/revenue_serving.db` so curated datasets are
+available through a stable SQL serving layer.
 
 ## Reliability and quality posture
 
@@ -223,6 +241,8 @@ CLI-triggered pipeline runs also emit a manifest under `data/run_manifests/` wit
 - Gold generation refuses to compute KPIs when there are no delivered orders.
 - Churn training degrades gracefully when the target is not trainable.
 - CLI pipeline runs can be traced end-to-end through a shared `run_id`.
+- CLI pipeline runs preserve per-stage snapshot artifacts for deterministic run review.
+- CLI pipeline runs are also registered in a lightweight SQLite operations store.
 - Dashboard startup is deterministic through an official demo mode with bundled curated assets.
 
 ## Validation

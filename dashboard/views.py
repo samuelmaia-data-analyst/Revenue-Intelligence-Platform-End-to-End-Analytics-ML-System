@@ -341,7 +341,7 @@ def render_overview(
             st.area_chart(
                 monthly_view.set_index("order_month")["revenue"],
                 color="#0f766e",
-                use_container_width=True,
+                width="stretch",
             )
 
     with retention_col:
@@ -354,19 +354,19 @@ def render_overview(
             render_empty_state(labels["retention_title"], labels["artifacts_empty"])
         else:
             retention_chart = data.retention.set_index("cohort_month")["retention_rate"]
-            st.bar_chart(retention_chart, color="#1d4ed8", use_container_width=True)
+            st.bar_chart(retention_chart, color="#1d4ed8", width="stretch")
             strongest, weakest = cohort_extremes(data.retention)
             cohort_tabs = st.tabs([labels["top_cohorts"], labels["risk_cohorts"]])
             with cohort_tabs[0]:
-                st.dataframe(strongest, use_container_width=True, hide_index=True)
+                st.dataframe(strongest, width="stretch", hide_index=True)
             with cohort_tabs[1]:
-                st.dataframe(weakest, use_container_width=True, hide_index=True)
+                st.dataframe(weakest, width="stretch", hide_index=True)
             with st.expander(labels["retention_title"], expanded=False):
                 retention_display = data.retention.copy()
                 retention_display["retention_rate"] = retention_display["retention_rate"].map(
                     lambda value: f"{value:.1%}"
                 )
-                st.dataframe(retention_display, use_container_width=True, hide_index=True)
+                st.dataframe(retention_display, width="stretch", hide_index=True)
 
 
 def render_customer_health(labels: dict[str, str], customer_360: pd.DataFrame) -> None:
@@ -410,7 +410,7 @@ def render_customer_health(labels: dict[str, str], customer_360: pd.DataFrame) -
         top_customers = filtered_customers[
             ["customer_id", "total_spent", "total_orders", "days_since_last_purchase"]
         ].head(8)
-        st.dataframe(top_customers, use_container_width=True, hide_index=True)
+        st.dataframe(top_customers, width="stretch", hide_index=True)
 
         at_risk = filtered_customers[
             filtered_customers["days_since_last_purchase"].fillna(9999) > 90
@@ -424,7 +424,7 @@ def render_customer_health(labels: dict[str, str], customer_360: pd.DataFrame) -
                     columns=["customer_id", "total_spent", "days_since_last_purchase"]
                 )
             ),
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
 
@@ -441,7 +441,7 @@ def render_customer_health(labels: dict[str, str], customer_360: pd.DataFrame) -
         ]
         st.dataframe(
             filtered_customers[display_columns].head(25),
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
 
@@ -459,8 +459,28 @@ def render_run_history(
         render_empty_state(labels["run_history_title"], labels["run_history_empty"])
         return
 
+    history_tabs = st.tabs(
+        [
+            labels["run_history_title"],
+            labels["run_catalog_title"],
+            labels["run_sql_title"],
+        ]
+    )
     manifest_display = run_history.manifests.copy()
-    st.dataframe(manifest_display, use_container_width=True, hide_index=True)
+    with history_tabs[0]:
+        st.dataframe(manifest_display, width="stretch", hide_index=True)
+    with history_tabs[1]:
+        if run_history.catalog.empty:
+            render_empty_state(labels["run_catalog_title"], labels["run_history_empty"])
+        else:
+            st.caption(labels["run_catalog_copy"])
+            st.dataframe(run_history.catalog, width="stretch", hide_index=True)
+    with history_tabs[2]:
+        if run_history.sql_history.empty:
+            render_empty_state(labels["run_sql_title"], labels["run_history_empty"])
+        else:
+            st.caption(labels["run_sql_copy"])
+            st.dataframe(run_history.sql_history, width="stretch", hide_index=True)
 
     st.markdown(f"### {labels['run_compare_title']}")
     compare_cols = st.columns(2, gap="large")
@@ -516,7 +536,7 @@ def render_run_history(
             if frame.empty:
                 render_empty_state(labels["run_compare_title"], labels["run_history_empty"])
             else:
-                st.dataframe(frame, use_container_width=True, hide_index=True)
+                st.dataframe(frame, width="stretch", hide_index=True)
 
 
 def render_operations(labels: dict[str, str], gold_dir: Path) -> None:
@@ -554,7 +574,7 @@ def render_operations(labels: dict[str, str], gold_dir: Path) -> None:
                     "run_id": labels["artifact_run"],
                 }
             )
-            st.dataframe(renamed, use_container_width=True, hide_index=True)
+            st.dataframe(renamed, width="stretch", hide_index=True)
 
     with right_col:
         with st.expander(labels["quality_title"], expanded=True):

@@ -155,6 +155,7 @@ def fixture_source_paths(*, demo_active: bool = False) -> DashboardSourcePaths:
     return DashboardSourcePaths(
         gold_dir=FIXTURE_ROOT / "gold",
         run_dir=FIXTURE_ROOT / "runs",
+        serving_db=FIXTURE_ROOT / "serving.db",
         demo_mode="AUTO",
         demo_active=demo_active,
     )

@@ -125,6 +125,10 @@ LANGS = {
         "run_compare_only_left": "Only in reference",
         "run_compare_only_right": "Only in comparison",
         "run_compare_shared": "Shared artifacts",
+        "run_catalog_title": "Run catalog",
+        "run_catalog_copy": "Execution index with artifact counts and snapshot roots.",
+        "run_sql_title": "SQL run history",
+        "run_sql_copy": "SQLite-backed operational registry for recent pipeline runs.",
         "footer_title": "Operational note",
         "footer_copy": (
             "Dashboard is currently reading `{source_mode}` artifacts from `{gold_dir}` "
@@ -254,6 +258,10 @@ LANGS = {
         "run_compare_only_left": "Apenas na referencia",
         "run_compare_only_right": "Apenas na comparacao",
         "run_compare_shared": "Artefatos compartilhados",
+        "run_catalog_title": "Catalogo de runs",
+        "run_catalog_copy": "Indice de execucoes com contagem de artefatos e snapshot roots.",
+        "run_sql_title": "Historico SQL de runs",
+        "run_sql_copy": "Registro operacional em SQLite para execucoes recentes do pipeline.",
         "footer_title": "Nota operacional",
         "footer_copy": (
             "O dashboard esta lendo artefatos `{source_mode}` de `{gold_dir}` "
@@ -389,6 +397,10 @@ LANGS = {
         "run_compare_only_left": "Solo en referencia",
         "run_compare_only_right": "Solo en comparacion",
         "run_compare_shared": "Artefactos compartidos",
+        "run_catalog_title": "Catalogo de runs",
+        "run_catalog_copy": "Indice de ejecuciones con conteo de artefactos y snapshot roots.",
+        "run_sql_title": "Historial SQL de runs",
+        "run_sql_copy": "Registro operativo en SQLite para ejecuciones recientes del pipeline.",
         "footer_title": "Nota operativa",
         "footer_copy": (
             "El dashboard esta leyendo artefactos `{source_mode}` desde `{gold_dir}` "

@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 import logging
 import re
+import shutil
+import sqlite3
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -127,6 +130,9 @@ def write_run_manifest(
     stage: str,
     run_context: RunContext,
     artifacts: dict[str, list[str]],
+    artifact_snapshots: dict[str, list[str]] | None = None,
+    snapshot_root: str | None = None,
+    history_db_path: Path | None = None,
 ) -> Path:
     ensure_dir(manifest_dir)
     manifest_path = manifest_dir / f"{run_context.run_id}.json"
@@ -137,6 +143,128 @@ def write_run_manifest(
         "started_at_utc": run_context.started_at_utc,
         "recorded_at_utc": datetime.now(UTC).isoformat(),
         "artifacts": artifacts,
+        "artifact_snapshots": artifact_snapshots or {},
+        "snapshot_root": snapshot_root,
     }
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    write_run_catalog_entry(manifest_dir, manifest)
+    if history_db_path is not None:
+        write_run_history_record(history_db_path, manifest)
     return manifest_path
+
+
+def snapshot_stage_artifacts(
+    snapshot_dir: Path,
+    *,
+    stage: str,
+    artifact_paths: list[str],
+) -> list[str]:
+    stage_snapshot_dir = snapshot_dir / stage
+    ensure_dir(stage_snapshot_dir)
+    copied_paths: list[str] = []
+
+    for artifact in artifact_paths:
+        source_path = Path(artifact)
+        if not source_path.exists():
+            LOGGER.warning("Skipping snapshot for missing artifact %s", source_path)
+            continue
+        destination_path = stage_snapshot_dir / source_path.name
+        shutil.copy2(source_path, destination_path)
+        copied_paths.append(str(destination_path))
+
+        metadata_path = source_path.with_suffix(".metadata.json")
+        if metadata_path.exists():
+            shutil.copy2(metadata_path, stage_snapshot_dir / metadata_path.name)
+
+    return copied_paths
+
+
+def write_run_catalog_entry(manifest_dir: Path, manifest: Mapping[str, object]) -> Path:
+    catalog_path = manifest_dir / "run_catalog.csv"
+    catalog_columns = [
+        "run_id",
+        "command",
+        "stage",
+        "started_at_utc",
+        "recorded_at_utc",
+        "artifact_groups",
+        "artifact_count",
+        "snapshot_root",
+    ]
+    row = {
+        "run_id": str(manifest.get("run_id", "")),
+        "command": str(manifest.get("command", "")),
+        "stage": str(manifest.get("stage", "")),
+        "started_at_utc": str(manifest.get("started_at_utc", "")),
+        "recorded_at_utc": str(manifest.get("recorded_at_utc", "")),
+        "artifact_groups": 0,
+        "artifact_count": 0,
+        "snapshot_root": str(manifest.get("snapshot_root", "") or ""),
+    }
+    artifacts = manifest.get("artifacts", {})
+    if isinstance(artifacts, dict):
+        row["artifact_groups"] = len(artifacts)
+        row["artifact_count"] = sum(
+            len(paths) for paths in artifacts.values() if isinstance(paths, list)
+        )
+
+    if catalog_path.exists():
+        catalog = pd.read_csv(catalog_path)
+        catalog = catalog[catalog["run_id"] != row["run_id"]]
+        updated_catalog = pd.concat([catalog, pd.DataFrame([row])], ignore_index=True)
+    else:
+        updated_catalog = pd.DataFrame([row], columns=catalog_columns)
+
+    updated_catalog = updated_catalog.sort_values("started_at_utc", ascending=False)
+    updated_catalog.to_csv(catalog_path, index=False)
+    return catalog_path
+
+
+def write_run_history_record(history_db_path: Path, manifest: Mapping[str, object]) -> Path:
+    ensure_dir(history_db_path.parent)
+    artifacts = manifest.get("artifacts", {})
+    artifact_groups = 0
+    artifact_count = 0
+    if isinstance(artifacts, dict):
+        artifact_groups = len(artifacts)
+        artifact_count = sum(len(paths) for paths in artifacts.values() if isinstance(paths, list))
+
+    with sqlite3.connect(history_db_path) as connection:
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS run_history (
+                run_id TEXT PRIMARY KEY,
+                command TEXT NOT NULL,
+                stage TEXT NOT NULL,
+                started_at_utc TEXT NOT NULL,
+                recorded_at_utc TEXT NOT NULL,
+                artifact_groups INTEGER NOT NULL,
+                artifact_count INTEGER NOT NULL,
+                snapshot_root TEXT
+            )
+            """)
+        connection.execute(
+            """
+            INSERT OR REPLACE INTO run_history (
+                run_id,
+                command,
+                stage,
+                started_at_utc,
+                recorded_at_utc,
+                artifact_groups,
+                artifact_count,
+                snapshot_root
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                str(manifest.get("run_id", "")),
+                str(manifest.get("command", "")),
+                str(manifest.get("stage", "")),
+                str(manifest.get("started_at_utc", "")),
+                str(manifest.get("recorded_at_utc", "")),
+                artifact_groups,
+                artifact_count,
+                str(manifest.get("snapshot_root", "") or ""),
+            ),
+        )
+        connection.commit()
+    return history_db_path
