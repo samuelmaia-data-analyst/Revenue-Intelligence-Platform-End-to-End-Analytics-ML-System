@@ -106,6 +106,7 @@ Primary references:
 - [docs/troubleshooting_matrix.md](docs/troubleshooting_matrix.md)
 - [docs/release_process.md](docs/release_process.md)
 - [docs/deprecation_policy.md](docs/deprecation_policy.md)
+- [docs/merge_policy.md](docs/merge_policy.md)
 - [docs/hiring_review.md](docs/hiring_review.md)
 
 ## Reliability and Data Engineering Signals
@@ -136,6 +137,15 @@ python -m venv .venv
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt -r requirements-dev.txt
 Copy-Item .env.example .env
+```
+
+Optional dbt CLI setup in an isolated environment:
+
+```powershell
+python -m venv .dbt-venv
+.dbt-venv\Scripts\activate
+python -m pip install --upgrade pip
+python -m pip install dbt-core dbt-sqlite
 ```
 
 Important environment variables:
@@ -188,6 +198,8 @@ python -m pytest -q
 python scripts/smoke_dashboard.py
 python scripts/smoke_api.py
 python scripts/smoke_downstream_sql.py
+python scripts/smoke_processed_exports.py
+python scripts/smoke_dbt_sqlite.py
 python -m build
 ```
 
@@ -196,6 +208,34 @@ Automation surfaces:
 - `Makefile` for local developer workflows
 - `.pre-commit-config.yaml` for fast local quality gates
 - `.github/workflows/ci.yml` for lint, tests, smoke, and build validation
+- `.github/workflows/ci.yml` also runs a dbt-on-SQLite downstream smoke against the generated warehouse
+
+## SQL Consumption Examples
+
+Revenue by acquisition channel from the persisted warehouse:
+
+```sql
+SELECT
+    acquisition_channel,
+    ROUND(SUM(revenue), 2) AS total_revenue,
+    ROUND(AVG(avg_order_value), 2) AS avg_order_value
+FROM fact_orders
+GROUP BY acquisition_channel
+ORDER BY total_revenue DESC;
+```
+
+Top recommendation opportunities by simulated impact:
+
+```sql
+SELECT
+    customer_id,
+    recommended_action,
+    ROUND(potential_impact, 2) AS potential_impact,
+    ROUND(churn_probability, 4) AS churn_probability
+FROM mart_customer_recommendations
+ORDER BY potential_impact DESC
+LIMIT 10;
+```
 
 ## Technical Decisions and Trade-offs
 
@@ -230,7 +270,7 @@ It is a production-minded batch analytics system sized honestly for a strong sen
 Current high-impact next steps:
 
 1. expand processed artifact contracts and integration coverage
-2. deepen downstream warehouse and dbt validation
+2. deepen downstream warehouse and dbt validation beyond SQLite local-first assumptions
 3. accumulate more small, coherent release notes
 4. add a lightweight visual regression strategy for the dashboard
 

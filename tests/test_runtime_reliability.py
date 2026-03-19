@@ -219,8 +219,7 @@ def test_pipeline_manifest_captures_runtime_evidence(tmp_path: Path) -> None:
         check["artifact"] == "quality_report.json" for check in artifact_validation["checks"]
     )
     assert any(
-        check["artifact"] == "raw_input_metadata.json"
-        for check in artifact_validation["checks"]
+        check["artifact"] == "raw_input_metadata.json" for check in artifact_validation["checks"]
     )
 
 

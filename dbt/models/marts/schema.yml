@@ -18,7 +18,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['Retention Campaign', 'Upsell Offer', 'Reduce Acquisition Spend', 'Nurture']
+              arguments:
+                values: ['Retention Campaign', 'Upsell Offer', 'Reduce Acquisition Spend', 'Nurture']
 
   - name: stg_unit_economics
     columns:

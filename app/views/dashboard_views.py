@@ -463,7 +463,9 @@ def render_overview_tab(
             [
                 {
                     "label": t(lang, "revenue_proxy"),
-                    "value": format_currency_fn(float(business_context.get("revenue_proxy", 0)), lang),
+                    "value": format_currency_fn(
+                        float(business_context.get("revenue_proxy", 0)), lang
+                    ),
                     "subtitle": t(lang, "business_context"),
                 },
                 {
@@ -658,7 +660,9 @@ def render_risk_tab(
             st.columns(2, gap="large"), ["churn", "next_purchase_30d"], strict=False
         ):
             with column:
-                drivers = pd.DataFrame(model_report.get(model_key, {}).get("top_business_drivers", []))
+                drivers = pd.DataFrame(
+                    model_report.get(model_key, {}).get("top_business_drivers", [])
+                )
                 if drivers.empty:
                     st.caption(t(lang, "drivers_empty"))
                 else:
@@ -900,12 +904,16 @@ def render_business_tab(
             [
                 {
                     "label": t(lang, "baseline"),
-                    "value": format_currency_fn(float(scenario_summary["baseline_revenue_90d"]), lang),
+                    "value": format_currency_fn(
+                        float(scenario_summary["baseline_revenue_90d"]), lang
+                    ),
                     "subtitle": t(lang, "scenario_controls"),
                 },
                 {
                     "label": t(lang, "scenario"),
-                    "value": format_currency_fn(float(scenario_summary["scenario_revenue_90d"]), lang),
+                    "value": format_currency_fn(
+                        float(scenario_summary["scenario_revenue_90d"]), lang
+                    ),
                     "subtitle": t(lang, "scenario_controls"),
                 },
                 {

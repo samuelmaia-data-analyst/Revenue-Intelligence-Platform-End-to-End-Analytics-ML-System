@@ -1,7 +1,7 @@
 PYTHON ?= python
 DBT ?= dbt
 
-.PHONY: help install install-dev pipeline artifacts dictionary serve-app serve-api lint format type-check test smoke-dashboard snapshot-dashboard smoke-api smoke-downstream verify package smoke docker-build-app docker-build-api docker-build docker-smoke clean
+.PHONY: help install install-dev pipeline artifacts dictionary serve-app serve-api lint format type-check test smoke-dashboard snapshot-dashboard smoke-api smoke-downstream smoke-exports smoke-dbt verify package smoke docker-build-app docker-build-api docker-build docker-smoke clean
 
 help:
 	@echo "Available targets:"
@@ -19,6 +19,8 @@ help:
 	@echo "  snapshot-dashboard Run the dashboard UI snapshot check"
 	@echo "  smoke-api          Run the FastAPI smoke check"
 	@echo "  smoke-downstream   Run the downstream SQL smoke check"
+	@echo "  smoke-exports      Run the processed exports smoke check"
+	@echo "  smoke-dbt          Run the dbt SQLite smoke validation"
 	@echo "  verify             Run the local high-signal validation flow"
 	@echo "  package            Build the package"
 	@echo "  docker-build       Build both Docker images"
@@ -74,9 +76,15 @@ smoke-api:
 smoke-downstream:
 	$(PYTHON) scripts/smoke_downstream_sql.py
 
+smoke-exports:
+	$(PYTHON) scripts/smoke_processed_exports.py
+
+smoke-dbt:
+	$(PYTHON) scripts/smoke_dbt_sqlite.py
+
 quality: lint type-check test
 
-verify: lint type-check test smoke-dashboard snapshot-dashboard smoke-api smoke-downstream package
+verify: lint type-check test smoke-dashboard snapshot-dashboard smoke-api smoke-downstream smoke-exports smoke-dbt package
 
 package:
 	$(PYTHON) -m build
@@ -105,4 +113,4 @@ docker-smoke:
 	docker run --rm revenue-intelligence python -m src.pipeline run --log-level INFO
 
 clean:
-	$(PYTHON) -c "import shutil, pathlib; [shutil.rmtree(path, ignore_errors=True) for path in [pathlib.Path('.pytest_cache'), pathlib.Path('.ruff_cache'), pathlib.Path('.mypy_cache'), pathlib.Path('__pycache__')]]"
+	$(PYTHON) -c "import pathlib, shutil; roots=[pathlib.Path('.')]; dirs={'.pytest_cache','.ruff_cache','.mypy_cache','__pycache__','.ipynb_checkpoints','htmlcov','.streamlit'}; files={'.coverage','coverage.xml'}; [shutil.rmtree(path, ignore_errors=True) for root in roots for path in root.rglob('*') if path.is_dir() and path.name in dirs]; [path.unlink(missing_ok=True) for root in roots for path in root.rglob('*') if path.is_file() and path.name in files]"

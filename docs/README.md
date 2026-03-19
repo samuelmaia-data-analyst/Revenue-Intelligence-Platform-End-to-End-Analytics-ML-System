@@ -11,6 +11,7 @@ This repository keeps documentation intentionally small and operational. Each do
 - [troubleshooting_matrix.md](troubleshooting_matrix.md): fast diagnosis map from symptom to artifact and first action
 - [release_process.md](release_process.md): lightweight release discipline for technical portfolio changes
 - [deprecation_policy.md](deprecation_policy.md): how compatibility shims are handled and eventually removed
+- [merge_policy.md](merge_policy.md): labels, merge expectations, and what must be green before merging
 - [adr/README.md](adr/README.md): short decision records for the most important architectural trade-offs
 - [hiring_review.md](hiring_review.md): honest portfolio assessment from a hiring-review perspective
 
@@ -21,6 +22,8 @@ This repository keeps documentation intentionally small and operational. Each do
 - [releases](releases): release-oriented documentation and changelog support
 - [releases/v1.1.0.md](releases/v1.1.0.md): latest portfolio-hardening release summary
 - [releases/v1.2.0.md](releases/v1.2.0.md): latest governance and downstream-validation release summary
+- [releases/v1.3.0.md](releases/v1.3.0.md): dbt runtime hardening, localized docs updates, and container-level API validation
+- [releases/v1.3.1.md](releases/v1.3.1.md): processed-exports smoke coverage, richer incident handling, and CI/runtime alignment
 
 ## Reading Order
 

@@ -22,6 +22,7 @@ Read these files first:
 - [docs/troubleshooting_matrix.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/troubleshooting_matrix.md)
 - [docs/repository_structure.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/repository_structure.md)
 - [docs/deprecation_policy.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/deprecation_policy.md)
+- [docs/merge_policy.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/merge_policy.md)
 
 ## Contribution Principles
 
@@ -66,6 +67,8 @@ Common commands:
 ```powershell
 make verify
 make smoke-dashboard
+make smoke-api
+make smoke-dbt
 make pipeline
 ```
 
@@ -88,6 +91,10 @@ python -m isort --check-only .
 python -m mypy src services contracts main.py
 python -m pytest -q
 python scripts/smoke_dashboard.py
+python scripts/smoke_api.py
+python scripts/smoke_downstream_sql.py
+python scripts/smoke_processed_exports.py
+python scripts/smoke_dbt_sqlite.py
 python -m build
 ```
 
@@ -96,6 +103,7 @@ If your change affects the container path, also validate:
 ```powershell
 docker build -t revenue-intelligence .
 docker run --rm revenue-intelligence python -m src.pipeline run --log-level INFO
+docker build -f Dockerfile.api -t revenue-intelligence-api .
 ```
 
 ## Repository Boundaries
@@ -153,6 +161,10 @@ Use the template in:
 - [.github/pull_request_template.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/.github/pull_request_template.md)
 
 PRs should stay focused. Split changes when they mix unrelated concerns without a shared operational reason.
+
+Merge and labeling guidance lives in:
+
+- [docs/merge_policy.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/merge_policy.md)
 
 ## Commit Convention
 

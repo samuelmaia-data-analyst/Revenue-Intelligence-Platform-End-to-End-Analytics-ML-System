@@ -47,8 +47,8 @@ jobs:
       - name: dbt debug
         run: dbt --project-dir dbt debug
 
-      - name: dbt source freshness
-        run: dbt --project-dir dbt source freshness
+      - name: dbt build
+        run: dbt --project-dir dbt build
 
       - name: Generate dbt docs
         run: |

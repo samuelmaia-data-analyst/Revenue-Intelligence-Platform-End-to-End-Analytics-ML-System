@@ -106,6 +106,7 @@ Referências principais:
 - [docs/troubleshooting_matrix.md](docs/troubleshooting_matrix.md)
 - [docs/release_process.md](docs/release_process.md)
 - [docs/deprecation_policy.md](docs/deprecation_policy.md)
+- [docs/merge_policy.md](docs/merge_policy.md)
 - [docs/hiring_review.md](docs/hiring_review.md)
 
 ## Sinais de Maturidade em Engenharia de Dados
@@ -135,6 +136,15 @@ python -m venv .venv
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt -r requirements-dev.txt
 Copy-Item .env.example .env
+```
+
+Setup opcional do CLI `dbt` em ambiente isolado:
+
+```powershell
+python -m venv .dbt-venv
+.dbt-venv\Scripts\activate
+python -m pip install --upgrade pip
+python -m pip install dbt-core dbt-sqlite
 ```
 
 Variáveis de ambiente mais importantes:
@@ -185,6 +195,10 @@ python -m isort --check-only .
 python -m mypy src services contracts main.py
 python -m pytest -q
 python scripts/smoke_dashboard.py
+python scripts/smoke_api.py
+python scripts/smoke_downstream_sql.py
+python scripts/smoke_processed_exports.py
+python scripts/smoke_dbt_sqlite.py
 python -m build
 ```
 
@@ -193,6 +207,34 @@ Camadas de automação:
 - `Makefile` para o fluxo local do desenvolvedor
 - `.pre-commit-config.yaml` para gates rápidos antes do commit
 - `.github/workflows/ci.yml` para lint, testes, smoke e build
+- `.github/workflows/ci.yml` também valida consumo dbt real sobre o warehouse SQLite gerado pelo pipeline
+
+## Exemplos de Consumo SQL
+
+Consulta de receita por canal no warehouse persistido:
+
+```sql
+SELECT
+    acquisition_channel,
+    ROUND(SUM(revenue), 2) AS total_revenue,
+    ROUND(AVG(avg_order_value), 2) AS avg_order_value
+FROM fact_orders
+GROUP BY acquisition_channel
+ORDER BY total_revenue DESC;
+```
+
+Consulta de ações recomendadas com maior impacto potencial:
+
+```sql
+SELECT
+    customer_id,
+    recommended_action,
+    ROUND(potential_impact, 2) AS potential_impact,
+    ROUND(churn_probability, 4) AS churn_probability
+FROM mart_customer_recommendations
+ORDER BY potential_impact DESC
+LIMIT 10;
+```
 
 ## Decisões Técnicas e Trade-offs
 

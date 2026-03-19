@@ -3,9 +3,6 @@ version: 2
 sources:
   - name: warehouse
     schema: main
-    freshness:
-      warn_after: {count: 1, period: day}
-      error_after: {count: 2, period: day}
     tables:
       - name: scored_customers
         loaded_at_field: as_of_date

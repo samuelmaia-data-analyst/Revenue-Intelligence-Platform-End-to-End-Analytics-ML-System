@@ -41,3 +41,33 @@ A shim is a candidate for removal when:
 For this project, compatibility should always serve clarity.
 
 If a shim starts to confuse reviewers more than it helps backwards compatibility, it should be scheduled for removal in a future release note and changelog entry.
+
+## Top-Level Breadth Rule
+
+The repository already exposes multiple surfaces:
+
+- batch runtime
+- Streamlit workspace
+- API serving layer
+- dbt downstream consumption
+- operational documentation
+
+That breadth is acceptable only because each surface consumes the same governed core.
+
+Do not add new top-level directories unless one of these is true:
+
+1. the directory owns a distinct runtime surface
+2. the directory holds governed assets that should not live under `src/`
+3. the change would be harder to understand if folded into an existing directory
+
+When in doubt, prefer strengthening an existing canonical path over creating a new top-level concept.
+
+## Visibility Rule
+
+If a compatibility path remains in the repository, the deprecation plan should be visible in:
+
+- `docs/deprecation_policy.md`
+- `CHANGELOG.md`
+- the next relevant file under `docs/releases/`
+
+This keeps the top-level breadth intentional instead of looking accidental to reviewers.

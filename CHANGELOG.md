@@ -11,6 +11,46 @@ All notable changes to this project are documented in this file.
   - preserve older contract modules for migration windows when possible;
   - be documented in the relevant release under `Breaking Changes`.
 
+## [1.3.0] - 2026-03-19
+
+### Added
+
+- dbt SQLite smoke validation in the main CI flow
+- release note for runtime, dbt, and governance hardening in `docs/releases/v1.3.0.md`
+- merge-policy document covering labels, merge gates, and review expectations
+- localized README guidance for isolated `.dbt-venv` setup
+
+### Changed
+
+- Docker CI now smoke-tests the containerized API health endpoint
+- runbook now covers API smoke failures, dbt smoke failures, and environment bootstrap failures
+- deprecation policy now makes top-level breadth and compatibility visibility more explicit
+- README documentation now includes concrete SQL consumption examples for the warehouse
+
+### Portfolio Deltas
+
+- dbt is now a validated downstream consumer, not just a documented capability
+- the repository makes container-level API operability more visible
+- localized documentation now reflects the real environment-isolation strategy for `dbt`
+
+## [1.3.1] - 2026-03-19
+
+### Added
+
+- processed-export smoke validation for curated CSV and JSON outputs
+- release note `docs/releases/v1.3.1.md`
+
+### Changed
+
+- CI now validates processed exports as downstream interfaces
+- container smoke now asserts presence of key processed business artifacts
+- runbook and troubleshooting docs now cover export drift, API container health, and dbt failure classes more explicitly
+
+### Portfolio Deltas
+
+- the repository now shows downstream readiness beyond the local SQLite warehouse path
+- reviewer-facing docs connect runtime failures to first actions more directly
+
 ## [1.2.0] - 2026-03-19
 
 ### Added

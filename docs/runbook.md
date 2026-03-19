@@ -37,6 +37,18 @@ Dashboard smoke validation:
 python scripts/smoke_dashboard.py
 ```
 
+API smoke validation:
+
+```powershell
+python scripts/smoke_api.py
+```
+
+dbt downstream smoke validation:
+
+```powershell
+python scripts/smoke_dbt_sqlite.py
+```
+
 ## Pre-Run Checks
 
 Before running:
@@ -75,6 +87,8 @@ When a run fails:
    - processed artifact validation
    - model training
    - warehouse persistence
+   - API/runtime consumption
+   - dbt downstream validation
 
 ## Common Failure Modes
 
@@ -131,6 +145,51 @@ Action:
 - confirm the `warehouse.<target>` stage completed
 - re-run the pipeline and inspect `data/warehouse/revenue_intelligence.db`
 
+### API smoke fails
+
+Signal:
+- `python scripts/smoke_api.py` fails locally or the container smoke cannot reach `/health`
+
+Typical cause:
+- model registry not available in the expected path
+- API auth configuration diverged from the smoke assumptions
+- container booted but never exposed a healthy process
+
+Action:
+- inspect `services/api/main.py` health behavior
+- confirm `RIP_MODEL_DIR`, `RIP_API_AUTH_MODE`, and `RIP_API_DEMO_TOKEN`
+- run the API smoke locally before changing the Docker path
+
+### dbt smoke fails
+
+Signal:
+- `python scripts/smoke_dbt_sqlite.py` fails in CI or locally
+
+Typical cause:
+- warehouse was not rebuilt before dbt execution
+- `dbt` CLI is missing from `.dbt-venv` or not discoverable
+- dbt models no longer match the canonical warehouse outputs
+
+Action:
+- run `python -m src.pipeline run --log-level INFO`
+- confirm `.dbt-venv\Scripts\dbt.exe --version`
+- inspect `dbt/models/` and generated `dbt/target/run_results.json`
+- update dbt contracts only if the runtime contract changed intentionally
+
+### Environment bootstrap fails
+
+Signal:
+- dependency install succeeds for the app but `dbt` smoke or Streamlit runtime breaks afterward
+
+Typical cause:
+- CLI-only tooling was installed into `.venv` instead of `.dbt-venv`
+- local cache or generated artifacts are masking a stale environment
+
+Action:
+- keep application dependencies in `.venv`
+- keep CLI dbt dependencies in `.dbt-venv`
+- run the relevant smoke tests after environment changes instead of trusting install success
+
 ## Output Validation Checklist
 
 Before trusting a run:
@@ -140,6 +199,9 @@ Before trusting a run:
 3. `artifact_validation_report.json` status is `ok`
 4. `alerts_report.json` is reviewed if `status` is `warning`
 5. `scripts/smoke_dashboard.py` passes if the UI is part of the release path
+6. `scripts/smoke_api.py` passes if the API surface is part of the release path
+7. `scripts/smoke_dbt_sqlite.py` passes if dbt artifacts or warehouse models changed
+8. `scripts/smoke_processed_exports.py` passes if downstream CSV/JSON exports changed
 
 ## Safe Change Policy
 
