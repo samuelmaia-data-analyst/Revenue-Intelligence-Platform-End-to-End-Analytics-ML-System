@@ -90,9 +90,15 @@ Expected traceability:
 
 - every generated dataset metadata file contains the same `run_id`
 - `data/run_manifests/<run_id>.json` lists artifacts written by each pipeline stage
-- `data/run_artifacts/<run_id>/` preserves a physical copy of stage outputs for that run
+- `data/run_artifacts/<run_id>/` preserves a compact run-review snapshot for that run
 - `data/run_manifests/run_catalog.csv` keeps a simple index of recent executions
 - `data/run_manifests/run_history.db` stores the same run history in SQLite for ad hoc queries
+
+Snapshot policy:
+
+- small artifacts are copied in full for deterministic review
+- large datasets keep copied `.metadata.json` sidecars plus a compact `.snapshot.json` pointer
+- this avoids doubling storage for bulky gold outputs such as `customer_360.csv`
 
 ## Dashboard source modes
 

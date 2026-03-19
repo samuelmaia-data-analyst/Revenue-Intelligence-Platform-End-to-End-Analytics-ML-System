@@ -118,11 +118,12 @@ CLI-triggered pipeline executions also emit a run manifest under `data/run_manif
 - run timestamps
 - produced artifacts grouped by stage
 - snapshot artifact locations grouped by stage
-- a `snapshot_root` pointing to a preserved copy of that run's outputs
+- a `snapshot_root` pointing to a compact run-review snapshot for that execution
 
-The same execution also updates a lightweight `run_catalog.csv` index and stores physical copies of
-produced artifacts under `data/run_artifacts/<run_id>/`. This keeps local operation simple while
-still making historical review and recruiter demos deterministic.
+The same execution also updates a lightweight `run_catalog.csv` index and stores compact snapshots
+under `data/run_artifacts/<run_id>/`. Small artifacts are copied in full, while larger datasets
+keep copied metadata sidecars plus a pointer record back to the original output. This keeps local
+operation simple without doubling storage for large gold datasets.
 
 A complementary SQLite registry at `data/run_manifests/run_history.db` stores one row per pipeline
 execution. This adds a queryable operational layer without requiring an external database service.

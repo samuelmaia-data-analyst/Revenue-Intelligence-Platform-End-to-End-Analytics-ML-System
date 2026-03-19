@@ -10,7 +10,11 @@ import pytest
 from analytics.health_checks import evaluate_platform_health
 from models.churn_model import train_churn_model
 from models.revenue_forecasting import forecast_revenue
-from pipelines.common import DataContractError
+from pipelines.common import (
+    SNAPSHOT_INLINE_MAX_BYTES,
+    DataContractError,
+    snapshot_stage_artifacts,
+)
 from pipelines.feature_pipeline import run_feature_engineering
 from pipelines.ingestion_pipeline import run_ingestion
 from pipelines.transformation_pipeline import run_transformation
@@ -349,6 +353,40 @@ def test_cli_pipeline_run_writes_manifest_and_run_id(
     with sqlite3.connect(runs_dir / "run_history.db") as connection:
         sql_history = pd.read_sql_query("SELECT * FROM run_history", connection)
     assert sql_history.iloc[0]["run_id"] == "test-run-001"
+
+
+def test_snapshot_stage_artifacts_uses_pointer_files_for_large_outputs(tmp_path: Path) -> None:
+    snapshot_root = tmp_path / "run_artifacts"
+    artifact_path = tmp_path / "customer_360.csv"
+    large_value = "x" * SNAPSHOT_INLINE_MAX_BYTES
+    artifact_path.write_text(f"customer_id,notes\nc1,{large_value}\n", encoding="utf-8")
+    metadata_path = artifact_path.with_suffix(".metadata.json")
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "dataset_name": artifact_path.name,
+                "row_count": 1,
+                "generated_at_utc": "2026-03-19T00:00:00+00:00",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    snapshot_entries = snapshot_stage_artifacts(
+        snapshot_root,
+        stage="feature_engineering",
+        artifact_paths=[str(artifact_path)],
+    )
+
+    stage_snapshot_dir = snapshot_root / "feature_engineering"
+    pointer_path = stage_snapshot_dir / "customer_360.snapshot.json"
+    assert snapshot_entries == [str(pointer_path)]
+    assert not (stage_snapshot_dir / "customer_360.csv").exists()
+    assert (stage_snapshot_dir / "customer_360.metadata.json").exists()
+    pointer_payload = json.loads(pointer_path.read_text(encoding="utf-8"))
+    assert pointer_payload["snapshot_mode"] == "metadata_only"
+    assert pointer_payload["artifact_name"] == "customer_360.csv"
+    assert int(pointer_payload["size_bytes"]) > SNAPSHOT_INLINE_MAX_BYTES
 
 
 def test_health_check_reports_failures_and_warnings(tmp_path: Path) -> None:

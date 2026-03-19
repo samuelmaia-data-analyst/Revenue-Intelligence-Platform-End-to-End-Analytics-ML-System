@@ -94,7 +94,7 @@ The workspace now also supports:
 - downloadable snapshots of current analytical views
 - shareable view-state query strings for local-first walkthroughs and reviewer demos
 
-Screenshot slots are prepared under `docs/assets/dashboard/` for portfolio-ready captures:
+Product screenshots are versioned under `docs/assets/dashboard/`:
 
 - `docs/assets/dashboard/overview.png`
 - `docs/assets/dashboard/customer-health.png`
@@ -103,28 +103,29 @@ Screenshot slots are prepared under `docs/assets/dashboard/` for portfolio-ready
 
 ### Executive Overview
 
-![Executive Overview](docs/assets/dashboard/overview.png)
+<img src="docs/assets/dashboard/overview.png" alt="Executive Overview" width="760" />
 
 ### Customer Health
 
-![Customer Health](docs/assets/dashboard/customer-health.png)
+<img src="docs/assets/dashboard/customer-health.png" alt="Customer Health" width="760" />
 
 ### Operations
 
-![Operations](docs/assets/dashboard/operations.png)
+<img src="docs/assets/dashboard/operations.png" alt="Operations" width="760" />
 
 ### Run History
 
-![Run History](docs/assets/dashboard/run-history.png)
+<img src="docs/assets/dashboard/run-history.png" alt="Run History" width="760" />
 
-Suggested capture flow:
+To refresh the screenshots locally:
 
 ```bash
 set RIDP_DASHBOARD_DEMO_MODE=ON
 ridp-dashboard
 ```
 
-Then capture the four pages above in a desktop viewport and commit them alongside the README update.
+Then capture the four pages above in a desktop viewport and replace the files in
+`docs/assets/dashboard/`.
 
 ## Repository structure
 
@@ -267,8 +268,10 @@ Each generated dataset also emits a `.metadata.json` file with schema and lineag
 CLI-triggered pipeline runs also emit a manifest under `data/run_manifests/` with a shared
 `run_id`, execution timestamps, and the artifacts produced by each stage.
 
-Each CLI run also snapshots stage outputs under `data/run_artifacts/<run_id>/` and updates
-`data/run_manifests/run_catalog.csv` for a lightweight execution index.
+Each CLI run also writes a compact stage snapshot under `data/run_artifacts/<run_id>/` and updates
+`data/run_manifests/run_catalog.csv` for a lightweight execution index. Small artifacts are copied
+in full; larger datasets keep copied metadata sidecars plus a compact pointer record instead of an
+unnecessary second CSV copy.
 The same run is also registered in `data/run_manifests/run_history.db`, making execution history
 queryable through SQLite.
 Gold outputs are also materialized into `data/serving/revenue_serving.db` so curated datasets are
@@ -282,7 +285,7 @@ available through a stable SQL serving layer.
 - Gold generation refuses to compute KPIs when there are no delivered orders.
 - Churn training degrades gracefully when the target is not trainable.
 - CLI pipeline runs can be traced end-to-end through a shared `run_id`.
-- CLI pipeline runs preserve per-stage snapshot artifacts for deterministic run review.
+- CLI pipeline runs preserve per-stage run-review snapshots while avoiding redundant copies of large datasets.
 - CLI pipeline runs are also registered in a lightweight SQLite operations store.
 - `ridp check-health` validates required gold artifacts, metadata sidecars, freshness SLA, and local serving/runtime readiness.
 - The dashboard supports persisted filters, shareable view-state query strings, and exportable analytical slices without requiring a backend.

@@ -13,6 +13,7 @@ from pathlib import Path
 import pandas as pd
 
 LOGGER = logging.getLogger("data_platform")
+SNAPSHOT_INLINE_MAX_BYTES = 1_000_000
 
 
 class DataContractError(ValueError):
@@ -161,22 +162,40 @@ def snapshot_stage_artifacts(
 ) -> list[str]:
     stage_snapshot_dir = snapshot_dir / stage
     ensure_dir(stage_snapshot_dir)
-    copied_paths: list[str] = []
+    snapshot_entries: list[str] = []
 
     for artifact in artifact_paths:
         source_path = Path(artifact)
         if not source_path.exists():
             LOGGER.warning("Skipping snapshot for missing artifact %s", source_path)
             continue
-        destination_path = stage_snapshot_dir / source_path.name
-        shutil.copy2(source_path, destination_path)
-        copied_paths.append(str(destination_path))
 
         metadata_path = source_path.with_suffix(".metadata.json")
         if metadata_path.exists():
             shutil.copy2(metadata_path, stage_snapshot_dir / metadata_path.name)
 
-    return copied_paths
+        artifact_size = source_path.stat().st_size
+        if artifact_size <= SNAPSHOT_INLINE_MAX_BYTES:
+            destination_path = stage_snapshot_dir / source_path.name
+            shutil.copy2(source_path, destination_path)
+            snapshot_entries.append(str(destination_path))
+            continue
+
+        pointer_path = stage_snapshot_dir / f"{source_path.stem}.snapshot.json"
+        pointer_payload = {
+            "artifact_name": source_path.name,
+            "source_path": str(source_path),
+            "metadata_path": (
+                str(stage_snapshot_dir / metadata_path.name) if metadata_path.exists() else None
+            ),
+            "snapshot_mode": "metadata_only",
+            "size_bytes": artifact_size,
+            "inline_copy_threshold_bytes": SNAPSHOT_INLINE_MAX_BYTES,
+        }
+        pointer_path.write_text(json.dumps(pointer_payload, indent=2), encoding="utf-8")
+        snapshot_entries.append(str(pointer_path))
+
+    return snapshot_entries
 
 
 def write_run_catalog_entry(manifest_dir: Path, manifest: Mapping[str, object]) -> Path:
