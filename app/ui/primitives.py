@@ -52,14 +52,18 @@ def render_global_styles() -> None:
             [data-testid="stMainBlockContainer"] {{
                 padding-top: 1.2rem;
                 padding-bottom: 2.5rem;
+                padding-left: 2rem;
+                padding-right: 1.25rem;
                 max-width: 1440px;
             }}
             [data-testid="stSidebar"] {{
                 background: rgba(255, 255, 255, 0.92);
-                border-right: 1px solid {DEFAULT_THEME["border"]};
+                border-right: 1px solid rgba(199, 212, 229, 0.72);
+                box-shadow: 10px 0 28px rgba(15, 23, 42, 0.04);
             }}
             [data-testid="stSidebar"] > div:first-child {{
                 padding-top: 1rem;
+                padding-right: 1rem;
             }}
             [data-testid="stWidgetLabel"] {{
                 color: {DEFAULT_THEME["text"]} !important;
@@ -470,6 +474,10 @@ def render_global_styles() -> None:
                 height: 0.9rem;
             }}
             @media (max-width: 980px) {{
+                [data-testid="stMainBlockContainer"] {{
+                    padding-left: 1rem;
+                    padding-right: 1rem;
+                }}
                 .hero-grid {{ grid-template-columns: 1fr; }}
                 .hero-meta {{ justify-content: flex-start; }}
                 .status-strip {{ grid-template-columns: 1fr 1fr; }}
