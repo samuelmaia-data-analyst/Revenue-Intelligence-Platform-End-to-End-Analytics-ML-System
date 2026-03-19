@@ -1,0 +1,22 @@
+{
+  "run_id": "demo-run-001",
+  "command": "run-pipeline",
+  "stage": "all",
+  "started_at_utc": "2026-03-19T10:00:00+00:00",
+  "recorded_at_utc": "2026-03-19T10:01:00+00:00",
+  "artifacts": {
+    "ingestion": [
+      "data/bronze/olist_customers_dataset.csv",
+      "data/bronze/olist_orders_dataset.csv"
+    ],
+    "transformation": [
+      "data/silver/dim_customers.csv",
+      "data/silver/fct_orders.csv"
+    ],
+    "feature_engineering": [
+      "data/gold/business_kpis.csv",
+      "data/gold/customer_360.csv",
+      "data/gold/kpi_monthly_revenue.csv"
+    ]
+  }
+}

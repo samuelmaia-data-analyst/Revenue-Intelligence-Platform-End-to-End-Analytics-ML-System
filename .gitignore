@@ -10,6 +10,11 @@ data/raw/*.csv
 data/bronze/*.csv
 data/silver/*.csv
 data/gold/*.csv
+data/run_manifests/*.json
+data/raw/*.metadata.json
+data/bronze/*.metadata.json
+data/silver/*.metadata.json
+data/gold/*.metadata.json
 !data/raw/.gitkeep
 !data/bronze/.gitkeep
 !data/silver/.gitkeep

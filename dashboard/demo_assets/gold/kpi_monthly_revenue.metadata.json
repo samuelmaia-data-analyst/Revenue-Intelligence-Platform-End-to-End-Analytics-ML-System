@@ -1,0 +1,7 @@
+{
+  "dataset_name": "kpi_monthly_revenue.csv",
+  "stage": "feature_engineering",
+  "row_count": 6,
+  "generated_at_utc": "2026-03-20T10:01:00+00:00",
+  "run_id": "demo-run-002"
+}

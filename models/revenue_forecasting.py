@@ -3,13 +3,18 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error
 
-from pipelines.common import read_csv_required
+from pipelines.common import LOGGER, read_csv_required
+
+
+def _write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
 def forecast_revenue(
@@ -45,15 +50,31 @@ def forecast_revenue(
 
     forecast = pd.DataFrame({"order_month": future_months, "predicted_revenue": future_pred})
     forecast.to_csv(models_dir / "revenue_forecast.csv", index=False)
-    (models_dir / "revenue_forecast_metrics.json").write_text(
-        json.dumps({"mae_in_sample": mae, "periods": periods}, indent=2),
-        encoding="utf-8",
+    _write_json(
+        models_dir / "revenue_forecast_metrics.json",
+        {"mae_in_sample": mae, "periods": periods},
+    )
+    _write_json(
+        models_dir / "revenue_forecast_model.json",
+        {
+            "model": "LinearRegression",
+            "slope": float(model.coef_[0]),
+            "intercept": float(model.intercept_),
+            "training_points": int(len(monthly)),
+        },
+    )
+    LOGGER.info(
+        "Revenue forecast generated for %d future periods using %d historical points",
+        periods,
+        len(monthly),
     )
     return forecast
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Train revenue forecasting model from monthly gold KPI.")
+    parser = argparse.ArgumentParser(
+        description="Train revenue forecasting model from monthly gold KPI."
+    )
     parser.add_argument("--gold-dir", type=Path, default=Path("data/gold"))
     parser.add_argument("--models-dir", type=Path, default=Path("models/artifacts"))
     parser.add_argument("--periods", type=int, default=3)

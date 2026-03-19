@@ -10,9 +10,24 @@ def write_sample_raw_data(raw_dir: Path = Path("data/raw")) -> None:
 
     customers = pd.DataFrame(
         [
-            {"customer_id": "c1", "customer_unique_id": "u1", "customer_city": "Sao Paulo", "customer_state": "SP"},
-            {"customer_id": "c2", "customer_unique_id": "u2", "customer_city": "Rio de Janeiro", "customer_state": "RJ"},
-            {"customer_id": "c3", "customer_unique_id": "u3", "customer_city": "Belo Horizonte", "customer_state": "MG"},
+            {
+                "customer_id": "c1",
+                "customer_unique_id": "u1",
+                "customer_city": "Sao Paulo",
+                "customer_state": "SP",
+            },
+            {
+                "customer_id": "c2",
+                "customer_unique_id": "u2",
+                "customer_city": "Rio de Janeiro",
+                "customer_state": "RJ",
+            },
+            {
+                "customer_id": "c3",
+                "customer_unique_id": "u3",
+                "customer_city": "Belo Horizonte",
+                "customer_state": "MG",
+            },
         ]
     )
     orders = pd.DataFrame(
@@ -49,10 +64,30 @@ def write_sample_raw_data(raw_dir: Path = Path("data/raw")) -> None:
     )
     items = pd.DataFrame(
         [
-            {"order_id": "o1", "order_item_id": 1, "price": 100.0, "freight_value": 12.0},
-            {"order_id": "o2", "order_item_id": 1, "price": 220.0, "freight_value": 15.0},
-            {"order_id": "o3", "order_item_id": 1, "price": 90.0, "freight_value": 10.0},
-            {"order_id": "o4", "order_item_id": 1, "price": 180.0, "freight_value": 13.0},
+            {
+                "order_id": "o1",
+                "order_item_id": 1,
+                "price": 100.0,
+                "freight_value": 12.0,
+            },
+            {
+                "order_id": "o2",
+                "order_item_id": 1,
+                "price": 220.0,
+                "freight_value": 15.0,
+            },
+            {
+                "order_id": "o3",
+                "order_item_id": 1,
+                "price": 90.0,
+                "freight_value": 10.0,
+            },
+            {
+                "order_id": "o4",
+                "order_item_id": 1,
+                "price": 180.0,
+                "freight_value": 13.0,
+            },
         ]
     )
     payments = pd.DataFrame(
@@ -72,4 +107,3 @@ def write_sample_raw_data(raw_dir: Path = Path("data/raw")) -> None:
 
 if __name__ == "__main__":
     write_sample_raw_data()
-

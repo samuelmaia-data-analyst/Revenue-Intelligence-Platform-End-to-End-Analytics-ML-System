@@ -1,16 +1,18 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pandas as pd
 import pytest
 
+from models.churn_model import train_churn_model
 from models.revenue_forecasting import forecast_revenue
 from pipelines.common import DataContractError
 from pipelines.feature_pipeline import run_feature_engineering
 from pipelines.ingestion_pipeline import run_ingestion
 from pipelines.transformation_pipeline import run_transformation
-from ridp.cli import build_parser
+from ridp.cli import build_parser, main
 
 
 def _write_csv(path: Path, rows: list[dict]) -> None:
@@ -21,8 +23,18 @@ def _build_minimal_raw_dataset(raw_dir: Path) -> None:
     _write_csv(
         raw_dir / "olist_customers_dataset.csv",
         [
-            {"customer_id": "c1", "customer_unique_id": "u1", "customer_city": "Sao Paulo", "customer_state": "SP"},
-            {"customer_id": "c2", "customer_unique_id": "u2", "customer_city": "Rio", "customer_state": "RJ"},
+            {
+                "customer_id": "c1",
+                "customer_unique_id": "u1",
+                "customer_city": "Sao Paulo",
+                "customer_state": "SP",
+            },
+            {
+                "customer_id": "c2",
+                "customer_unique_id": "u2",
+                "customer_city": "Rio",
+                "customer_state": "RJ",
+            },
         ],
     )
     _write_csv(
@@ -79,6 +91,10 @@ def test_end_to_end_pipelines(tmp_path: Path) -> None:
     assert (gold_outputs["business_kpis"]).exists()
     kpi_df = pd.read_csv(gold_outputs["business_kpis"])
     assert "gmv_total" in set(kpi_df["metric"])
+    metadata = json.loads((gold_dir / "business_kpis.metadata.json").read_text(encoding="utf-8"))
+    assert metadata["stage"] == "feature_engineering"
+    assert metadata["row_count"] == len(kpi_df)
+    assert metadata["run_id"] is None
 
 
 def test_transformation_fails_with_clear_contract_error(tmp_path: Path) -> None:
@@ -149,17 +165,161 @@ def test_feature_engineering_rejects_missing_delivered_orders(tmp_path: Path) ->
         run_feature_engineering(silver_dir, gold_dir)
 
 
+def test_transformation_rejects_invalid_purchase_timestamps(tmp_path: Path) -> None:
+    bronze_dir = tmp_path / "bronze"
+    silver_dir = tmp_path / "silver"
+    bronze_dir.mkdir()
+
+    _write_csv(
+        bronze_dir / "olist_customers_dataset.csv",
+        [
+            {
+                "customer_id": "c1",
+                "customer_unique_id": "u1",
+                "customer_city": "Sao Paulo",
+                "customer_state": "SP",
+            }
+        ],
+    )
+    _write_csv(
+        bronze_dir / "olist_orders_dataset.csv",
+        [
+            {
+                "order_id": "o1",
+                "customer_id": "c1",
+                "order_status": "delivered",
+                "order_purchase_timestamp": "not-a-date",
+                "order_delivered_customer_date": "2018-01-15 10:00:00",
+            }
+        ],
+    )
+    _write_csv(
+        bronze_dir / "olist_order_items_dataset.csv",
+        [{"order_id": "o1", "order_item_id": 1, "price": 100.0, "freight_value": 10.0}],
+    )
+    _write_csv(
+        bronze_dir / "olist_order_payments_dataset.csv",
+        [{"order_id": "o1", "payment_installments": 1, "payment_value": 110.0}],
+    )
+
+    with pytest.raises(DataContractError, match="invalid order_purchase_timestamp"):
+        run_transformation(bronze_dir, silver_dir)
+
+
 def test_forecast_requires_positive_horizon(tmp_path: Path) -> None:
     gold_dir = tmp_path / "gold"
     models_dir = tmp_path / "models"
     gold_dir.mkdir()
-    _write_csv(gold_dir / "kpi_monthly_revenue.csv", [{"order_month": "2018-01", "revenue": 100.0}])
+    _write_csv(
+        gold_dir / "kpi_monthly_revenue.csv",
+        [{"order_month": "2018-01", "revenue": 100.0}],
+    )
 
     with pytest.raises(ValueError, match="at least 1"):
         forecast_revenue(gold_dir, models_dir, periods=0)
+
+
+def test_models_emit_explainability_artifacts(tmp_path: Path) -> None:
+    gold_dir = tmp_path / "gold"
+    models_dir = tmp_path / "models"
+    gold_dir.mkdir()
+    _write_csv(
+        gold_dir / "churn_features.csv",
+        [
+            {
+                "customer_id": "c1",
+                "total_orders": 1,
+                "total_spent": 100.0,
+                "days_since_last_purchase": 10,
+                "avg_order_value": 100.0,
+                "is_churned": 0,
+            },
+            {
+                "customer_id": "c2",
+                "total_orders": 2,
+                "total_spent": 160.0,
+                "days_since_last_purchase": 120,
+                "avg_order_value": 80.0,
+                "is_churned": 1,
+            },
+            {
+                "customer_id": "c3",
+                "total_orders": 3,
+                "total_spent": 300.0,
+                "days_since_last_purchase": 20,
+                "avg_order_value": 100.0,
+                "is_churned": 0,
+            },
+            {
+                "customer_id": "c4",
+                "total_orders": 1,
+                "total_spent": 90.0,
+                "days_since_last_purchase": 150,
+                "avg_order_value": 90.0,
+                "is_churned": 1,
+            },
+        ],
+    )
+    _write_csv(
+        gold_dir / "kpi_monthly_revenue.csv",
+        [
+            {"order_month": "2018-01", "revenue": 100.0},
+            {"order_month": "2018-02", "revenue": 120.0},
+            {"order_month": "2018-03", "revenue": 140.0},
+        ],
+    )
+
+    churn_metrics = train_churn_model(gold_dir, models_dir)
+    forecast = forecast_revenue(gold_dir, models_dir, periods=2)
+
+    assert "accuracy" in churn_metrics
+    assert len(forecast) == 2
+    assert (models_dir / "churn_model_coefficients.json").exists()
+    assert (models_dir / "revenue_forecast_model.json").exists()
 
 
 def test_cli_parser_supports_full_pipeline_command() -> None:
     args = build_parser().parse_args(["run-pipeline", "all"])
     assert args.command == "run-pipeline"
     assert args.stage == "all"
+
+
+def test_cli_pipeline_run_writes_manifest_and_run_id(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    raw_dir = tmp_path / "raw"
+    bronze_dir = tmp_path / "bronze"
+    silver_dir = tmp_path / "silver"
+    gold_dir = tmp_path / "gold"
+    models_dir = tmp_path / "models"
+    runs_dir = tmp_path / "run_manifests"
+    raw_dir.mkdir()
+    _build_minimal_raw_dataset(raw_dir)
+
+    monkeypatch.setenv("RIDP_RAW_DIR", str(raw_dir))
+    monkeypatch.setenv("RIDP_BRONZE_DIR", str(bronze_dir))
+    monkeypatch.setenv("RIDP_SILVER_DIR", str(silver_dir))
+    monkeypatch.setenv("RIDP_GOLD_DIR", str(gold_dir))
+    monkeypatch.setenv("RIDP_MODELS_DIR", str(models_dir))
+    monkeypatch.setenv("RIDP_RUNS_DIR", str(runs_dir))
+    monkeypatch.setattr(
+        "sys.argv",
+        ["ridp", "run-pipeline", "all", "--run-id", "test-run-001"],
+    )
+
+    main()
+
+    manifest = json.loads((runs_dir / "test-run-001.json").read_text(encoding="utf-8"))
+    assert manifest["run_id"] == "test-run-001"
+    assert manifest["stage"] == "all"
+    assert sorted(manifest["artifacts"]) == [
+        "feature_engineering",
+        "ingestion",
+        "transformation",
+    ]
+
+    business_kpis_metadata = json.loads(
+        (gold_dir / "business_kpis.metadata.json").read_text(encoding="utf-8")
+    )
+    assert business_kpis_metadata["run_id"] == "test-run-001"

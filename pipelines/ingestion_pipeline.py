@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pandas as pd
 
-from pipelines.common import LOGGER, configure_logging, ensure_dir, normalize_columns
-
+from pipelines.common import (
+    LOGGER,
+    RunContext,
+    configure_logging,
+    ensure_dir,
+    normalize_columns,
+    write_dataframe,
+)
 
 REQUIRED_RAW_TABLES = {
     "olist_customers_dataset.csv",
@@ -17,7 +23,12 @@ REQUIRED_RAW_TABLES = {
 }
 
 
-def run_ingestion(raw_dir: Path, bronze_dir: Path) -> list[Path]:
+def run_ingestion(
+    raw_dir: Path,
+    bronze_dir: Path,
+    *,
+    run_context: RunContext | None = None,
+) -> list[Path]:
     ensure_dir(bronze_dir)
     csv_files = sorted(raw_dir.glob("*.csv"))
     if not csv_files:
@@ -29,7 +40,7 @@ def run_ingestion(raw_dir: Path, bronze_dir: Path) -> list[Path]:
         LOGGER.warning("Recommended raw tables not found: %s", ", ".join(missing_recommended))
 
     created_files: list[Path] = []
-    ingestion_time = datetime.now(timezone.utc).isoformat()
+    ingestion_time = datetime.now(UTC).isoformat()
 
     for csv_path in csv_files:
         df = pd.read_csv(csv_path)
@@ -41,8 +52,15 @@ def run_ingestion(raw_dir: Path, bronze_dir: Path) -> list[Path]:
         df["source_file"] = csv_path.name
 
         output_path = bronze_dir / csv_path.name
-        df.to_csv(output_path, index=False)
-        created_files.append(output_path)
+        created_files.append(
+            write_dataframe(
+                df,
+                output_path,
+                stage="ingestion",
+                source_tables=[csv_path.name],
+                run_context=run_context,
+            )
+        )
         LOGGER.info("Ingested %s -> %s (%d rows)", csv_path.name, output_path, len(df))
 
     return created_files

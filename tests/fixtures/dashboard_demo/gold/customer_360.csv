@@ -1,0 +1,4 @@
+customer_id,total_orders,total_spent,first_purchase,last_purchase,days_since_last_purchase,avg_order_value
+c1,1,112.0,2018-01-10 10:00:00,2018-01-10 10:00:00,170,112.0
+c2,2,335.0,2018-02-11 09:00:00,2018-03-20 17:00:00,101,167.5
+c3,1,193.0,2018-03-28 11:30:00,2018-03-28 11:30:00,93,193.0

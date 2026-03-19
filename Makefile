@@ -10,16 +10,16 @@ pipeline:
 	$(PYTHON) -m ridp.cli run-pipeline all
 
 test:
-	pytest
+	$(PYTHON) -m pytest
 
 lint:
-	ruff check .
-	black --check .
-	mypy .
+	$(PYTHON) -m ruff check .
+	$(PYTHON) -m black --check .
+	$(PYTHON) -m mypy .
 
 format:
-	ruff check . --fix
-	black .
+	$(PYTHON) -m ruff check . --fix
+	$(PYTHON) -m black .
 
 dashboard:
 	ridp-dashboard
