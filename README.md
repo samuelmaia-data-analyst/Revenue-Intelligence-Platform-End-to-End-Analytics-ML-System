@@ -2,6 +2,32 @@
 
 Production-oriented analytics engineering project over the Olist e-commerce dataset. The repository implements a small but disciplined data platform with `raw -> bronze -> silver -> gold` layers, contract-aware transformations, model training entry points, and a Streamlit serving layer behind a single CLI surface.
 
+## At a glance
+
+- Production-minded data platform over the Olist dataset with `raw -> bronze -> silver -> gold -> serving`
+- Contract-aware pipelines with explicit failure behavior, metadata sidecars, run manifests, snapshots, and SQLite run history
+- Multipage Streamlit workspace for executive KPIs, customer health, operations, and run traceability
+- Packaged CLI for bootstrap, pipeline execution, health checks, model training, and dashboard launch
+- Quality gates with `ruff`, `black`, `mypy`, `pytest`, and package build validation in CI
+
+## Table of contents
+
+- [Why this project matters](#why-this-project-matters)
+- [Business problem](#business-problem)
+- [Architecture](#architecture)
+- [Technical highlights](#technical-highlights)
+- [Product preview](#product-preview)
+- [Repository structure](#repository-structure)
+- [Quickstart](#quickstart)
+- [Configuration](#configuration)
+- [Execution surfaces](#execution-surfaces)
+- [Data flow and outputs](#data-flow-and-outputs)
+- [Reliability and quality posture](#reliability-and-quality-posture)
+- [Validation](#validation)
+- [Trade-offs](#trade-offs)
+- [Recruiter / reviewer signal](#recruiter--reviewer-signal)
+- [Roadmap](#roadmap)
+
 ## Why this project matters
 
 This project is designed to demonstrate practical senior-level data engineering concerns, not just notebook analysis:
