@@ -71,6 +71,25 @@ All notable changes to this project are documented in this file.
 - the repository now demonstrates another consumer path beyond SQLite-local querying
 - incident response is documented more like an operated system than a static portfolio
 
+## [1.3.3] - 2026-03-19
+
+### Added
+
+- validation contracts for secondary processed exports
+- warehouse semantic test coverage for `cohort_retention`
+- release note `docs/releases/v1.3.3.md`
+
+### Changed
+
+- issue templates now use the same label vocabulary documented in merge policy
+- merge-policy text no longer contains encoding noise
+- incident playbooks now include concrete examples of likely failures
+
+### Portfolio Deltas
+
+- the repository now treats secondary analytical exports with the same seriousness as primary outputs
+- governance looks more intentional because issue intake and merge policy now match
+
 ## [1.2.0] - 2026-03-19
 
 ### Added

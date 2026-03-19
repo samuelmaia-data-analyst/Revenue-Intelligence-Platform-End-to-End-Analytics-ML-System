@@ -18,6 +18,9 @@ Do not:
 - silently relax the contract
 - reclassify a breaking change as a documentation fix
 
+Example:
+- `top_10_actions.csv` no longer matches `business_outcomes.json`
+
 ## Playbook: Warehouse and dbt Divergence
 
 Trigger:
@@ -33,6 +36,9 @@ Immediate actions:
 Do not:
 - patch dbt models to fit stale warehouse state
 - skip the smoke to get CI green
+
+Example:
+- `dbt` smoke starts failing after a warehouse column rename
 
 ## Playbook: API Container Unhealthy
 
@@ -50,6 +56,9 @@ Do not:
 - weaken the health endpoint contract
 - bypass model loading to make the container look healthy
 
+Example:
+- container boots but `/health` never stabilizes because the model registry path moved
+
 ## Playbook: Dashboard Looks Correct but Business Slice Is Wrong
 
 Trigger:
@@ -66,6 +75,9 @@ Do not:
 - move core ranking logic into the dashboard
 - add UI-only corrections that diverge from processed outputs
 
+Example:
+- the dashboard ranking differs from `top_10_actions.csv` after a UI-only filter change
+
 ## Playbook: Environment Drift
 
 Trigger:
@@ -81,3 +93,6 @@ Immediate actions:
 Do not:
 - install `dbt` into `.venv`
 - use local caches as evidence that the environment is healthy
+
+Example:
+- local `dbt` starts working, but Streamlit breaks because `protobuf` was upgraded in `.venv`

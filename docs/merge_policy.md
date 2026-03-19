@@ -28,6 +28,8 @@ Do not merge unless all relevant checks are green:
 - dashboard smoke
 - API smoke
 - downstream SQL smoke
+- processed exports smoke
+- partner payload smoke
 - dbt SQLite smoke
 - package build
 
@@ -50,7 +52,7 @@ Do not merge:
 - mixed-scope PRs with unrelated changes
 - undocumented contract changes
 - runtime behavior changes without matching tests or docs
-- “cleanup” PRs that weaken the official execution path
+- "cleanup" PRs that weaken the official execution path
 
 ## Release Alignment
 

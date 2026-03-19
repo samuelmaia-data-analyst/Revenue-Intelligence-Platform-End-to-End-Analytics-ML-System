@@ -26,6 +26,7 @@ def test_repository_contains_high_signal_operational_docs() -> None:
         PROJECT_ROOT / "docs" / "releases" / "v1.3.0.md",
         PROJECT_ROOT / "docs" / "releases" / "v1.3.1.md",
         PROJECT_ROOT / "docs" / "releases" / "v1.3.2.md",
+        PROJECT_ROOT / "docs" / "releases" / "v1.3.3.md",
     ]
     for path in expected_paths:
         assert path.exists(), f"Missing governance or documentation asset: {path}"
@@ -101,3 +102,28 @@ def test_readme_and_docs_map_reference_core_operational_docs() -> None:
     for reference in shared_references:
         assert reference in readme_text
         assert reference.replace("docs/", "") in docs_map_text or reference in docs_map_text
+
+
+def test_issue_template_config_routes_users_to_operational_docs() -> None:
+    config_text = (PROJECT_ROOT / ".github" / "ISSUE_TEMPLATE" / "config.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "blank_issues_enabled: false" in config_text
+    assert "docs/runbook.md" in config_text
+    assert "docs/README.md" in config_text
+
+
+def test_issue_templates_use_merge_policy_labels() -> None:
+    bug_report = (PROJECT_ROOT / ".github" / "ISSUE_TEMPLATE" / "bug_report.yml").read_text(
+        encoding="utf-8"
+    )
+    change_request = (PROJECT_ROOT / ".github" / "ISSUE_TEMPLATE" / "change_request.yml").read_text(
+        encoding="utf-8"
+    )
+    documentation_request = (
+        PROJECT_ROOT / ".github" / "ISSUE_TEMPLATE" / "documentation_request.yml"
+    ).read_text(encoding="utf-8")
+
+    assert "- runtime" in bug_report
+    assert "- runtime" in change_request
+    assert "- docs" in documentation_request

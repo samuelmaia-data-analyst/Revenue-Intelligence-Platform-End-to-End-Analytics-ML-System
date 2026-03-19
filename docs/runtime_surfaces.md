@@ -84,6 +84,7 @@ Purpose:
 
 Validation:
 - `scripts/smoke_downstream_sql.py`
+- shared temporary bootstrap in `scripts/smoke_support.py`
 
 ## dbt Surface
 
@@ -112,6 +113,7 @@ Rule:
 
 Validation:
 - `scripts/smoke_partner_payload.py`
+- shared temporary bootstrap in `scripts/smoke_support.py`
 
 ## Surface Discipline
 

@@ -80,3 +80,4 @@ Existing release notes live in:
 - [docs/releases/v1.3.0.md](releases/v1.3.0.md)
 - [docs/releases/v1.3.1.md](releases/v1.3.1.md)
 - [docs/releases/v1.3.2.md](releases/v1.3.2.md)
+- [docs/releases/v1.3.3.md](releases/v1.3.3.md)

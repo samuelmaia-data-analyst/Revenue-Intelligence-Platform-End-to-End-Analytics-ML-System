@@ -57,6 +57,39 @@ CSV_ARTIFACT_SPECS: dict[str, set[str]] = {
         "net_impact",
         "roi_simulated",
     },
+    "cac_by_channel.csv": {
+        "channel",
+        "marketing_spend",
+        "customers_acquired",
+        "cac",
+    },
+    "ltv.csv": {
+        "customer_id",
+        "channel",
+        "segment",
+        "ltv",
+        "churn_probability",
+        "next_purchase_probability",
+    },
+    "rfm_segments.csv": {
+        "customer_id",
+        "channel",
+        "recency",
+        "frequency",
+        "monetary",
+        "r_score",
+        "f_score",
+        "m_score",
+        "rfm_total",
+        "segment",
+    },
+    "cohort_retention.csv": {
+        "cohort_month",
+        "cohort_index",
+        "active_customers",
+        "cohort_size",
+        "retention_rate",
+    },
 }
 
 JSON_ARTIFACT_SPECS: dict[str, tuple[str, ...]] = {

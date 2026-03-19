@@ -120,6 +120,8 @@ Placement rules:
 - `docs/`: documentation for implemented repository behavior
 - `scripts/`: smoke checks and lightweight automation
 
+For downstream smoke checks, prefer the shared temporary-runtime helper in `scripts/smoke_support.py` instead of duplicating bootstrap logic.
+
 Canonical paths should be preferred over shims:
 
 - `contracts.v1.data_contract`

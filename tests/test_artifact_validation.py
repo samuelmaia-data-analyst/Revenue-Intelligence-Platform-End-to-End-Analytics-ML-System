@@ -147,6 +147,59 @@ def _build_valid_processed_artifacts(processed_dir: Path) -> None:
             }
         ],
     )
+    _write_csv(
+        processed_dir / "cac_by_channel.csv",
+        [
+            {
+                "channel": "Organic",
+                "marketing_spend": 700.0,
+                "customers_acquired": 10,
+                "cac": 70.0,
+            }
+        ],
+    )
+    _write_csv(
+        processed_dir / "ltv.csv",
+        [
+            {
+                "customer_id": 1,
+                "channel": "Organic",
+                "segment": "Enterprise",
+                "ltv": 420.0,
+                "churn_probability": 0.2,
+                "next_purchase_probability": 0.6,
+            }
+        ],
+    )
+    _write_csv(
+        processed_dir / "rfm_segments.csv",
+        [
+            {
+                "customer_id": 1,
+                "channel": "Organic",
+                "recency": 12,
+                "frequency": 3,
+                "monetary": 420.0,
+                "r_score": 5,
+                "f_score": 4,
+                "m_score": 5,
+                "rfm_total": 14,
+                "segment": "Champions",
+            }
+        ],
+    )
+    _write_csv(
+        processed_dir / "cohort_retention.csv",
+        [
+            {
+                "cohort_month": "2025-01-01",
+                "cohort_index": 0,
+                "active_customers": 10,
+                "cohort_size": 10,
+                "retention_rate": 1.0,
+            }
+        ],
+    )
     _write_json(
         processed_dir / "executive_report.json",
         {
@@ -211,7 +264,7 @@ def test_validate_processed_artifacts_writes_report(tmp_path: Path) -> None:
     )
 
     assert report["status"] == "ok"
-    assert int(report["artifact_count"]) == 15
+    assert int(report["artifact_count"]) == 19
     assert (processed_dir / "artifact_validation_report.json").exists()
 
 

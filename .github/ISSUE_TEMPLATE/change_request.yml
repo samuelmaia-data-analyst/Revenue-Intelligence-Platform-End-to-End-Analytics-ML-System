@@ -2,7 +2,7 @@ name: Change request
 description: Propose a high-signal improvement to reliability, architecture, governance, or maintainability.
 title: "[Change] "
 labels:
-  - type:architecture
+  - runtime
 body:
   - type: textarea
     id: problem

@@ -122,6 +122,7 @@ Referências principais:
 - relatórios de freshness, qualidade e validação de artefactos processados
 - manifests, logs e snapshots para rastreabilidade
 - persistência em warehouse com validação de consumo downstream
+- payload parceiro gerado a partir de exports processados governados
 - dashboard Streamlit com smoke test no CI
 
 ## Workspace Streamlit
@@ -214,6 +215,7 @@ Camadas de automação:
 - `.pre-commit-config.yaml` para gates rápidos antes do commit
 - `.github/workflows/ci.yml` para lint, testes, smoke e build
 - `.github/workflows/ci.yml` também valida consumo dbt real sobre o warehouse SQLite gerado pelo pipeline
+- os smokes downstream partilham um helper comum de runtime temporário em `scripts/smoke_support.py`
 
 ## Exemplos de Consumo SQL
 

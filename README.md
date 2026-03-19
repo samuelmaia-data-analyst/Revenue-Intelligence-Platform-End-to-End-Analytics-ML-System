@@ -123,6 +123,7 @@ Primary references:
 - operational reports validated as part of the processed contract surface
 - runtime manifests, logs, and snapshots for traceability
 - warehouse persistence plus downstream consumption validation
+- partner-facing payload generated from governed processed exports
 - smoke-tested Streamlit dashboard in CI
 
 ## Streamlit Workspace
@@ -215,6 +216,7 @@ Automation surfaces:
 - `.pre-commit-config.yaml` for fast local quality gates
 - `.github/workflows/ci.yml` for lint, tests, smoke, and build validation
 - `.github/workflows/ci.yml` also runs a dbt-on-SQLite downstream smoke against the generated warehouse
+- downstream smoke scripts share a common temporary-runtime helper in `scripts/smoke_support.py`
 
 ## SQL Consumption Examples
 

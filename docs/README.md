@@ -16,6 +16,7 @@ This repository keeps documentation intentionally small and operational. Each do
 - [deprecation_policy.md](deprecation_policy.md): how compatibility shims are handled and eventually removed
 - [merge_policy.md](merge_policy.md): labels, merge expectations, and what must be green before merging
 - [sql_examples.md](sql_examples.md): practical downstream SQL examples over warehouse outputs
+- `scripts/smoke_support.py`: shared temporary-runtime helper for downstream smoke checks
 - [adr/README.md](adr/README.md): short decision records for the most important architectural trade-offs
 - [hiring_review.md](hiring_review.md): honest portfolio assessment from a hiring-review perspective
 
@@ -29,6 +30,7 @@ This repository keeps documentation intentionally small and operational. Each do
 - [releases/v1.3.0.md](releases/v1.3.0.md): dbt runtime hardening, localized docs updates, and container-level API validation
 - [releases/v1.3.1.md](releases/v1.3.1.md): processed-exports smoke coverage, richer incident handling, and CI/runtime alignment
 - [releases/v1.3.2.md](releases/v1.3.2.md): partner payload consumer, incident playbooks, and stronger downstream portfolio evidence
+- [releases/v1.3.3.md](releases/v1.3.3.md): secondary export contracts, semantic warehouse coverage, and label-governance alignment
 
 ## Reading Order
 

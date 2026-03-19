@@ -2,7 +2,7 @@ name: Documentation request
 description: Request a documentation improvement where current docs are unclear, incomplete, or misleading.
 title: "[Docs] "
 labels:
-  - type:documentation
+  - docs
 body:
   - type: textarea
     id: gap

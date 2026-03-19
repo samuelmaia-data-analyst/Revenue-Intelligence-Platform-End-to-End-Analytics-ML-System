@@ -110,3 +110,32 @@ def test_warehouse_supports_channel_analytics_query(tmp_path: Path) -> None:
     assert set(channel_query["channel"]) == set(unit_economics["channel"])
     assert (channel_query["customers_in_scope"] > 0).all()
     assert (channel_query["avg_ltv_cac_ratio"] > 0).all()
+
+
+def test_warehouse_supports_segment_priority_query(tmp_path: Path) -> None:
+    cfg = _build_config(tmp_path)
+    run_pipeline(cfg)
+
+    expected = pd.read_csv(cfg.processed_dir / "recommendations.csv")
+    with sqlite3.connect(cfg.warehouse_db_path) as connection:
+        segment_query = pd.read_sql_query(
+            """
+            SELECT
+                segment,
+                COUNT(*) AS customers_in_scope,
+                AVG(strategic_score) AS avg_strategic_score,
+                AVG(churn_probability) AS avg_churn_probability
+            FROM recommendations
+            GROUP BY segment
+            ORDER BY segment
+            """,
+            connection,
+        )
+
+    expected_counts = expected.groupby("segment")["customer_id"].count().sort_index()
+    observed_counts = segment_query.set_index("segment")["customers_in_scope"].sort_index()
+
+    assert not segment_query.empty
+    assert (segment_query["avg_strategic_score"] > 0).all()
+    assert segment_query["avg_churn_probability"].between(0, 1).all()
+    pd.testing.assert_series_equal(observed_counts, expected_counts, check_names=False)
