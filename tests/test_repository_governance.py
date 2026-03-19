@@ -31,6 +31,7 @@ def test_ci_workflow_enforces_core_quality_gates() -> None:
         "python -m isort --check-only .",
         "python -m pytest -q",
         "python scripts/smoke_dashboard.py",
+        "python scripts/ui_snapshot.py",
         "python scripts/smoke_api.py",
         "python scripts/smoke_downstream_sql.py",
         "python -m build",
@@ -55,6 +56,7 @@ def test_pr_template_and_makefile_expose_senior_review_workflow() -> None:
     for expected_target in [
         "help:",
         "smoke-dashboard:",
+        "snapshot-dashboard:",
         "smoke-api:",
         "smoke-downstream:",
         "verify:",

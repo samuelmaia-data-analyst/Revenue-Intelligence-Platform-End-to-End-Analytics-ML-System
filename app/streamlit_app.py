@@ -14,7 +14,7 @@ import streamlit as st
 from app.dashboard_data import filter_recommendations, load_processed_assets
 from app.dashboard_i18n import translate as t
 from app.dashboard_metrics import format_currency, potential_impact
-from app.ui.primitives import render_global_styles
+from app.ui.primitives import render_global_styles, render_spacer
 from app.views.dashboard_views import (
     build_sidebar,
     render_action_tab,
@@ -79,19 +79,23 @@ def main() -> None:
         render_dashboard_footer(lang)
         return
 
-    render_header(lang, filtered_df, format_currency)
-    st.write("")
-    render_filter_summary(
-        lang,
-        selected_segment=selected_segment,
-        selected_channel=selected_channel,
-        selected_action=selected_action,
-    )
-    st.write("")
-    render_summary(lang, filtered_df, format_currency)
-    st.write("")
-    render_leadership_notes(lang, filtered_df, format_currency)
-    st.write("")
+    with st.container():
+        render_header(lang, filtered_df, format_currency)
+    render_spacer("lg")
+    with st.container():
+        render_filter_summary(
+            lang,
+            selected_segment=selected_segment,
+            selected_channel=selected_channel,
+            selected_action=selected_action,
+        )
+    render_spacer("lg")
+    with st.container():
+        render_summary(lang, filtered_df, format_currency)
+    render_spacer("lg")
+    with st.container():
+        render_leadership_notes(lang, filtered_df, format_currency)
+    render_spacer("lg")
 
     overview_tab, risk_tab, action_tab, business_tab = st.tabs(
         [
@@ -103,36 +107,42 @@ def main() -> None:
     )
 
     with overview_tab:
-        render_overview_tab(
-            lang,
-            filtered_df,
-            assets["unit"],
-            assets["cohort"],
-            assets["report"],
-            assets["manifest"],
-            assets["artifact_validation"],
-            assets["freshness"],
-            assets["alerts"],
-            format_currency,
-        )
+        with st.container():
+            render_overview_tab(
+                lang,
+                filtered_df,
+                assets["unit"],
+                assets["cohort"],
+                assets["report"],
+                assets["manifest"],
+                assets["artifact_validation"],
+                assets["freshness"],
+                assets["alerts"],
+                format_currency,
+            )
     with risk_tab:
-        render_risk_tab(lang, filtered_df, assets["report"], assets["monitoring"], assets["alerts"])
+        with st.container():
+            render_risk_tab(
+                lang, filtered_df, assets["report"], assets["monitoring"], assets["alerts"]
+            )
     with action_tab:
-        render_action_tab(
-            lang=lang,
-            filtered_df=filtered_df,
-            approved_actions=assets["approved_actions"],
-            project_root=PROJECT_ROOT,
-        )
+        with st.container():
+            render_action_tab(
+                lang=lang,
+                filtered_df=filtered_df,
+                approved_actions=assets["approved_actions"],
+                project_root=PROJECT_ROOT,
+            )
     with business_tab:
-        render_business_tab(
-            lang=lang,
-            filtered_df=filtered_df,
-            outcomes=assets["outcomes"],
-            top10=assets["top10"],
-            semantic_metrics=assets["semantic_metrics"],
-            format_currency_fn=format_currency,
-        )
+        with st.container():
+            render_business_tab(
+                lang=lang,
+                filtered_df=filtered_df,
+                outcomes=assets["outcomes"],
+                top10=assets["top10"],
+                semantic_metrics=assets["semantic_metrics"],
+                format_currency_fn=format_currency,
+            )
 
     render_dashboard_footer(lang)
 

@@ -14,6 +14,7 @@ from app.dashboard_i18n import normalize_lang
 from app.dashboard_i18n import translate as t
 from app.dashboard_metrics import auc_text
 from app.ui.primitives import (
+    render_badge_table_panel,
     render_chart_panel,
     render_dataframe_panel,
     render_empty_state,
@@ -21,6 +22,7 @@ from app.ui.primitives import (
     render_kpi_card,
     render_panel_header,
     render_section_header,
+    render_spacer,
     render_status_pill,
     render_status_strip,
 )
@@ -255,6 +257,7 @@ def render_summary(lang: str, filtered_df: pd.DataFrame, format_currency_fn: Any
             },
         ]
     )
+    render_spacer()
 
 
 def render_filter_summary(
@@ -302,6 +305,7 @@ def render_filter_summary(
             },
         ]
     )
+    render_spacer()
 
 
 def render_leadership_notes(lang: str, filtered_df: pd.DataFrame, format_currency_fn: Any) -> None:
@@ -367,34 +371,61 @@ def render_runtime_health(
 
     policy = manifest.get("reliability_policy", {})
     backfill = manifest.get("backfill_window", {})
-    first_row = st.columns(4)
-    first_row[0].metric(t(lang, "manifest_status"), str(manifest.get("status", "n/a")).upper())
-    first_row[1].metric(
-        t(lang, "artifact_validation"), str(artifact_validation.get("status", "n/a")).upper()
+    render_status_strip(
+        [
+            {
+                "label": t(lang, "manifest_status"),
+                "value": str(manifest.get("status", "n/a")).upper(),
+                "subtitle": t(lang, "system_status"),
+            },
+            {
+                "label": t(lang, "artifact_validation"),
+                "value": str(artifact_validation.get("status", "n/a")).upper(),
+                "subtitle": "artifact_validation_report.json",
+            },
+            {
+                "label": t(lang, "freshness_status"),
+                "value": str(freshness.get("status", "n/a")).upper(),
+                "subtitle": "freshness_report.json",
+            },
+            {
+                "label": t(lang, "alerts_count"),
+                "value": str(int(alerts.get("alert_count", 0))),
+                "subtitle": "alerts_summary.json",
+            },
+        ]
     )
-    first_row[2].metric(t(lang, "freshness_status"), str(freshness.get("status", "n/a")).upper())
-    first_row[3].metric(t(lang, "alerts_count"), int(alerts.get("alert_count", 0)))
+    render_spacer()
+    render_status_strip(
+        [
+            {
+                "label": t(lang, "retry_policy"),
+                "value": (
+                    f"{int(policy.get('retry_attempts', 0))}x / {int(policy.get('retry_backoff_seconds', 0))}s"
+                    if policy
+                    else "n/a"
+                ),
+                "subtitle": t(lang, "runtime_caption"),
+            },
+            {
+                "label": t(lang, "backfill_window"),
+                "value": (
+                    f"{backfill.get('start_date') or 'open'} -> {backfill.get('end_date') or 'open'}"
+                    if backfill.get("start_date") or backfill.get("end_date")
+                    else t(lang, "not_configured")
+                ),
+                "subtitle": "backfill_window",
+            },
+            {
+                "label": t(lang, "outputs_count"),
+                "value": str(len(manifest.get("outputs", []))),
+                "subtitle": "outputs",
+            },
+        ]
+    )
+    render_spacer()
 
-    second_row = st.columns(3)
-    second_row[0].metric(
-        t(lang, "retry_policy"),
-        (
-            f"{int(policy.get('retry_attempts', 0))}x / {int(policy.get('retry_backoff_seconds', 0))}s"
-            if policy
-            else "n/a"
-        ),
-    )
-    second_row[1].metric(
-        t(lang, "backfill_window"),
-        (
-            f"{backfill.get('start_date') or 'open'} -> {backfill.get('end_date') or 'open'}"
-            if backfill.get("start_date") or backfill.get("end_date")
-            else t(lang, "not_configured")
-        ),
-    )
-    second_row[2].metric(t(lang, "outputs_count"), len(manifest.get("outputs", [])))
-
-    with st.expander(t(lang, "runtime_health")):
+    with st.expander(t(lang, "artifact_validation")):
         st.dataframe(
             pd.DataFrame(
                 [
@@ -426,21 +457,26 @@ def render_overview_tab(
     render_runtime_health(lang, manifest, artifact_validation, freshness, alerts)
     business_context = report.get("business_context", {})
     if business_context:
-        render_panel_header(
-            t(lang, "business_context"), t(lang, "business_context"), t(lang, "chart_context")
-        )
+        st.caption(t(lang, "chart_context"))
         best_channel = business_context.get("best_channel_efficiency", {})
-        metric_cols = st.columns(3)
-        metric_cols[0].metric(
-            t(lang, "revenue_proxy"),
-            format_currency_fn(float(business_context.get("revenue_proxy", 0)), lang),
-        )
-        metric_cols[1].metric(
-            t(lang, "portfolio_size"), int(business_context.get("portfolio_size", 0))
-        )
-        metric_cols[2].metric(
-            t(lang, "best_channel"),
-            f"{best_channel.get('channel', 'n/a')} | {float(best_channel.get('ltv_cac_ratio', 0)):.2f}",
+        render_status_strip(
+            [
+                {
+                    "label": t(lang, "revenue_proxy"),
+                    "value": format_currency_fn(float(business_context.get("revenue_proxy", 0)), lang),
+                    "subtitle": t(lang, "business_context"),
+                },
+                {
+                    "label": t(lang, "portfolio_size"),
+                    "value": str(int(business_context.get("portfolio_size", 0))),
+                    "subtitle": t(lang, "customers"),
+                },
+                {
+                    "label": t(lang, "best_channel"),
+                    "value": str(best_channel.get("channel", "n/a")),
+                    "subtitle": f"{float(best_channel.get('ltv_cac_ratio', 0)):.2f}",
+                },
+            ]
         )
 
     charts_row = st.columns(2, gap="large")
@@ -514,6 +550,31 @@ def render_risk_tab(
     alerts: dict[str, Any],
 ) -> None:
     model_report = report.get("model_performance", report)
+    churn_calibration = monitoring.get("calibration", {}).get("churn", {})
+    render_status_strip(
+        [
+            {
+                "label": t(lang, "drift_status"),
+                "value": str(monitoring.get("drift_status", "n/a")).upper(),
+                "subtitle": t(lang, "monitoring"),
+            },
+            {
+                "label": t(lang, "calibration"),
+                "value": (
+                    f"{float(churn_calibration.get('brier_score', 0)):.3f}"
+                    if churn_calibration.get("status") == "ok"
+                    else "n/a"
+                ),
+                "subtitle": str(churn_calibration.get("status", "n/a")).upper(),
+            },
+            {
+                "label": t(lang, "alerts_count"),
+                "value": str(len(alerts.get("alerts", []))),
+                "subtitle": t(lang, "alerts"),
+            },
+        ]
+    )
+    render_spacer()
     render_section_header(
         t(lang, "governance"), t(lang, "governance"), t(lang, "governance_caption")
     )
@@ -592,39 +653,29 @@ def render_risk_tab(
             fig=fig_next,
         )
 
-    for column, model_key in zip(
-        st.columns(2, gap="large"), ["churn", "next_purchase_30d"], strict=False
-    ):
-        with column:
-            drivers = pd.DataFrame(model_report.get(model_key, {}).get("top_business_drivers", []))
-            if drivers.empty:
-                st.caption(t(lang, "drivers_empty"))
-            else:
-                render_dataframe_panel(
-                    eyebrow=t(lang, "table_context"),
-                    title=f"{t(lang, 'model_drivers')} | {model_key}",
-                    caption=t(lang, "governance_caption"),
-                    frame=drivers.rename(
-                        columns={
-                            "feature": t(lang, "driver_feature"),
-                            "importance": t(lang, "driver_importance"),
-                        }
-                    ),
-                )
+    with st.expander(t(lang, "model_drivers")):
+        for column, model_key in zip(
+            st.columns(2, gap="large"), ["churn", "next_purchase_30d"], strict=False
+        ):
+            with column:
+                drivers = pd.DataFrame(model_report.get(model_key, {}).get("top_business_drivers", []))
+                if drivers.empty:
+                    st.caption(t(lang, "drivers_empty"))
+                else:
+                    render_dataframe_panel(
+                        eyebrow=t(lang, "table_context"),
+                        title=f"{t(lang, 'model_drivers')} | {model_key}",
+                        caption=t(lang, "governance_caption"),
+                        frame=drivers.rename(
+                            columns={
+                                "feature": t(lang, "driver_feature"),
+                                "importance": t(lang, "driver_importance"),
+                            }
+                        ),
+                    )
 
     render_section_header(
         t(lang, "monitoring"), t(lang, "monitoring"), t(lang, "monitoring_caption")
-    )
-    metrics = st.columns(2)
-    metrics[0].metric(t(lang, "drift_status"), monitoring.get("drift_status", "n/a"))
-    churn_calibration = monitoring.get("calibration", {}).get("churn", {})
-    metrics[1].metric(
-        t(lang, "calibration"),
-        (
-            f"{float(churn_calibration.get('brier_score', 0)):.3f}"
-            if churn_calibration.get("status") == "ok"
-            else "n/a"
-        ),
     )
     drift_rows = [
         {
@@ -634,13 +685,25 @@ def render_risk_tab(
         for feature_name, drift_info in monitoring.get("feature_drift", {}).items()
     ]
     if drift_rows:
-        st.dataframe(pd.DataFrame(drift_rows), use_container_width=True, hide_index=True)
-    st.markdown(f"#### {t(lang, 'alerts')}")
+        render_badge_table_panel(
+            eyebrow=t(lang, "table_context"),
+            title=t(lang, "drift_status"),
+            caption=t(lang, "monitoring_caption"),
+            frame=pd.DataFrame(drift_rows),
+            badge_columns=[t(lang, "drift_status")],
+        )
+    render_spacer()
     alert_rows = pd.DataFrame(alerts.get("alerts", []))
     if alert_rows.empty:
         st.info(t(lang, "alerts_empty"))
     else:
-        st.dataframe(alert_rows, use_container_width=True, hide_index=True)
+        render_badge_table_panel(
+            eyebrow=t(lang, "table_context"),
+            title=t(lang, "alerts"),
+            caption=t(lang, "monitoring_caption"),
+            frame=alert_rows,
+            badge_columns=["severity", "status"],
+        )
 
 
 def render_action_tab(
@@ -649,6 +712,26 @@ def render_action_tab(
     render_section_header(
         t(lang, "data_view"), t(lang, "tab_action_list"), t(lang, "action_board_caption")
     )
+    render_status_strip(
+        [
+            {
+                "label": t(lang, "customers"),
+                "value": f"{filtered_df['customer_id'].nunique():,}",
+                "subtitle": t(lang, "tab_action_list"),
+            },
+            {
+                "label": t(lang, "impact"),
+                "value": f"{float(filtered_df['potential_impact'].sum()):,.0f}",
+                "subtitle": t(lang, "filtered_portfolio"),
+            },
+            {
+                "label": t(lang, "top_action_mix"),
+                "value": str(filtered_df["recommended_action"].mode().iat[0]),
+                "subtitle": t(lang, "actions_help"),
+            },
+        ]
+    )
+    render_spacer()
     render_panel_header(t(lang, "data_view"), t(lang, "tab_action_list"), t(lang, "actions_help"))
     board = filtered_df.sort_values("strategic_score", ascending=False).head(120)
     controls = st.columns([1, 1.1, 1.1], gap="medium")
@@ -691,16 +774,16 @@ def render_action_tab(
             load_processed_assets.clear()
             st.success(t(lang, "approval_success", count=len(approved)))
             st.rerun()
-    with st.expander(t(lang, "approved_actions"), expanded=True):
+    with st.expander(t(lang, "approved_actions"), expanded=False):
         if approved_actions.empty:
             st.caption(t(lang, "approvals_empty"))
         else:
-            render_dataframe_panel(
+            render_badge_table_panel(
                 eyebrow=t(lang, "table_context"),
                 title=t(lang, "approved_actions"),
                 caption=t(lang, "actions_help"),
                 frame=approved_actions.tail(20),
-                height=260,
+                badge_columns=["recommended_action"],
             )
 
 
@@ -747,20 +830,30 @@ def render_business_tab(
     render_section_header(
         t(lang, "simulation"), t(lang, "simulation"), t(lang, "simulation_caption")
     )
-    metrics = st.columns(4)
-    metrics[0].metric(
-        t(lang, "baseline"),
-        format_currency_fn(float(simulation.get("baseline_revenue_90d", 0)), lang),
+    render_status_strip(
+        [
+            {
+                "label": t(lang, "baseline"),
+                "value": format_currency_fn(float(simulation.get("baseline_revenue_90d", 0)), lang),
+                "subtitle": t(lang, "simulation"),
+            },
+            {
+                "label": t(lang, "scenario"),
+                "value": format_currency_fn(float(simulation.get("scenario_revenue_90d", 0)), lang),
+                "subtitle": t(lang, "simulation"),
+            },
+            {
+                "label": t(lang, "delta_revenue"),
+                "value": format_currency_fn(float(simulation.get("delta_revenue_90d", 0)), lang),
+                "subtitle": t(lang, "simulation"),
+            },
+            {
+                "label": t(lang, "roi"),
+                "value": f"{float(simulation.get('roi_simulated', 0)):.2f}x",
+                "subtitle": t(lang, "business_net_impact_sub"),
+            },
+        ]
     )
-    metrics[1].metric(
-        t(lang, "scenario"),
-        format_currency_fn(float(simulation.get("scenario_revenue_90d", 0)), lang),
-    )
-    metrics[2].metric(
-        t(lang, "delta_revenue"),
-        format_currency_fn(float(simulation.get("delta_revenue_90d", 0)), lang),
-    )
-    metrics[3].metric(t(lang, "roi"), f"{float(simulation.get('roi_simulated', 0)):.2f}x")
 
     with st.expander(t(lang, "scenario_controls")):
         overrides: dict[str, dict[str, float | str]] = {}
@@ -803,22 +896,35 @@ def render_business_tab(
                 else 0.0
             ),
         }
-        sim_cols = st.columns(4)
-        sim_cols[0].metric(
-            t(lang, "baseline"),
-            format_currency_fn(float(scenario_summary["baseline_revenue_90d"]), lang),
+        render_status_strip(
+            [
+                {
+                    "label": t(lang, "baseline"),
+                    "value": format_currency_fn(float(scenario_summary["baseline_revenue_90d"]), lang),
+                    "subtitle": t(lang, "scenario_controls"),
+                },
+                {
+                    "label": t(lang, "scenario"),
+                    "value": format_currency_fn(float(scenario_summary["scenario_revenue_90d"]), lang),
+                    "subtitle": t(lang, "scenario_controls"),
+                },
+                {
+                    "label": t(lang, "delta_revenue"),
+                    "value": format_currency_fn(float(scenario_summary["delta_revenue_90d"]), lang),
+                    "subtitle": t(lang, "scenario_controls"),
+                },
+                {
+                    "label": t(lang, "roi"),
+                    "value": f"{float(scenario_summary['roi_simulated']):.2f}x",
+                    "subtitle": "roi_simulated",
+                },
+            ]
         )
-        sim_cols[1].metric(
-            t(lang, "scenario"),
-            format_currency_fn(float(scenario_summary["scenario_revenue_90d"]), lang),
-        )
-        sim_cols[2].metric(
-            t(lang, "delta_revenue"),
-            format_currency_fn(float(scenario_summary["delta_revenue_90d"]), lang),
-        )
-        sim_cols[3].metric(t(lang, "roi"), f"{float(scenario_summary['roi_simulated']):.2f}x")
-        st.dataframe(
-            scenario_actions[
+        render_badge_table_panel(
+            eyebrow=t(lang, "table_context"),
+            title=t(lang, "scenario"),
+            caption=t(lang, "simulation_caption"),
+            frame=scenario_actions[
                 [
                     "customer_id",
                     "recommended_action",
@@ -828,8 +934,7 @@ def render_business_tab(
                     "roi_simulated",
                 ]
             ],
-            use_container_width=True,
-            hide_index=True,
+            badge_columns=["recommended_action"],
         )
 
     charts = st.columns(2, gap="large")
@@ -876,21 +981,22 @@ def render_business_tab(
         height=420,
     )
     semantic_rows = pd.DataFrame(semantic_metrics.get("metrics", []))
-    if semantic_rows.empty:
-        st.caption(t(lang, "semantic_empty"))
-    else:
-        render_dataframe_panel(
-            eyebrow=t(lang, "table_context"),
-            title=t(lang, "semantic_metrics"),
-            caption=t(lang, "business_caption"),
-            frame=semantic_rows.rename(
-                columns={
-                    "label": "Metric",
-                    "owner": t(lang, "owner"),
-                    "expression": t(lang, "expression"),
-                }
-            ),
-        )
+    with st.expander(t(lang, "semantic_metrics"), expanded=False):
+        if semantic_rows.empty:
+            st.caption(t(lang, "semantic_empty"))
+        else:
+            render_dataframe_panel(
+                eyebrow=t(lang, "table_context"),
+                title=t(lang, "semantic_metrics"),
+                caption=t(lang, "business_caption"),
+                frame=semantic_rows.rename(
+                    columns={
+                        "label": "Metric",
+                        "owner": t(lang, "owner"),
+                        "expression": t(lang, "expression"),
+                    }
+                ),
+            )
 
 
 def render_empty_dashboard(lang: str) -> None:

@@ -1,7 +1,7 @@
 PYTHON ?= python
 DBT ?= dbt
 
-.PHONY: help install install-dev pipeline artifacts dictionary serve-app serve-api lint format type-check test smoke-dashboard smoke-api smoke-downstream verify package smoke docker-build-app docker-build-api docker-build docker-smoke clean
+.PHONY: help install install-dev pipeline artifacts dictionary serve-app serve-api lint format type-check test smoke-dashboard snapshot-dashboard smoke-api smoke-downstream verify package smoke docker-build-app docker-build-api docker-build docker-smoke clean
 
 help:
 	@echo "Available targets:"
@@ -16,6 +16,7 @@ help:
 	@echo "  type-check         Run mypy"
 	@echo "  test               Run pytest"
 	@echo "  smoke-dashboard    Run the dashboard smoke check"
+	@echo "  snapshot-dashboard Run the dashboard UI snapshot check"
 	@echo "  smoke-api          Run the FastAPI smoke check"
 	@echo "  smoke-downstream   Run the downstream SQL smoke check"
 	@echo "  verify             Run the local high-signal validation flow"
@@ -64,6 +65,9 @@ test:
 smoke-dashboard:
 	$(PYTHON) scripts/smoke_dashboard.py
 
+snapshot-dashboard:
+	$(PYTHON) scripts/ui_snapshot.py
+
 smoke-api:
 	$(PYTHON) scripts/smoke_api.py
 
@@ -72,7 +76,7 @@ smoke-downstream:
 
 quality: lint type-check test
 
-verify: lint type-check test smoke-dashboard smoke-api smoke-downstream package
+verify: lint type-check test smoke-dashboard snapshot-dashboard smoke-api smoke-downstream package
 
 package:
 	$(PYTHON) -m build

@@ -54,6 +54,9 @@ jobs:
       - name: Dashboard smoke test
         run: python scripts/smoke_dashboard.py
 
+      - name: Dashboard UI snapshot
+        run: python scripts/ui_snapshot.py
+
       - name: API smoke test
         run: python scripts/smoke_api.py
 
