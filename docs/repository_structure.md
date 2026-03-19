@@ -29,6 +29,7 @@ If a directory does none of those, it probably does not belong at the top level.
 |- orchestration/      Optional scheduler wrappers and deployment examples
 |- scripts/            Operational smoke tests and lightweight automation
 |- services/           Runtime-facing service interfaces
+|- sql/                Warehouse DDL and downstream SQL examples
 |- src/                Batch pipeline and domain logic
 |- tests/              Behavioral and regression coverage
 ```
@@ -141,6 +142,16 @@ Regression coverage for:
 Rule:
 Prefer behavioral assertions over file-existence-only tests whenever practical.
 
+### `sql/`
+
+Supplementary SQL assets for:
+
+- warehouse DDL
+- downstream analytical examples
+
+Rule:
+`sql/` documents or exercises downstream consumption. It does not become the main transformation engine while the batch core remains canonical.
+
 ## Import Policy
 
 Preferred imports:
@@ -160,6 +171,7 @@ Use shims only where backward compatibility matters. Use the versioned path in n
 See also:
 
 - [deprecation_policy.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/deprecation_policy.md)
+- [runtime_surfaces.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/runtime_surfaces.md)
 
 ## Placement Rules
 

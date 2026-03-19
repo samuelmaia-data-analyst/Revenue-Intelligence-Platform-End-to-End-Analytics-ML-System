@@ -6,6 +6,11 @@ This repository is a small but production-minded analytical system. The design g
 
 The batch pipeline is the productized core. Everything else is downstream, optional, or supportive.
 
+See also:
+
+- [runtime_surfaces.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/runtime_surfaces.md)
+- [environments.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/environments.md)
+
 ## System Boundary
 
 Primary responsibility:
@@ -134,6 +139,8 @@ These modules are intentionally downstream of the batch core:
 - Airflow and Prefect examples in `orchestration/`
 
 They should consume generated outputs or the warehouse. They should not become alternate orchestration centers.
+
+Current explicit surfaces and their smoke ownership are documented in [runtime_surfaces.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/runtime_surfaces.md).
 
 ## Trade-offs
 

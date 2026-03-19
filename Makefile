@@ -1,7 +1,7 @@
 PYTHON ?= python
 DBT ?= dbt
 
-.PHONY: help install install-dev pipeline artifacts dictionary serve-app serve-api lint format type-check test smoke-dashboard snapshot-dashboard smoke-api smoke-downstream smoke-exports smoke-dbt verify package smoke docker-build-app docker-build-api docker-build docker-smoke clean
+.PHONY: help install install-dev pipeline artifacts dictionary serve-app serve-api lint format type-check test smoke-dashboard snapshot-dashboard smoke-api smoke-downstream smoke-exports smoke-partner smoke-dbt verify package smoke docker-build-app docker-build-api docker-build docker-smoke clean
 
 help:
 	@echo "Available targets:"
@@ -20,6 +20,7 @@ help:
 	@echo "  smoke-api          Run the FastAPI smoke check"
 	@echo "  smoke-downstream   Run the downstream SQL smoke check"
 	@echo "  smoke-exports      Run the processed exports smoke check"
+	@echo "  smoke-partner      Run the partner payload smoke check"
 	@echo "  smoke-dbt          Run the dbt SQLite smoke validation"
 	@echo "  verify             Run the local high-signal validation flow"
 	@echo "  package            Build the package"
@@ -79,12 +80,15 @@ smoke-downstream:
 smoke-exports:
 	$(PYTHON) scripts/smoke_processed_exports.py
 
+smoke-partner:
+	$(PYTHON) scripts/smoke_partner_payload.py
+
 smoke-dbt:
 	$(PYTHON) scripts/smoke_dbt_sqlite.py
 
 quality: lint type-check test
 
-verify: lint type-check test smoke-dashboard snapshot-dashboard smoke-api smoke-downstream smoke-exports smoke-dbt package
+verify: lint type-check test smoke-dashboard snapshot-dashboard smoke-api smoke-downstream smoke-exports smoke-partner smoke-dbt package
 
 package:
 	$(PYTHON) -m build

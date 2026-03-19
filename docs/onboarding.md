@@ -18,6 +18,15 @@ Recommended interpreter:
 
 - `.venv\Scripts\python.exe`
 
+Optional isolated dbt CLI:
+
+```powershell
+py -3.11 -m venv .dbt-venv
+.\.dbt-venv\Scripts\activate
+python -m pip install --upgrade pip
+python -m pip install dbt-core dbt-sqlite
+```
+
 ## 2. First Successful Run
 
 Run the official batch path:
@@ -41,6 +50,12 @@ python -m black --check .
 python -m isort --check-only .
 python -m mypy src services contracts main.py
 python -m pytest -q
+python scripts/smoke_dashboard.py
+python scripts/smoke_api.py
+python scripts/smoke_downstream_sql.py
+python scripts/smoke_processed_exports.py
+python scripts/smoke_partner_payload.py
+python scripts/smoke_dbt_sqlite.py
 python -m build
 ```
 
@@ -61,7 +76,7 @@ python -m uvicorn services.api.main:app --reload
 dbt:
 
 ```powershell
-dbt --project-dir dbt run
+.dbt-venv\Scripts\dbt.exe --project-dir dbt run
 ```
 
 ## 5. Repository Reading Order
@@ -73,11 +88,15 @@ Recommended reading sequence:
 3. `docs/repository_structure.md`
 4. `src/pipeline.py`
 5. `src/orchestration.py`
+6. `docs/runtime_surfaces.md`
+7. `docs/environments.md`
 
 ## 6. Common Failure Modes
 
 - Missing dependencies in the active interpreter
   Use `.venv\Scripts\python.exe`
+- dbt works in one shell but breaks the app environment
+  Keep `dbt` isolated in `.dbt-venv`
 - Empty or stale generated data
   Re-run `python -m src.pipeline run`
 - Dashboard load errors

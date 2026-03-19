@@ -49,6 +49,12 @@ dbt downstream smoke validation:
 python scripts/smoke_dbt_sqlite.py
 ```
 
+Partner payload smoke validation:
+
+```powershell
+python scripts/smoke_partner_payload.py
+```
+
 ## Pre-Run Checks
 
 Before running:
@@ -202,6 +208,7 @@ Before trusting a run:
 6. `scripts/smoke_api.py` passes if the API surface is part of the release path
 7. `scripts/smoke_dbt_sqlite.py` passes if dbt artifacts or warehouse models changed
 8. `scripts/smoke_processed_exports.py` passes if downstream CSV/JSON exports changed
+9. `scripts/smoke_partner_payload.py` passes if partner-facing payload logic changed
 
 ## Safe Change Policy
 

@@ -23,6 +23,7 @@ Read these files first:
 - [docs/repository_structure.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/repository_structure.md)
 - [docs/deprecation_policy.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/deprecation_policy.md)
 - [docs/merge_policy.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/merge_policy.md)
+- [docs/incident_playbooks.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/incident_playbooks.md)
 
 ## Contribution Principles
 
@@ -94,6 +95,7 @@ python scripts/smoke_dashboard.py
 python scripts/smoke_api.py
 python scripts/smoke_downstream_sql.py
 python scripts/smoke_processed_exports.py
+python scripts/smoke_partner_payload.py
 python scripts/smoke_dbt_sqlite.py
 python -m build
 ```

@@ -51,6 +51,26 @@ All notable changes to this project are documented in this file.
 - the repository now shows downstream readiness beyond the local SQLite warehouse path
 - reviewer-facing docs connect runtime failures to first actions more directly
 
+## [1.3.2] - 2026-03-19
+
+### Added
+
+- partner-facing payload export from processed artifacts
+- partner payload smoke validation in the main quality flow
+- incident playbooks document
+- SQL examples document
+- release note `docs/releases/v1.3.2.md`
+
+### Changed
+
+- local and CI validation now treat partner payload generation as a governed downstream surface
+- README and contribution docs now surface downstream query examples and incident playbooks more directly
+
+### Portfolio Deltas
+
+- the repository now demonstrates another consumer path beyond SQLite-local querying
+- incident response is documented more like an operated system than a static portfolio
+
 ## [1.2.0] - 2026-03-19
 
 ### Added

@@ -92,6 +92,7 @@ Key characteristics:
 |- services/               runtime-facing service interfaces
 |- orchestration/          scheduler examples and deployment wrappers
 |- metrics/                semantic metric definitions consumed by the pipeline
+|- sql/                    warehouse DDL and downstream SQL assets
 |- data/                   local runtime outputs, manifests, snapshots, and warehouse
 |- notebooks/              isolated exploration, kept out of the official runtime path
 |- api/                    compatibility shim for API imports
@@ -101,12 +102,16 @@ Primary references:
 
 - [docs/README.md](docs/README.md)
 - [docs/architecture.md](docs/architecture.md)
+- [docs/runtime_surfaces.md](docs/runtime_surfaces.md)
+- [docs/environments.md](docs/environments.md)
 - [docs/repository_structure.md](docs/repository_structure.md)
 - [docs/runbook.md](docs/runbook.md)
 - [docs/troubleshooting_matrix.md](docs/troubleshooting_matrix.md)
 - [docs/release_process.md](docs/release_process.md)
 - [docs/deprecation_policy.md](docs/deprecation_policy.md)
 - [docs/merge_policy.md](docs/merge_policy.md)
+- [docs/sql_examples.md](docs/sql_examples.md)
+- [docs/incident_playbooks.md](docs/incident_playbooks.md)
 - [docs/hiring_review.md](docs/hiring_review.md)
 
 ## Reliability and Data Engineering Signals
@@ -199,6 +204,7 @@ python scripts/smoke_dashboard.py
 python scripts/smoke_api.py
 python scripts/smoke_downstream_sql.py
 python scripts/smoke_processed_exports.py
+python scripts/smoke_partner_payload.py
 python scripts/smoke_dbt_sqlite.py
 python -m build
 ```
@@ -212,30 +218,7 @@ Automation surfaces:
 
 ## SQL Consumption Examples
 
-Revenue by acquisition channel from the persisted warehouse:
-
-```sql
-SELECT
-    acquisition_channel,
-    ROUND(SUM(revenue), 2) AS total_revenue,
-    ROUND(AVG(avg_order_value), 2) AS avg_order_value
-FROM fact_orders
-GROUP BY acquisition_channel
-ORDER BY total_revenue DESC;
-```
-
-Top recommendation opportunities by simulated impact:
-
-```sql
-SELECT
-    customer_id,
-    recommended_action,
-    ROUND(potential_impact, 2) AS potential_impact,
-    ROUND(churn_probability, 4) AS churn_probability
-FROM mart_customer_recommendations
-ORDER BY potential_impact DESC
-LIMIT 10;
-```
+See [docs/sql_examples.md](docs/sql_examples.md) for practical warehouse queries covering channel economics, recommendation ranking, cohort retention, and executive segment views.
 
 ## Technical Decisions and Trade-offs
 
@@ -250,11 +233,12 @@ If you are reviewing the repository for technical depth, read in this order:
 
 1. this `README`
 2. [docs/architecture.md](docs/architecture.md)
-3. [docs/runbook.md](docs/runbook.md)
-4. [docs/troubleshooting_matrix.md](docs/troubleshooting_matrix.md)
-5. [docs/adr/README.md](docs/adr/README.md)
-6. [docs/repository_structure.md](docs/repository_structure.md)
-7. [docs/hiring_review.md](docs/hiring_review.md)
+3. [docs/runtime_surfaces.md](docs/runtime_surfaces.md)
+4. [docs/runbook.md](docs/runbook.md)
+5. [docs/troubleshooting_matrix.md](docs/troubleshooting_matrix.md)
+6. [docs/adr/README.md](docs/adr/README.md)
+7. [docs/repository_structure.md](docs/repository_structure.md)
+8. [docs/hiring_review.md](docs/hiring_review.md)
 
 ## What This Repository Is Not
 

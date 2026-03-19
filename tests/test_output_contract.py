@@ -95,6 +95,8 @@ def test_pipeline_generates_expected_contract_outputs(tmp_path: Path) -> None:
     fact_orders = pd.read_csv(processed / "fact_orders.csv")
     top_10_actions = pd.read_csv(processed / "top_10_actions.csv")
     cohort_retention = pd.read_csv(processed / "cohort_retention.csv")
+    unit_economics = pd.read_csv(processed / "unit_economics.csv")
+    business_outcomes = pd.read_json(processed / "business_outcomes.json", typ="series")
 
     validate_gold_table(dim_customers, "dim_customers.csv")
     validate_gold_table(dim_date, "dim_date.csv")
@@ -110,3 +112,11 @@ def test_pipeline_generates_expected_contract_outputs(tmp_path: Path) -> None:
         "roi_simulated",
     }.issubset(top_10_actions.columns)
     assert cohort_retention["retention_rate"].between(0, 1).all()
+    assert top_10_actions["priority_rank"].tolist() == list(range(1, len(top_10_actions) + 1))
+    observed_best_channel = unit_economics.sort_values("ltv_cac_ratio", ascending=False).iloc[0][
+        "channel"
+    ]
+    expected_best_channel = max(
+        business_outcomes["ltv_cac_by_channel"], key=lambda item: item["ltv_cac_ratio"]
+    )["channel"]
+    assert observed_best_channel == expected_best_channel

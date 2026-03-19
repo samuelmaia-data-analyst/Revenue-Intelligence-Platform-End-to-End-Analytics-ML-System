@@ -11,15 +11,21 @@ def test_repository_contains_high_signal_operational_docs() -> None:
         PROJECT_ROOT / "CONTRIBUTING.md",
         PROJECT_ROOT / "CHANGELOG.md",
         PROJECT_ROOT / "docs" / "architecture.md",
+        PROJECT_ROOT / "docs" / "runtime_surfaces.md",
+        PROJECT_ROOT / "docs" / "environments.md",
         PROJECT_ROOT / "docs" / "runbook.md",
+        PROJECT_ROOT / "docs" / "incident_playbooks.md",
         PROJECT_ROOT / "docs" / "troubleshooting_matrix.md",
         PROJECT_ROOT / "docs" / "release_process.md",
         PROJECT_ROOT / "docs" / "deprecation_policy.md",
         PROJECT_ROOT / "docs" / "merge_policy.md",
+        PROJECT_ROOT / "docs" / "sql_examples.md",
         PROJECT_ROOT / "docs" / "hiring_review.md",
         PROJECT_ROOT / "docs" / "releases" / "v1.1.0.md",
         PROJECT_ROOT / "docs" / "releases" / "v1.2.0.md",
         PROJECT_ROOT / "docs" / "releases" / "v1.3.0.md",
+        PROJECT_ROOT / "docs" / "releases" / "v1.3.1.md",
+        PROJECT_ROOT / "docs" / "releases" / "v1.3.2.md",
     ]
     for path in expected_paths:
         assert path.exists(), f"Missing governance or documentation asset: {path}"
@@ -37,6 +43,7 @@ def test_ci_workflow_enforces_core_quality_gates() -> None:
         "python scripts/smoke_api.py",
         "python scripts/smoke_downstream_sql.py",
         "python scripts/smoke_processed_exports.py",
+        "python scripts/smoke_partner_payload.py",
         "python scripts/smoke_dbt_sqlite.py",
         "API container smoke test",
         "http://127.0.0.1:8000/health",
@@ -66,6 +73,7 @@ def test_pr_template_and_makefile_expose_senior_review_workflow() -> None:
         "smoke-api:",
         "smoke-downstream:",
         "smoke-exports:",
+        "smoke-partner:",
         "smoke-dbt:",
         "verify:",
         "clean:",
@@ -79,11 +87,15 @@ def test_readme_and_docs_map_reference_core_operational_docs() -> None:
 
     shared_references = [
         "docs/architecture.md",
+        "docs/runtime_surfaces.md",
+        "docs/environments.md",
         "docs/runbook.md",
         "docs/troubleshooting_matrix.md",
         "docs/release_process.md",
         "docs/deprecation_policy.md",
         "docs/merge_policy.md",
+        "docs/sql_examples.md",
+        "docs/incident_playbooks.md",
         "docs/hiring_review.md",
     ]
     for reference in shared_references:

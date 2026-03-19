@@ -66,6 +66,9 @@ jobs:
       - name: Processed exports smoke test
         run: python scripts/smoke_processed_exports.py
 
+      - name: Partner payload smoke test
+        run: python scripts/smoke_partner_payload.py
+
       - name: Build package
         run: python -m build
 
