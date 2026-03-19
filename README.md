@@ -67,6 +67,22 @@ Screenshot slots are prepared under `docs/assets/dashboard/` for portfolio-ready
 - `docs/assets/dashboard/operations.png`
 - `docs/assets/dashboard/run-history.png`
 
+### Executive Overview
+
+![Executive Overview](docs/assets/dashboard/overview.png)
+
+### Customer Health
+
+![Customer Health](docs/assets/dashboard/customer-health.png)
+
+### Operations
+
+![Operations](docs/assets/dashboard/operations.png)
+
+### Run History
+
+![Run History](docs/assets/dashboard/run-history.png)
+
 Suggested capture flow:
 
 ```bash
