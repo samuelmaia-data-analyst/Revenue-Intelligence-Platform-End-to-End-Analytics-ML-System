@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from html import escape
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -384,18 +385,22 @@ def render_panel_header(eyebrow: str, title: str, caption: str, pill: str | None
 
 
 def render_status_strip(items: list[dict[str, str]]) -> None:
-    cards = []
-    for item in items:
-        cards.append(
-            f"""
-            <div class="status-card">
-                <div class="status-label">{item["label"]}</div>
-                <div class="status-value">{item["value"]}</div>
-                <div class="status-sub">{item["subtitle"]}</div>
-            </div>
-            """
-        )
-    st.markdown(f'<div class="status-strip">{"".join(cards)}</div>', unsafe_allow_html=True)
+    if not items:
+        return
+
+    columns = st.columns(len(items))
+    for column, item in zip(columns, items, strict=False):
+        with column:
+            st.markdown(
+                f"""
+                <div class="status-card">
+                    <div class="status-label">{escape(str(item["label"]))}</div>
+                    <div class="status-value">{escape(str(item["value"]))}</div>
+                    <div class="status-sub">{escape(str(item["subtitle"]))}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
 
 def render_status_pill(label: str, value: str, tone: str = "neutral") -> None:
