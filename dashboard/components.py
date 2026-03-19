@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import html
 import json
 from pathlib import Path
+from urllib.parse import quote
 
 import pandas as pd
 import streamlit as st
@@ -11,6 +13,19 @@ def inject_global_styles() -> None:
     st.markdown(
         """
         <style>
+        :root {
+            --ridp-slate-950: #0f172a;
+            --ridp-slate-900: #16213b;
+            --ridp-slate-700: #334155;
+            --ridp-slate-500: #64748b;
+            --ridp-slate-400: #94a3b8;
+            --ridp-slate-200: #dbe4f0;
+            --ridp-teal-700: #0f766e;
+            --ridp-teal-500: #14b8a6;
+            --ridp-blue-700: #1d4ed8;
+            --ridp-amber-500: #f59e0b;
+            --ridp-surface: rgba(255, 255, 255, 0.9);
+        }
         .stApp {
             background:
                 radial-gradient(circle at top left, rgba(18, 95, 110, 0.10), transparent 28%),
@@ -54,6 +69,57 @@ def inject_global_styles() -> None:
             line-height: 1.5;
             max-width: 60rem;
             opacity: 0.92;
+        }
+        .workspace-strip {
+            display: grid;
+            grid-template-columns: 1.35fr 1fr 1fr 1fr;
+            gap: 0.85rem;
+            margin: 0 0 1rem 0;
+        }
+        .workspace-panel {
+            background: rgba(255, 255, 255, 0.74);
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 20px;
+            padding: 1rem 1.05rem;
+            box-shadow: 0 12px 34px rgba(148, 163, 184, 0.12);
+            backdrop-filter: blur(8px);
+        }
+        .workspace-panel.primary {
+            background: linear-gradient(
+                180deg,
+                rgba(255, 255, 255, 0.94),
+                rgba(255, 255, 255, 0.82)
+            );
+        }
+        .workspace-kicker {
+            font-size: 0.72rem;
+            letter-spacing: 0.11em;
+            text-transform: uppercase;
+            color: var(--ridp-slate-500);
+            margin-bottom: 0.4rem;
+        }
+        .workspace-title {
+            color: var(--ridp-slate-950);
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.18rem;
+        }
+        .workspace-copy {
+            color: #526072;
+            font-size: 0.92rem;
+            line-height: 1.5;
+        }
+        .workspace-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.34rem 0.62rem;
+            border-radius: 999px;
+            background: rgba(15, 118, 110, 0.10);
+            color: var(--ridp-teal-700);
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 0.6rem;
         }
         .section-label {
             font-size: 0.76rem;
@@ -148,6 +214,111 @@ def inject_global_styles() -> None:
             padding: 1rem 1.1rem 1.1rem 1.1rem;
             box-shadow: 0 10px 30px rgba(148, 163, 184, 0.14);
         }
+        .panel-title {
+            color: var(--ridp-slate-950);
+            font-size: 1.02rem;
+            font-weight: 700;
+            margin-bottom: 0.18rem;
+        }
+        .panel-copy {
+            color: #526072;
+            font-size: 0.89rem;
+            margin-bottom: 0.9rem;
+        }
+        .state-card {
+            border-radius: 20px;
+            border: 1px dashed rgba(15, 23, 42, 0.14);
+            background: rgba(255, 255, 255, 0.7);
+            padding: 1rem 1.1rem;
+            color: #334155;
+            margin: 0.5rem 0 0.75rem 0;
+        }
+        .state-card strong {
+            display: block;
+            color: var(--ridp-slate-950);
+            margin-bottom: 0.3rem;
+        }
+        .notice-card {
+            border-radius: 18px;
+            padding: 0.9rem 1rem;
+            border: 1px solid rgba(245, 158, 11, 0.18);
+            background: linear-gradient(
+                90deg,
+                rgba(255, 251, 235, 0.95),
+                rgba(255, 255, 255, 0.88)
+            );
+            color: #78350f;
+            margin-bottom: 1rem;
+        }
+        .table-card {
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            background: rgba(255, 255, 255, 0.88);
+            box-shadow: 0 10px 28px rgba(148, 163, 184, 0.12);
+        }
+        .table-scroll {
+            overflow-x: auto;
+        }
+        .table-grid {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .table-grid thead th {
+            text-align: left;
+            padding: 0.78rem 0.9rem;
+            font-size: 0.74rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #64748b;
+            background: rgba(248, 250, 252, 0.92);
+            border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+        }
+        .table-grid tbody td {
+            padding: 0.82rem 0.9rem;
+            font-size: 0.9rem;
+            color: #1e293b;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.72);
+            vertical-align: middle;
+        }
+        .table-grid tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .table-grid tbody tr:hover td {
+            background: rgba(248, 250, 252, 0.72);
+        }
+        .table-chip {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.24rem 0.56rem;
+            border-radius: 999px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+        .table-chip.neutral {
+            background: rgba(71, 85, 105, 0.12);
+            color: #475569;
+        }
+        .table-chip.info {
+            background: rgba(29, 78, 216, 0.10);
+            color: #1d4ed8;
+        }
+        .table-chip.success {
+            background: rgba(15, 118, 110, 0.10);
+            color: #0f766e;
+        }
+        .table-chip.warning {
+            background: rgba(245, 158, 11, 0.14);
+            color: #92400e;
+        }
+        .table-chip.danger {
+            background: rgba(220, 38, 38, 0.10);
+            color: #b91c1c;
+        }
+        .table-muted {
+            color: #64748b;
+        }
         .footer-card {
             margin-top: 1rem;
             padding: 1rem 1.2rem;
@@ -156,6 +327,11 @@ def inject_global_styles() -> None:
             border: 1px solid rgba(15, 23, 42, 0.08);
             color: #526072;
             font-size: 0.92rem;
+        }
+        @media (max-width: 980px) {
+            .workspace-strip {
+                grid-template-columns: 1fr;
+            }
         }
         </style>
         """,
@@ -168,6 +344,14 @@ def render_sidebar(
     *,
     available_months: list[str],
 ) -> tuple[str | None, str | None]:
+    hydrate_session_from_query_params(
+        [
+            "dashboard_language",
+            "dashboard_source_mode",
+            "dashboard_start_month",
+            "dashboard_end_month",
+        ]
+    )
     st.sidebar.selectbox(
         "Language / Idioma",
         options=["English", "Portuguese", "Spanish"],
@@ -202,15 +386,29 @@ def render_sidebar(
     st.sidebar.divider()
     st.sidebar.markdown(f"### {labels['filters_title']}")
     if available_months:
+        current_start = st.session_state.get("dashboard_start_month")
+        current_end = st.session_state.get("dashboard_end_month")
+        start_index = (
+            available_months.index(current_start)
+            if isinstance(current_start, str) and current_start in available_months
+            else 0
+        )
+        end_index = (
+            available_months.index(current_end)
+            if isinstance(current_end, str) and current_end in available_months
+            else len(available_months) - 1
+        )
         start_month = st.sidebar.selectbox(
             labels["start_month"],
             options=available_months,
-            index=0,
+            index=start_index,
+            key="dashboard_start_month",
         )
         end_month = st.sidebar.selectbox(
             labels["end_month"],
             options=available_months,
-            index=len(available_months) - 1,
+            index=end_index,
+            key="dashboard_end_month",
         )
     else:
         st.sidebar.caption(labels["no_months"])
@@ -219,6 +417,14 @@ def render_sidebar(
     st.sidebar.divider()
     with st.sidebar.expander(labels["sidebar_help"], expanded=False):
         st.markdown(labels["sidebar_help_copy"])
+    sync_query_params(
+        [
+            "dashboard_language",
+            "dashboard_source_mode",
+            "dashboard_start_month",
+            "dashboard_end_month",
+        ]
+    )
     return start_month, end_month
 
 
@@ -254,6 +460,183 @@ def render_section_intro(label: str, title: str, copy: str) -> None:
     )
 
 
+def render_workspace_strip(
+    labels: dict[str, str],
+    *,
+    page_title: str,
+    page_copy: str,
+    source_label: str,
+    active_months: int,
+    customer_count: int,
+) -> None:
+    st.markdown(
+        f"""
+        <div class="workspace-strip">
+            <div class="workspace-panel primary">
+                <div class="workspace-kicker">{labels["workspace_kicker"]}</div>
+                <div class="workspace-title">{page_title}</div>
+                <div class="workspace-copy">{page_copy}</div>
+                <div class="workspace-chip">{labels["workspace_chip"]}</div>
+            </div>
+            <div class="workspace-panel">
+                <div class="workspace-kicker">{labels["source_mode_title"]}</div>
+                <div class="workspace-title">{source_label}</div>
+                <div class="workspace-copy">{labels["workspace_source_copy"]}</div>
+            </div>
+            <div class="workspace-panel">
+                <div class="workspace-kicker">{labels["workspace_periods_title"]}</div>
+                <div class="workspace-title">{active_months:,}</div>
+                <div class="workspace-copy">{labels["workspace_periods_copy"]}</div>
+            </div>
+            <div class="workspace-panel">
+                <div class="workspace-kicker">{labels["workspace_customers_title"]}</div>
+                <div class="workspace-title">{customer_count:,}</div>
+                <div class="workspace-copy">{labels["workspace_customers_copy"]}</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_panel_header(title: str, copy: str) -> None:
+    st.markdown(
+        f"""
+        <div class="panel-title">{title}</div>
+        <div class="panel-copy">{copy}</div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _normalize_query_value(value: object) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, list):
+        return str(value[0]) if value else None
+    return str(value)
+
+
+def hydrate_session_from_query_params(keys: list[str]) -> None:
+    query_params = getattr(st, "query_params", None)
+    if query_params is None:
+        return
+    for key in keys:
+        if key in st.session_state:
+            continue
+        value = _normalize_query_value(query_params.get(key))
+        if value is not None:
+            st.session_state[key] = value
+
+
+def sync_query_params(keys: list[str]) -> None:
+    query_params = getattr(st, "query_params", None)
+    if query_params is None:
+        return
+    for key in keys:
+        value = st.session_state.get(key)
+        if value is None or value == "":
+            if key in query_params:
+                del query_params[key]
+            continue
+        query_params[key] = str(value)
+
+
+def render_share_snapshot(
+    labels: dict[str, str],
+    *,
+    state_keys: list[str],
+    snapshot_name: str,
+) -> None:
+    sync_query_params(state_keys)
+    snapshot = {
+        key: str(value)
+        for key, value in st.session_state.items()
+        if key in state_keys and value not in (None, "")
+    }
+    if not snapshot:
+        return
+    query_string = "&".join(
+        f"{quote(str(key))}={quote(str(value))}" for key, value in snapshot.items()
+    )
+    with st.expander(labels["share_state_title"], expanded=False):
+        st.caption(labels["share_state_copy"])
+        st.code(f"?{query_string}", language="text")
+        st.download_button(
+            labels["share_state_download"],
+            data=json.dumps(snapshot, indent=2),
+            file_name=f"{snapshot_name}_state.json",
+            mime="application/json",
+        )
+
+
+def render_table_card(
+    dataframe: pd.DataFrame,
+    *,
+    formatters: dict[str, str] | None = None,
+    chip_columns: dict[str, dict[str, str]] | None = None,
+    bar_columns: dict[str, float] | None = None,
+) -> None:
+    if dataframe.empty:
+        return
+
+    formatters = formatters or {}
+    chip_columns = chip_columns or {}
+    bar_columns = bar_columns or {}
+    header_html = "".join(f"<th>{html.escape(str(column))}</th>" for column in dataframe.columns)
+    rows_html: list[str] = []
+    for _, row in dataframe.iterrows():
+        cell_html: list[str] = []
+        for column in dataframe.columns:
+            value = row[column]
+            if pd.isna(value):
+                formatted_value = "-"
+            elif column in formatters:
+                formatted_value = format(value, formatters[column])
+            else:
+                formatted_value = str(value)
+            escaped_value = html.escape(formatted_value)
+            if column in chip_columns:
+                chip_map = chip_columns[column]
+                chip_class = chip_map.get(str(value), chip_map.get("__default__", "neutral"))
+                escaped_value = f'<span class="table-chip {chip_class}">{escaped_value}</span>'
+            elif column in bar_columns and isinstance(value, int | float):
+                max_value = bar_columns[column]
+                width_ratio = (
+                    0.0 if max_value <= 0 else min(max(float(value) / max_value, 0.0), 1.0)
+                )
+                escaped_value = (
+                    "<div>"
+                    f"<div>{escaped_value}</div>"
+                    '<div style="margin-top:0.35rem;height:0.36rem;'
+                    "background:rgba(226,232,240,0.72);"
+                    'border-radius:999px;overflow:hidden;">'
+                    f'<div style="height:100%;width:{width_ratio * 100:.1f}%;'
+                    'background:linear-gradient(90deg,#14b8a6,#1d4ed8);"></div>'
+                    "</div></div>"
+                )
+            cell_html.append(f"<td>{escaped_value}</td>")
+        rows_html.append(f"<tr>{''.join(cell_html)}</tr>")
+
+    st.markdown(
+        f"""
+        <div class="table-card">
+            <div class="table-scroll">
+                <table class="table-grid">
+                    <thead>
+                        <tr>{header_html}</tr>
+                    </thead>
+                    <tbody>
+                        {''.join(rows_html)}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def render_metric_card(title: str, value: str, caption: str) -> None:
     render_metric_card_with_delta(title, value, caption)
 
@@ -283,7 +666,15 @@ def render_metric_card_with_delta(
 
 
 def render_empty_state(title: str, body: str) -> None:
-    st.info(f"**{title}**\n\n{body}")
+    st.markdown(
+        f"""
+        <div class="state-card">
+            <strong>{title}</strong>
+            <div>{body}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_dashboard_source_notice(
@@ -294,10 +685,14 @@ def render_dashboard_source_notice(
 ) -> None:
     if not demo_active:
         return
-    st.info(
-        labels["demo_banner_copy"].format(
-            demo_mode=demo_mode,
-        )
+    st.markdown(
+        f"""
+        <div class="notice-card">
+            <strong>{labels["demo_banner_title"]}</strong><br/>
+            {labels["demo_banner_copy"].format(demo_mode=demo_mode)}
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
 

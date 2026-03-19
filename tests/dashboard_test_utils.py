@@ -38,8 +38,15 @@ class FakeSidebar:
         index: int = 0,
         key: str | None = None,
     ) -> str:
-        _ = key
-        return options[index]
+        if key is not None and key in self._session_state and self._session_state[key] in options:
+            return str(self._session_state[key])
+        value = options[index]
+        if key is not None:
+            self._session_state[key] = value
+        return value
+
+    def __init__(self, session_state: dict[str, str]) -> None:
+        self._session_state = session_state
 
     def markdown(self, *_args: Any, **_kwargs: Any) -> None:
         return None
@@ -59,8 +66,9 @@ class FakeSidebar:
 
 class FakeStreamlit:
     def __init__(self) -> None:
-        self.sidebar = FakeSidebar()
         self.session_state: dict[str, str] = {}
+        self.query_params: dict[str, str] = {}
+        self.sidebar = FakeSidebar(self.session_state)
 
     def set_page_config(self, **_kwargs: Any) -> None:
         return None
@@ -69,6 +77,9 @@ class FakeStreamlit:
         return None
 
     def markdown(self, *_args: Any, **_kwargs: Any) -> None:
+        return None
+
+    def caption(self, *_args: Any, **_kwargs: Any) -> None:
         return None
 
     def stop(self) -> None:
@@ -81,6 +92,9 @@ class FakeStreamlit:
         return None
 
     def spinner(self, *_args: Any, **_kwargs: Any) -> _FakeContext:
+        return _FakeContext()
+
+    def container(self, *_args: Any, **_kwargs: Any) -> _FakeContext:
         return _FakeContext()
 
     def columns(self, spec: int | list[float], **_kwargs: Any) -> list[_FakeContext]:
@@ -102,6 +116,9 @@ class FakeStreamlit:
     def bar_chart(self, *_args: Any, **_kwargs: Any) -> None:
         return None
 
+    def altair_chart(self, *_args: Any, **_kwargs: Any) -> None:
+        return None
+
     def info(self, *_args: Any, **_kwargs: Any) -> None:
         return None
 
@@ -117,8 +134,13 @@ class FakeStreamlit:
         min_value: int = 0,
         max_value: int = 10,
         value: int = 1,
+        key: str | None = None,
     ) -> int:
         _ = (min_value, max_value)
+        if key is not None and key in self.session_state:
+            return int(self.session_state[key])
+        if key is not None:
+            self.session_state[key] = str(value)
         return value
 
     def text_input(
@@ -126,8 +148,14 @@ class FakeStreamlit:
         _label: str,
         value: str = "",
         placeholder: str = "",
+        key: str | None = None,
     ) -> str:
-        return value or placeholder or ""
+        if key is not None and key in self.session_state:
+            return str(self.session_state[key])
+        resolved_value = value or placeholder or ""
+        if key is not None:
+            self.session_state[key] = resolved_value
+        return resolved_value
 
     def selectbox(
         self,
@@ -136,8 +164,15 @@ class FakeStreamlit:
         index: int = 0,
         key: str | None = None,
     ) -> str:
-        _ = key
-        return options[index]
+        if key is not None and key in self.session_state and self.session_state[key] in options:
+            return str(self.session_state[key])
+        value = options[index]
+        if key is not None:
+            self.session_state[key] = value
+        return value
+
+    def download_button(self, *_args: Any, **_kwargs: Any) -> None:
+        return None
 
     def page_link(self, *_args: Any, **_kwargs: Any) -> None:
         return None

@@ -9,6 +9,7 @@ from dashboard.components import (
     render_footer,
     render_hero,
     render_sidebar,
+    render_workspace_strip,
 )
 from dashboard.content import get_labels
 from dashboard.data_access import load_dashboard_data, resolve_dashboard_sources
@@ -57,6 +58,16 @@ def main() -> None:
 
     render_hero(
         labels,
+        active_months=active_months,
+        customer_count=customer_count,
+    )
+    render_workspace_strip(
+        labels,
+        page_title=labels["nav_overview"],
+        page_copy=labels["metrics_copy"],
+        source_label=(
+            labels["source_mode_demo"] if source_paths.demo_active else labels["source_mode_live"]
+        ),
         active_months=active_months,
         customer_count=customer_count,
     )

@@ -11,6 +11,7 @@ requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "Samuel Maia" }]
 dependencies = [
+    "altair>=5.0.0",
     "numpy>=1.26.0",
     "pandas>=2.2.0",
     "scikit-learn>=1.5.0",

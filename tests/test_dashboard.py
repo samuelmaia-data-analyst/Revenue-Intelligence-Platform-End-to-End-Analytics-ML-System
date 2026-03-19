@@ -14,7 +14,12 @@ from dashboard.components import render_sidebar
 from dashboard.data_access import load_run_history, resolve_dashboard_sources
 from dashboard.views import (
     artifact_metadata,
+    build_cohort_spotlight,
     build_customer_focus,
+    build_customer_spotlight,
+    build_executive_briefing,
+    build_run_comparison_table,
+    build_run_spotlight,
     cohort_extremes,
     compare_run_artifacts,
     customer_segments,
@@ -22,8 +27,10 @@ from dashboard.views import (
     render_operations,
     render_overview,
     render_run_history,
+    risk_band,
     rolling_revenue_signals,
     summarize_period_performance,
+    value_band,
 )
 from ridp.config import DashboardSettings, DataDirectories
 from tests.dashboard_test_utils import (
@@ -143,6 +150,90 @@ def test_customer_segments_builds_value_and_recency_mix() -> None:
 
     assert set(value_mix["segment"]) == {"Low value", "Mid value", "High value"}
     assert set(recency_mix["segment"]) == {"0-30 days", "31-90 days", "90+ days"}
+
+
+def test_risk_and_value_band_classify_customer_priority() -> None:
+    assert risk_band(10) == "Healthy"
+    assert risk_band(70) == "Monitor"
+    assert risk_band(100) == "At risk"
+    assert risk_band(150) == "Critical"
+    assert value_band(50.0) == "Low value"
+    assert value_band(180.0) == "Mid value"
+    assert value_band(400.0) == "High value"
+
+
+def test_spotlight_builders_return_readable_tables() -> None:
+    customer_row = pd.Series(
+        {
+            "customer_id": "c1",
+            "total_orders": 3,
+            "total_spent": 250.0,
+            "avg_order_value": 83.33,
+            "days_since_last_purchase": 91.0,
+            "first_purchase": "2018-01-01",
+            "last_purchase": "2018-03-01",
+        }
+    )
+    retention = pd.DataFrame(
+        [
+            {
+                "cohort_month": "2018-01",
+                "customers": 10,
+                "retained_customers": 8,
+                "retention_rate": 0.8,
+            }
+        ]
+    )
+    run_history = fixture_run_history()
+
+    customer_spotlight = build_customer_spotlight(customer_row)
+    cohort_spotlight = build_cohort_spotlight(retention, "2018-01")
+    run_spotlight = build_run_spotlight(run_history, str(run_history.manifests.iloc[0]["run_id"]))
+
+    assert "Health" in customer_spotlight["metric"].tolist()
+    assert "Retention" in cohort_spotlight["metric"].tolist()
+    assert "Artifacts" in run_spotlight["metric"].tolist()
+
+
+def test_build_run_comparison_table_emits_status_rows() -> None:
+    frame = build_run_comparison_table(["a"], ["b"], ["c"])
+
+    assert set(frame["comparison_status"]) == {"Reference only", "Shared", "Comparison only"}
+
+
+def test_build_executive_briefing_returns_high_signal_summary() -> None:
+    monthly_view = pd.DataFrame(
+        [
+            {"order_month": "2018-01", "revenue": 100.0},
+            {"order_month": "2018-02", "revenue": 140.0},
+            {"order_month": "2018-03", "revenue": 160.0},
+        ]
+    )
+    retention = pd.DataFrame(
+        [
+            {
+                "cohort_month": "2018-01",
+                "customers": 10,
+                "retained_customers": 8,
+                "retention_rate": 0.8,
+            },
+            {
+                "cohort_month": "2018-02",
+                "customers": 8,
+                "retained_customers": 3,
+                "retention_rate": 0.375,
+            },
+        ]
+    )
+
+    briefing = build_executive_briefing(
+        monthly_view,
+        retention,
+        {"churn_rate_proxy": 0.22},
+    )
+
+    assert len(briefing) == 3
+    assert "Revenue closed" in briefing[0]
 
 
 def test_load_run_history_reads_manifests_and_artifacts(tmp_path: Path) -> None:
@@ -404,6 +495,41 @@ def test_render_sidebar_persists_workspace_source_selection(
     assert fake_st.session_state["dashboard_source_mode"] == "AUTO"
 
 
+def test_render_sidebar_reuses_persisted_month_range(monkeypatch: pytest.MonkeyPatch) -> None:
+    import dashboard.content as content
+
+    fake_st = FakeStreamlit()
+    fake_st.session_state["dashboard_start_month"] = "2018-02"
+    fake_st.session_state["dashboard_end_month"] = "2018-03"
+    monkeypatch.setattr(components, "st", fake_st)
+
+    start_month, end_month = render_sidebar(
+        content.LANGS["English"],
+        available_months=["2018-01", "2018-02", "2018-03"],
+    )
+
+    assert start_month == "2018-02"
+    assert end_month == "2018-03"
+
+
+def test_render_sidebar_hydrates_state_from_query_params(monkeypatch: pytest.MonkeyPatch) -> None:
+    import dashboard.content as content
+
+    fake_st = FakeStreamlit()
+    fake_st.query_params["dashboard_start_month"] = "2018-02"
+    fake_st.query_params["dashboard_end_month"] = "2018-03"
+    monkeypatch.setattr(components, "st", fake_st)
+
+    start_month, end_month = render_sidebar(
+        content.LANGS["English"],
+        available_months=["2018-01", "2018-02", "2018-03"],
+    )
+
+    assert start_month == "2018-02"
+    assert end_month == "2018-03"
+    assert fake_st.session_state["dashboard_start_month"] == "2018-02"
+
+
 def test_dashboard_pages_import_and_expose_main() -> None:
     paths = [
         Path("dashboard/app.py"),
@@ -429,8 +555,10 @@ def test_dashboard_views_render_without_errors(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr(views, "st", fake_st)
     monkeypatch.setattr(views, "render_section_intro", lambda *args, **kwargs: None)
     monkeypatch.setattr(views, "render_metric_card_with_delta", lambda *args, **kwargs: None)
+    monkeypatch.setattr(views, "render_panel_header", lambda *args, **kwargs: None)
     monkeypatch.setattr(views, "render_status_card", lambda *args, **kwargs: None)
     monkeypatch.setattr(views, "render_empty_state", lambda *args, **kwargs: None)
+    monkeypatch.setattr(views, "render_table_card", lambda *args, **kwargs: None)
 
     render_overview(labels, dashboard_data, monthly_view)
     render_customer_health(labels, dashboard_data.customer_360)
@@ -458,6 +586,7 @@ def test_dashboard_pages_main_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(module, "render_dashboard_source_notice", lambda *args, **kwargs: None)
         monkeypatch.setattr(module, "render_footer", lambda *args, **kwargs: None)
         monkeypatch.setattr(module, "render_hero", lambda *args, **kwargs: None)
+        monkeypatch.setattr(module, "render_workspace_strip", lambda *args, **kwargs: None)
         monkeypatch.setattr(
             module, "render_sidebar", lambda *args, **kwargs: ("2018-01", "2018-06")
         )

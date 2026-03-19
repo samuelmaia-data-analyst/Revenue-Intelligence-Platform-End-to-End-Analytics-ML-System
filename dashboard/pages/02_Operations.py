@@ -8,6 +8,7 @@ from dashboard.components import (
     render_footer,
     render_hero,
     render_sidebar,
+    render_workspace_strip,
 )
 from dashboard.content import get_labels
 from dashboard.data_access import load_dashboard_data, resolve_dashboard_sources
@@ -44,6 +45,16 @@ def main() -> None:
     render_sidebar(labels, available_months=data.monthly_revenue["order_month"].tolist())
     render_hero(
         labels,
+        active_months=int(data.monthly_revenue["order_month"].nunique()),
+        customer_count=int(data.customer_360["customer_id"].nunique()),
+    )
+    render_workspace_strip(
+        labels,
+        page_title=labels["nav_operations"],
+        page_copy=labels["operations_copy"],
+        source_label=(
+            labels["source_mode_demo"] if source_paths.demo_active else labels["source_mode_live"]
+        ),
         active_months=int(data.monthly_revenue["order_month"].nunique()),
         customer_count=int(data.customer_360["customer_id"].nunique()),
     )
