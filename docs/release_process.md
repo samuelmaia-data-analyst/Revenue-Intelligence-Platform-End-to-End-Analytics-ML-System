@@ -1,0 +1,79 @@
+# Release Process
+
+## Purpose
+
+This repository does not need heavyweight release management. It does need a clear rule for when a change is ready to be presented as a stable portfolio increment.
+
+## Release Trigger
+
+Create a release when at least one of these is true:
+
+- a governed output contract changes
+- a runtime policy changes
+- a new operational capability is added
+- the dashboard or API consumption path changes materially
+- documentation changes the way reviewers should understand the system
+
+## Release Checklist
+
+Before tagging a release:
+
+1. run the full validation suite
+2. confirm the dashboard smoke check passes
+3. confirm `README`, `runbook` and relevant ADRs still match implementation
+4. confirm output contracts and processed artifact validation still reflect reality
+5. confirm no generated local runtime noise is being committed by accident
+
+Validation commands:
+
+```powershell
+python -m pytest -q
+python -m ruff check .
+python -m black --check .
+python -m isort --check-only .
+python scripts/smoke_dashboard.py
+python -m build
+```
+
+## Release Notes Standard
+
+Each release note should answer:
+
+- what changed
+- why it matters
+- what contracts or operational behavior changed
+- what reviewers should look at first
+
+Good release notes are short and technical. Avoid marketing language.
+
+## Release Scope Rule
+
+Do not mix unrelated changes just to make a release look larger.
+
+Good release examples:
+
+- pipeline reliability hardening
+- dashboard modularization plus smoke coverage
+- processed artifact validation plus contract updates
+
+Bad release examples:
+
+- random refactors, copy edits and formatting churn grouped together
+- speculative features with no validation
+- aspirational roadmap items documented as if released
+
+## Recommended Flow
+
+1. merge a coherent change set
+2. update docs that changed behavior or evaluation narrative
+3. add or update a file in `docs/releases/`
+4. tag the version
+5. use the release note as the public summary for GitHub reviewers
+
+## Current Release Artifact
+
+Existing release notes live in:
+
+- [docs/releases/v1.0.0.md](releases/v1.0.0.md)
+- [docs/releases/v1.1.0.md](releases/v1.1.0.md)
+- [docs/releases/v1.2.0.md](releases/v1.2.0.md)

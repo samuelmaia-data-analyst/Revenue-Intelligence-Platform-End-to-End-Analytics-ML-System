@@ -11,6 +11,39 @@ All notable changes to this project are documented in this file.
   - preserve older contract modules for migration windows when possible;
   - be documented in the relevant release under `Breaking Changes`.
 
+## [1.2.0] - 2026-03-19
+
+### Added
+
+- Streamlit runtime health section backed by:
+  - `pipeline_manifest.json`
+  - `artifact_validation_report.json`
+  - `freshness_report.json`
+- Operational documentation for:
+  - runbook
+  - troubleshooting matrix
+  - release process
+  - ADRs
+  - hiring review perspective
+- Warehouse consumption tests that validate downstream analytical queries against the persisted SQLite warehouse.
+
+### Changed
+
+- Main README and localized READMEs now include Mermaid diagrams where they reduce reviewer effort.
+- Streamlit overview now surfaces operational credibility, not only business KPIs.
+- Logistic regression training now uses a more stable solver for this repository context, removing recurring test-suite warnings.
+
+### Portfolio Deltas
+
+- The repository now communicates architecture, operation and trade-offs much faster to recruiters and tech leads.
+- The dashboard better reflects a real internal decision tool by exposing runtime health.
+- Warehouse validation now demonstrates not just persistence, but actual analytical consumption readiness.
+
+### Governance Deltas
+
+- Critical operational documentation and CI gates are now protected by repository-governance tests.
+- Local cache noise is more aggressively ignored to keep the repository review-ready.
+
 ## [1.1.0] - 2026-03-05
 
 ### Added

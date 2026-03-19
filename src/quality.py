@@ -15,6 +15,8 @@ class DatasetQualityReport:
     row_count: int
     duplicate_rows: int
     null_counts: dict[str, int]
+    null_fraction_by_column: dict[str, float]
+    total_null_fraction: float
     referential_issues: int
 
 
@@ -38,16 +40,29 @@ def build_dataset_quality_report(
     if foreign_key and valid_values is not None and foreign_key in df.columns:
         referential_issues = int((~df[foreign_key].isin(valid_values)).sum())
 
+    null_counts = {col: int(value) for col, value in df.isna().sum().to_dict().items()}
+    denominator = max(len(df), 1)
+    null_fraction_by_column = {
+        column: round(count / denominator, 6) for column, count in null_counts.items()
+    }
+    total_cells = max(len(df) * max(len(df.columns), 1), 1)
+
     return DatasetQualityReport(
         dataset_name=dataset_name,
         row_count=int(len(df)),
         duplicate_rows=duplicate_rows,
-        null_counts={col: int(value) for col, value in df.isna().sum().to_dict().items()},
+        null_counts=null_counts,
+        null_fraction_by_column=null_fraction_by_column,
+        total_null_fraction=round(sum(null_counts.values()) / total_cells, 6),
         referential_issues=referential_issues,
     )
 
 
-def enforce_quality_gate(reports: list[DatasetQualityReport]) -> None:
+def enforce_quality_gate(
+    reports: list[DatasetQualityReport],
+    *,
+    max_total_null_fraction: float | None = None,
+) -> None:
     issues: list[str] = []
     for report in reports:
         if report.row_count == 0:
@@ -57,6 +72,14 @@ def enforce_quality_gate(reports: list[DatasetQualityReport]) -> None:
         if report.referential_issues > 0:
             issues.append(
                 f"{report.dataset_name} has {report.referential_issues} referential integrity issues"
+            )
+        if (
+            max_total_null_fraction is not None
+            and report.total_null_fraction > max_total_null_fraction
+        ):
+            issues.append(
+                f"{report.dataset_name} total null fraction "
+                f"{report.total_null_fraction:.3f} exceeds {max_total_null_fraction:.3f}"
             )
     if issues:
         raise DataQualityError("; ".join(issues))

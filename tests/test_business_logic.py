@@ -43,6 +43,24 @@ def test_quality_gate_detects_duplicate_primary_keys() -> None:
         raise AssertionError("Expected quality gate to fail on duplicate keys")
 
 
+def test_quality_gate_detects_excessive_null_fraction() -> None:
+    df = pd.DataFrame(
+        {
+            "customer_id": [1, 2, 3],
+            "segment": [None, None, "SMB"],
+            "channel": ["Organic", None, None],
+        }
+    )
+    report = build_dataset_quality_report(df, "silver_customers", primary_key="customer_id")
+
+    try:
+        enforce_quality_gate([report], max_total_null_fraction=0.20)
+    except Exception as exc:
+        assert "null fraction" in str(exc).lower()
+    else:  # pragma: no cover - defensive path
+        raise AssertionError("Expected quality gate to fail on null fraction threshold")
+
+
 def test_preprocessor_handles_expected_feature_groups() -> None:
     preprocessor, numeric_features, categorical_features = _build_preprocessor()
     frame = pd.DataFrame(

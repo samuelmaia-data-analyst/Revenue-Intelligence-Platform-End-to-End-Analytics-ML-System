@@ -1,212 +1,239 @@
-# Revenue Intelligence Platform
+﻿# Revenue Intelligence Platform
 
-Production-minded batch analytics platform that turns customer behavior data into reproducible revenue intelligence outputs.
+Production-minded revenue analytics repository that turns customer and order behavior into governed batch outputs, warehouse-ready tables, executive decision artifacts, and a Streamlit workspace for actioning revenue opportunities.
 
-This repository is intentionally small. The goal is not to simulate a large enterprise stack. The goal is to show disciplined engineering around a realistic analytics workflow: ingest, validate, curate, score, report, persist, and trace every run.
+Language versions:
 
-[Portuguese version](README.pt-BR.md)
+- [Português do Brasil](README.pt-BR.md)
+- [Português de Portugal](README.pt-PT.md)
 
-## What This Repository Demonstrates
+## Executive Summary
 
-- a single official batch pipeline entrypoint
-- reprocessable and deterministic curated outputs
-- run-level manifests, logs, snapshots, and retention
-- atomic writes for critical artifacts
-- environment-driven configuration via `.env`
-- lightweight but real governance through contracts and generated dictionary
-- quality gates that include lint, formatting, type-checking, tests, package build, and container validation
+This repository is designed to answer the questions a hiring manager, tech lead, or senior reviewer usually asks about data portfolio work:
 
-## System Scope
+- Is there one official runtime path?
+- Can the pipeline be reprocessed safely?
+- Are outputs validated and governed?
+- Is there operational evidence when runs fail?
+- Does the dashboard consume trusted artifacts rather than re-implementing business logic?
 
-The platform transforms raw customer and order behavior into:
+Short answer: yes.
 
-- churn risk scores
-- next-purchase propensity
-- channel efficiency and unit economics
-- cohort retention outputs
-- executive KPI snapshots
-- prioritized action recommendations
-- queryable warehouse tables
+## Why This Repository Exists
 
-This is a batch-first system. Streamlit, FastAPI, dbt, Airflow, and Prefect are optional consumers or wrappers around the batch core, not competing sources of orchestration truth.
+Most data portfolio projects stop at notebooks, ad hoc scripts, or a standalone dashboard. This repository is intentionally narrower and more operational:
 
-## Official Operating Path
+- one official batch entrypoint
+- deterministic and reprocessable outputs
+- runtime manifests, logs, snapshots, and retention rules
+- governed processed artifacts with validation and contracts
+- downstream consumers that read the batch core instead of replacing it
 
-Run the pipeline with:
+The goal is not to simulate an enterprise platform without substance. The goal is to demonstrate sound engineering judgment in a repository small enough to inspect end-to-end.
+
+## Business Value
+
+The platform converts customer behavior data into assets that support commercial and retention decisions:
+
+- churn risk and next-purchase propensity
+- unit economics by acquisition channel
+- cohort retention analysis
+- customer-level recommendations with simulated impact
+- executive KPI snapshots and monitoring outputs
+- warehouse tables ready for SQL and dbt-style consumption
+
+## Official Runtime Path
 
 ```powershell
 python -m src.pipeline run
 ```
 
-That command is the primary supported execution path.
-
-Key modules:
-
-- [src/pipeline.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/pipeline.py): CLI
-- [src/orchestration.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/orchestration.py): end-to-end pipeline
-- [src/config.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/config.py): runtime configuration
-- [src/ingestion.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/ingestion.py): raw and bronze ingestion
-- [src/transformation.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/transformation.py): silver validation and feature engineering
-- [src/modeling.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/modeling.py): training, scoring, and model registry
-- [src/reporting.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/reporting.py): executive artifacts
-- [src/persistence.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/persistence.py): warehouse persistence
-- [src/governance.py](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/governance.py): generated governance assets
+The batch pipeline is the system of record. The Streamlit app, API layer, warehouse, and dbt project all consume outputs produced by it.
 
 ## Architecture
 
-```text
-raw input
-  -> ingestion
-  -> bronze
-  -> silver validation
-  -> customer features
-  -> gold warehouse tables
-  -> ML scoring
-  -> curated metrics and recommendations
-  -> reporting artifacts
-  -> manifests, logs, snapshots, retention
+```mermaid
+flowchart LR
+    A[Raw inputs or synthetic source] --> B[Bronze]
+    B --> C[Silver]
+    C --> D[Features and scoring]
+    D --> E[Curated analytics]
+    E --> F[Reporting and monitoring]
+    D --> G[Warehouse]
+    F --> H[Streamlit]
+    F --> I[API and dbt consumers]
+    G --> I
 ```
 
-Architecture notes:
+Key characteristics:
 
-- the project uses explicit file-based layers because they are reproducible and easy to inspect locally
-- SQLite is the default warehouse target because it keeps the system runnable without external infrastructure
-- governance is intentionally lightweight and focused on the highest-signal outputs
+- batch-first architecture with local reproducibility
+- explicit runtime policy for retries, retention, freshness, and quality thresholds
+- processed and operational report validation before pipeline completion
+- SQLite warehouse by default, with compatibility paths for service and dbt consumers
 
-See [docs/architecture.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/architecture.md) and [docs/repository_structure.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/repository_structure.md).
+## Repository Structure
 
-## Operational Outputs
+```text
+.
+|- .github/                CI workflows, issue templates, and repository governance
+|- app/                    Streamlit presentation layer
+|  |- ui/                  reusable UI primitives and styles
+|  |- views/               page sections and dashboard composition
+|  |- dashboard_data.py    cached artifact loading and filtering
+|  |- dashboard_i18n.py    EN, PT-BR, and PT-PT language dictionaries
+|  |- dashboard_metrics.py shared formatting and KPI helpers
+|- src/                    batch pipeline, modeling, reporting, and runtime policy
+|- contracts/              versioned governed schemas and compatibility shims
+|- tests/                  behavioral, reliability, contract, and warehouse coverage
+|- docs/                   architecture, onboarding, runbooks, ADRs, and release notes
+|- scripts/                smoke tests and lightweight operational automation
+|- dbt/                    downstream analytical layer on top of warehouse outputs
+|- services/               runtime-facing service interfaces
+|- orchestration/          scheduler examples and deployment wrappers
+|- metrics/                semantic metric definitions consumed by the pipeline
+|- data/                   local runtime outputs, manifests, snapshots, and warehouse
+|- notebooks/              isolated exploration, kept out of the official runtime path
+|- api/                    compatibility shim for API imports
+```
 
-One successful run produces, at minimum:
+Primary references:
 
-- `data/processed/pipeline_manifest.json`
-- `data/processed/raw_input_metadata.json`
-- `data/processed/quality_report.json`
-- `data/processed/freshness_report.json`
-- `data/processed/kpi_snapshot.json`
-- `data/processed/data_dictionary.json`
-- `data/warehouse/revenue_intelligence.db`
-- `data/runs/<run_id>/pipeline.log`
-- `data/snapshots/<run_id>/`
-- `data/manifests/<run_id>.success.json`
+- [docs/README.md](docs/README.md)
+- [docs/architecture.md](docs/architecture.md)
+- [docs/repository_structure.md](docs/repository_structure.md)
+- [docs/runbook.md](docs/runbook.md)
+- [docs/troubleshooting_matrix.md](docs/troubleshooting_matrix.md)
+- [docs/release_process.md](docs/release_process.md)
+- [docs/deprecation_policy.md](docs/deprecation_policy.md)
+- [docs/hiring_review.md](docs/hiring_review.md)
 
-If a run fails, the pipeline emits:
+## Reliability and Data Engineering Signals
 
-- `data/manifests/<run_id>.failure.json`
+- idempotent batch execution and reprocessing support
+- configurable retry policy per stage
+- explicit backfill window in CLI and manifests
+- freshness, quality, and processed artifact validation reports
+- operational reports validated as part of the processed contract surface
+- runtime manifests, logs, and snapshots for traceability
+- warehouse persistence plus downstream consumption validation
+- smoke-tested Streamlit dashboard in CI
 
-## Reliability Model
+## Streamlit Workspace
 
-The repository is designed to show disciplined batch operation, not just business logic.
+The dashboard is not a second source of truth. It consumes processed artifacts generated by the batch pipeline and is organized into:
 
-Implemented controls:
-
-- atomic CSV and JSON writes
-- atomic SQLite replacement
-- explicit `run_id`
-- input fingerprinting
-- raw input metadata snapshots
-- source-aware freshness checks
-- success and failure manifests
-- snapshot retention by count and age
-- failure manifest retention by age
+- `app/ui` for layout primitives and visual consistency
+- `app/views` for business sections and user flows
+- `app/dashboard_data.py` for cached artifact access
+- `app/dashboard_i18n.py` for `EN`, `PT-BR`, and `PT-PT`
 
 ## Local Setup
 
 ```powershell
-py -3.11 -m venv .venv
-.\.venv\Scripts\activate
+python -m venv .venv
+.venv\Scripts\activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt -r requirements-dev.txt
-copy .env.example .env
+Copy-Item .env.example .env
+```
+
+Important environment variables:
+
+- `RIP_DATA_DIR`
+- `RIP_WAREHOUSE_TARGET`
+- `RIP_RETRY_ATTEMPTS`
+- `RIP_QUALITY_MAX_NULL_FRACTION`
+- `RIP_BACKFILL_START_DATE`
+- `RIP_BACKFILL_END_DATE`
+
+## Run Commands
+
+Pipeline:
+
+```powershell
 python -m src.pipeline run
 ```
 
-Useful commands:
+Backfill:
 
 ```powershell
-make pipeline
-make dictionary
-make lint
-make type-check
-make test
-make quality
-make package
+python -m src.pipeline run --start-date 2025-01-01 --end-date 2025-03-31
 ```
 
-## Configuration
+Streamlit:
 
-Runtime settings are loaded from `.env` and environment variables.
+```powershell
+streamlit run app/streamlit_app.py
+```
 
-Important variables:
+Make-based workflow:
 
-- `RIP_ENV`
-- `RIP_DATA_DIR`
-- `RIP_SEED`
-- `RIP_LOG_LEVEL`
-- `RIP_FRESHNESS_MAX_AGE_HOURS`
-- `RIP_SNAPSHOT_RETENTION_RUNS`
-- `RIP_SNAPSHOT_RETENTION_DAYS`
-- `RIP_FAILURE_RETENTION_DAYS`
-- `RIP_WAREHOUSE_TARGET`
-- `RIP_WAREHOUSE_URL`
-- `RIP_SEMANTIC_METRICS_PATH`
+```powershell
+make verify
+make smoke-dashboard
+make pipeline
+```
 
-Reference template:
+## Validation and Automation
 
-- [.env.example](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/.env.example)
+Core validation commands:
 
-## Quality Standards
+```powershell
+python -m ruff check .
+python -m black --check .
+python -m isort --check-only .
+python -m mypy src services contracts main.py
+python -m pytest -q
+python scripts/smoke_dashboard.py
+python scripts/smoke_api.py
+python scripts/smoke_downstream_sql.py
+python -m build
+```
 
-The repository is expected to stay green on:
+Automation surfaces:
 
-- `ruff`
-- `black`
-- `isort`
-- `mypy`
-- `pytest`
-- `build`
+- `Makefile` for local developer workflows
+- `.pre-commit-config.yaml` for fast local quality gates
+- `.github/workflows/ci.yml` for lint, tests, smoke, and build validation
 
-CI also validates:
+## Technical Decisions and Trade-offs
 
-- Docker image build
-- container smoke execution of the official CLI
-- upload of smoke-run artifacts
+- SQLite is the default warehouse because local reproducibility matters more than introducing mandatory external infrastructure.
+- The project is batch-first on purpose. It demonstrates disciplined analytics engineering instead of pretending to be a full streaming platform.
+- The Streamlit app consumes artifacts instead of recomputing core business logic, preserving one authoritative runtime path.
+- Compatibility shims exist, but canonical imports remain explicit and documented.
 
-## Optional Interfaces
+## Operational Reading Order
 
-Optional interfaces exist, but they are secondary to the batch core:
+If you are reviewing the repository for technical depth, read in this order:
 
-- Streamlit UI: `python -m streamlit run app/streamlit_app.py`
-- FastAPI service: `python -m uvicorn services.api.main:app --reload`
-- dbt project: `dbt --project-dir dbt run`
-- Airflow and Prefect examples in `orchestration/`
+1. this `README`
+2. [docs/architecture.md](docs/architecture.md)
+3. [docs/runbook.md](docs/runbook.md)
+4. [docs/troubleshooting_matrix.md](docs/troubleshooting_matrix.md)
+5. [docs/adr/README.md](docs/adr/README.md)
+6. [docs/repository_structure.md](docs/repository_structure.md)
+7. [docs/hiring_review.md](docs/hiring_review.md)
 
-## Contributing
+## What This Repository Is Not
 
-Use the repository as a small production-minded system, not as a dumping ground for features.
+- not a notebook collection
+- not a fake enterprise monorepo
+- not a streaming platform demo
+- not an MLOps platform clone
 
-Read:
-
-- [CONTRIBUTING.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/CONTRIBUTING.md)
-- [.github/pull_request_template.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/.github/pull_request_template.md)
-
-## Technical Trade-offs
-
-- scikit-learn baselines are sufficient for the intended scope, but this is not presented as a large-scale online serving system
-- file-based governance improves reproducibility, but it is not a substitute for a full metadata platform
-- scheduler examples exist for operational flavor, but the repository remains CLI-first by design
+It is a production-minded batch analytics system sized honestly for a strong senior-level portfolio.
 
 ## Roadmap
 
-Near-term upgrade track:
+Current high-impact next steps:
 
-- explicit backfill window support in CLI
-- proportional retry for failure-prone stages
-- one additional governed upstream contract surface
-- stage-level modularization of the pipeline core
-- tighter package boundaries around the batch core
+1. expand processed artifact contracts and integration coverage
+2. deepen downstream warehouse and dbt validation
+3. accumulate more small, coherent release notes
+4. add a lightweight visual regression strategy for the dashboard
 
-Tracking artifacts:
+## Contribution
 
-- [docs/staff_upgrade_master_issue.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/staff_upgrade_master_issue.md)
-- [docs/issues/project_board.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/issues/project_board.md)
+See [CONTRIBUTING.md](CONTRIBUTING.md) for workflow expectations, commit conventions, validation standards, and repository boundaries.

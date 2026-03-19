@@ -244,7 +244,7 @@ def train_and_score_models(
     next_purchase_pipeline = Pipeline(
         steps=[
             ("preprocessor", preprocessor),
-            ("clf", LogisticRegression(max_iter=1200)),
+            ("clf", LogisticRegression(max_iter=1200, solver="liblinear")),
         ]
     )
     next_purchase_results = _evaluate_pipeline_temporal(

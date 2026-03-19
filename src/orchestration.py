@@ -3,20 +3,21 @@ from __future__ import annotations
 import logging
 import shutil
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
-from time import perf_counter
+from time import perf_counter, sleep
 from typing import TypeAlias, TypeVar
 
 import pandas as pd
 
 from src.alerting import build_alert_report, dispatch_alerts
 from src.analytics import build_analytics_outputs
+from src.artifact_validation import validate_processed_artifacts
 from src.config import PipelineConfig
 from src.exceptions import PipelineStageError
 from src.governance import build_data_dictionary
 from src.ingestion import build_bronze_layer, save_raw_datasets
-from src.io_utils import atomic_copy_file, atomic_copy_tree, atomic_write_json
+from src.io_utils import atomic_copy_file, atomic_copy_tree, atomic_write_csv, atomic_write_json
 from src.logging_utils import configure_logging
 from src.modeling import train_and_score_models
 from src.monitoring import build_monitoring_report
@@ -51,6 +52,37 @@ def _run_stage(stage_name: str, func: Callable[[], T]) -> tuple[T, float]:
     except Exception as exc:  # pragma: no cover - exercised in runtime failures
         raise PipelineStageError(f"Stage '{stage_name}' failed: {exc}") from exc
     return result, perf_counter() - start
+
+
+def _run_stage_with_retry(
+    stage_name: str,
+    func: Callable[[], T],
+    *,
+    attempts: int,
+    backoff_seconds: int,
+) -> tuple[T, float]:
+    last_error: Exception | None = None
+    total_elapsed = 0.0
+    for attempt in range(1, attempts + 1):
+        try:
+            result, elapsed = _run_stage(stage_name, func)
+            return result, total_elapsed + elapsed
+        except PipelineStageError as exc:
+            last_error = exc
+            if attempt >= attempts:
+                break
+            LOGGER.warning(
+                "Stage failed and will be retried | stage=%s | attempt=%s/%s | error=%s",
+                stage_name,
+                attempt,
+                attempts,
+                exc,
+            )
+            if backoff_seconds > 0:
+                sleep(backoff_seconds)
+                total_elapsed += float(backoff_seconds)
+    assert last_error is not None
+    raise last_error
 
 
 def _build_raw_input_metadata(raw_paths: list[Path]) -> RawInputMetadata:
@@ -106,6 +138,38 @@ def _build_source_aware_freshness_snapshot(
         "status": "ok" if all(item["status"] == "fresh" for item in checks) else "warning",
         "checks": checks,
     }
+
+
+def _apply_backfill_window(
+    customers_df: pd.DataFrame,
+    orders_df: pd.DataFrame,
+    *,
+    start_date: date | None,
+    end_date: date | None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    filtered_customers = customers_df.copy()
+    filtered_orders = orders_df.copy()
+
+    if end_date is not None:
+        end_ts = pd.Timestamp(end_date)
+        filtered_customers = filtered_customers[filtered_customers["signup_date"] <= end_ts].copy()
+        filtered_orders = filtered_orders[filtered_orders["order_date"] <= end_ts].copy()
+
+    if start_date is not None:
+        start_ts = pd.Timestamp(start_date)
+        filtered_orders = filtered_orders[filtered_orders["order_date"] >= start_ts].copy()
+
+    valid_customers = set(filtered_customers["customer_id"].tolist())
+    filtered_orders = filtered_orders[filtered_orders["customer_id"].isin(valid_customers)].copy()
+
+    if filtered_customers.empty:
+        raise PipelineStageError(
+            "Stage 'validation.backfill' failed: no customers remain in window."
+        )
+    if filtered_orders.empty:
+        raise PipelineStageError("Stage 'validation.backfill' failed: no orders remain in window.")
+
+    return filtered_customers, filtered_orders
 
 
 def _quality_snapshot(quality_payload: dict) -> dict[str, object]:
@@ -168,6 +232,15 @@ def _write_run_manifest(
         "input_fingerprint": run_context.input_fingerprint,
         "data_dir": str(cfg.data_dir),
         "warehouse_target": cfg.warehouse_target,
+        "reliability_policy": {
+            "retry_attempts": cfg.retry_attempts,
+            "retry_backoff_seconds": cfg.retry_backoff_seconds,
+            "quality_max_null_fraction": cfg.quality_max_null_fraction,
+        },
+        "backfill_window": {
+            "start_date": cfg.backfill_start_date.isoformat() if cfg.backfill_start_date else None,
+            "end_date": cfg.backfill_end_date.isoformat() if cfg.backfill_end_date else None,
+        },
         "layers": {
             "raw": str(cfg.raw_dir),
             "bronze": str(cfg.bronze_dir),
@@ -219,7 +292,12 @@ class RevenueIntelligencePipeline:
         self.stage_timings: dict[str, float] = {}
 
     def _stage(self, stage_name: str, func: Callable[[], T]) -> T:
-        result, elapsed = _run_stage(stage_name, func)
+        result, elapsed = _run_stage_with_retry(
+            stage_name,
+            func,
+            attempts=self.cfg.retry_attempts,
+            backoff_seconds=self.cfg.retry_backoff_seconds,
+        )
         self.stage_timings[stage_name] = elapsed
         LOGGER.info("Stage completed | stage=%s | elapsed=%.3fs", stage_name, elapsed)
         return result
@@ -300,6 +378,18 @@ class RevenueIntelligencePipeline:
                 {"channel", "marketing_spend"},
                 "silver_marketing",
             )
+            if self.cfg.backfill_start_date or self.cfg.backfill_end_date:
+                customers_df, orders_df = self._stage(
+                    "validation.backfill",
+                    lambda: _apply_backfill_window(
+                        customers_df,
+                        orders_df,
+                        start_date=self.cfg.backfill_start_date,
+                        end_date=self.cfg.backfill_end_date,
+                    ),
+                )
+                atomic_write_csv(silver_customers, customers_df)
+                atomic_write_csv(silver_orders, orders_df)
             quality_reports = [
                 build_dataset_quality_report(
                     customers_df,
@@ -319,7 +409,10 @@ class RevenueIntelligencePipeline:
                     primary_key="channel",
                 ),
             ]
-            enforce_quality_gate(quality_reports)
+            enforce_quality_gate(
+                quality_reports,
+                max_total_null_fraction=self.cfg.quality_max_null_fraction,
+            )
             quality_payload = write_quality_report(
                 quality_reports,
                 self.cfg.processed_dir / "quality_report.json",
@@ -395,9 +488,15 @@ class RevenueIntelligencePipeline:
                     monitoring_report=monitoring_payload,
                     quality_report=quality_payload,
                     output_path=self.cfg.alerts_output_path,
+                    thresholds={
+                        "drift_feature_count_warn": self.cfg.alert_drift_feature_count_warn,
+                        "duplicate_rows_warn": self.cfg.alert_duplicate_rows_warn,
+                        "null_count_warn": self.cfg.alert_null_count_warn,
+                        "brier_score_warn": self.cfg.alert_brier_score_warn,
+                    },
                 ),
             )
-            dispatch_alerts(alerts_payload)
+            dispatch_alerts(alerts_payload, webhook_url=self.cfg.alert_webhook_url)
 
             self._stage(
                 "reporting.executive",
@@ -422,6 +521,13 @@ class RevenueIntelligencePipeline:
                         outcomes_path=self.cfg.processed_dir / "business_outcomes.json",
                         top_actions_path=self.cfg.processed_dir / "top_10_actions.csv",
                     ),
+                ),
+            )
+            self._stage(
+                "validation.processed_artifacts",
+                lambda: validate_processed_artifacts(
+                    self.cfg.processed_dir,
+                    output_path=self.cfg.processed_dir / "artifact_validation_report.json",
                 ),
             )
 

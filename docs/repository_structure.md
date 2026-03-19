@@ -1,10 +1,16 @@
 # Repository Structure
 
-## Intent
+## Organizing Principle
 
-This repository is organized around one central idea: the batch pipeline is the productized core.
+The repository is organized around one rule: the batch pipeline is the system of record.
 
-Everything else should either support that core, validate it, or consume its outputs.
+Every top-level directory should do one of three things:
+
+- implement the batch core
+- validate the batch core
+- consume outputs produced by the batch core
+
+If a directory does none of those, it probably does not belong at the top level.
 
 ## Top-Level Layout
 
@@ -12,16 +18,35 @@ Everything else should either support that core, validate it, or consume its out
 .
 |- .github/            CI workflows, issue templates, PR template
 |- api/                Compatibility shim for API imports
-|- app/                Streamlit UI
-|- contracts/          Versioned contracts and compatibility shims
-|- data/               Local data, generated artifacts, manifests, snapshots, warehouse
-|- dbt/                dbt models and governance assets over the warehouse
-|- docs/               Architecture, planning, issues, release notes, structure docs
+|- app/                Streamlit presentation layer
+|  |- ui/              Reusable UI primitives, styles, layout tokens
+|  |- views/           Dashboard sections and page composition
+|- contracts/          Versioned governed schemas and shims
+|- data/               Local runtime data, manifests, logs, snapshots, warehouse
+|- dbt/                Downstream analytical models on top of warehouse outputs
+|- docs/               Architecture, decisions, planning, releases
 |- metrics/            Declarative semantic metric definitions
-|- orchestration/      Optional scheduler examples
-|- services/           Runtime service interfaces
-|- src/                Core pipeline and domain logic
-|- tests/              Automated tests
+|- orchestration/      Optional scheduler wrappers and deployment examples
+|- scripts/            Operational smoke tests and lightweight automation
+|- services/           Runtime-facing service interfaces
+|- src/                Batch pipeline and domain logic
+|- tests/              Behavioral and regression coverage
+```
+
+## Relationship Map
+
+```mermaid
+flowchart TD
+    A[src/] --> B[data/]
+    A --> C[contracts/]
+    A --> D[tests/]
+    B --> E[app/]
+    B --> F[services/]
+    B --> G[dbt/]
+    H[docs/] --> A
+    H --> E
+    H --> F
+    I[scripts/] --> B
 ```
 
 ## Directory Responsibilities
@@ -35,57 +60,53 @@ Authoritative home for:
 - transformation
 - modeling
 - reporting
-- governance generation
+- monitoring and alerting
 - persistence
 - orchestration
-- CLI
+- CLI entrypoints
 
 Rule:
-- business logic belongs here first
-
-### `services/`
-
-Runtime-facing service interfaces.
-
-Current use:
-
-- `services/api/` for FastAPI serving
-
-Rule:
-- services should consume or expose the core, not duplicate it
-
-### `contracts/`
-
-Governed schemas and compatibility layers.
-
-Current pattern:
-
-- `contracts/v1/` contains the current contract version
-- `contracts/data_contract.py` preserves a stable import path
-
-Rule:
-- new governed contracts should be versioned deliberately
+Business logic belongs here first.
 
 ### `app/`
 
-Visualization and presentation layer.
+Presentation layer for the generated artifacts.
 
 Rule:
-- UI should consume generated artifacts or warehouse outputs rather than reimplement pipeline logic
+UI code should read artifacts or warehouse outputs. It should not duplicate orchestration logic or recompute business-critical logic ad hoc.
+
+Subdirectories:
+
+- `ui/` for reusable layout primitives and styles
+- `views/` for page-level business sections
+
+### `services/`
+
+Runtime-facing service interfaces, currently centered on FastAPI.
+
+Rule:
+Services expose or consume the batch core. They do not own separate data pipelines.
+
+### `contracts/`
+
+Governed schemas and compatibility paths.
+
+Rule:
+New governed outputs should be versioned deliberately instead of overwriting historical contract meaning.
 
 ### `dbt/`
 
-Semantic and warehouse-oriented modeling on top of persisted tables.
+Analytical models that sit on top of persisted warehouse tables.
 
 Rule:
-- dbt is downstream of the batch core
+dbt remains downstream of the batch core.
 
 ### `orchestration/`
 
-Scheduler examples and deployment-oriented wrappers.
+Examples for Airflow and Prefect deployment shapes.
 
 Rule:
-- orchestration examples must call the official batch path instead of inventing a second orchestration model
+Scheduler examples must call the official batch path instead of inventing a second orchestration truth.
 
 ### `data/`
 
@@ -104,7 +125,7 @@ Important subdirectories:
 - `snapshots/`
 
 Rule:
-- treat `data/` as runtime output, not as a place for source code or permanent documentation
+Treat `data/` as execution output. Do not use it as a permanent home for source code or documentation.
 
 ### `tests/`
 
@@ -112,13 +133,13 @@ Regression coverage for:
 
 - pipeline behavior
 - contracts
-- operational artifacts
-- API behavior
-- warehouse persistence
+- runtime artifacts
 - reliability controls
+- warehouse persistence
+- API behavior
 
 Rule:
-- tests should validate behavior, not just file existence, when practical
+Prefer behavioral assertions over file-existence-only tests whenever practical.
 
 ## Import Policy
 
@@ -127,36 +148,41 @@ Preferred imports:
 - contracts from `contracts.v1.data_contract`
 - API entrypoint from `services.api`
 
-Compatibility shims:
+Compatibility shims exist in:
 
 - `api/`
 - `contracts/data_contract.py`
 - `src/data_contract.py`
 
 Rule:
-- use shims only where backward compatibility matters
+Use shims only where backward compatibility matters. Use the versioned path in new code.
+
+See also:
+
+- [deprecation_policy.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/deprecation_policy.md)
 
 ## Placement Rules
 
-When adding a new component:
+When adding a new capability:
 
-1. put domain behavior in `src/`
-2. put governed schemas in `contracts/`
-3. add tests in `tests/`
-4. update docs if runtime behavior changed
-5. keep batch CLI as the system's primary entrypoint
+1. Put domain behavior in `src/`.
+2. Put governed schemas in `contracts/`.
+3. Add tests in `tests/`.
+4. Update docs when runtime behavior changes.
+5. Keep the official batch CLI as the system entrypoint.
 
 ## Anti-Patterns
 
 Avoid:
 
-- putting orchestration logic in UI or API modules
-- documenting architecture that the code does not implement
-- creating new top-level directories without a boundary reason
-- duplicating business logic across `src/`, `app/`, and `services/`
+- orchestration logic inside UI or API modules
+- business rules duplicated across `src/`, `app/`, and `services/`
+- documentation that claims behavior the code does not implement
+- top-level directories with weak or decorative boundaries
+- broad abstractions added before the operating model needs them
 
 ## Maintenance Rule
 
-If the repository grows, prefer sharpening boundaries over adding more layers.
+If the repository grows, sharpen boundaries before adding layers.
 
-A small repository with clear ownership is stronger than a large repository with decorative structure.
+A smaller repository with explicit ownership reads as more senior than a larger repository with decorative structure and fuzzy responsibilities.

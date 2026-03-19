@@ -1,7 +1,28 @@
 PYTHON ?= python
 DBT ?= dbt
 
-.PHONY: install install-dev pipeline artifacts dictionary serve-app serve-api lint format type-check test quality package smoke docker-build-app docker-build-api docker-build docker-smoke
+.PHONY: help install install-dev pipeline artifacts dictionary serve-app serve-api lint format type-check test smoke-dashboard smoke-api smoke-downstream verify package smoke docker-build-app docker-build-api docker-build docker-smoke clean
+
+help:
+	@echo "Available targets:"
+	@echo "  install            Install runtime dependencies"
+	@echo "  install-dev        Install runtime and development dependencies"
+	@echo "  pipeline           Run the official batch pipeline"
+	@echo "  artifacts          Generate governance artifacts only"
+	@echo "  serve-app          Start the Streamlit app"
+	@echo "  serve-api          Start the FastAPI service"
+	@echo "  lint               Run isort, ruff, and black checks"
+	@echo "  format             Apply import sorting, black, and ruff fixes"
+	@echo "  type-check         Run mypy"
+	@echo "  test               Run pytest"
+	@echo "  smoke-dashboard    Run the dashboard smoke check"
+	@echo "  smoke-api          Run the FastAPI smoke check"
+	@echo "  smoke-downstream   Run the downstream SQL smoke check"
+	@echo "  verify             Run the local high-signal validation flow"
+	@echo "  package            Build the package"
+	@echo "  docker-build       Build both Docker images"
+	@echo "  docker-smoke       Smoke-test the batch container"
+	@echo "  clean              Remove local tooling caches"
 
 install:
 	$(PYTHON) -m pip install --upgrade pip
@@ -40,7 +61,18 @@ type-check:
 test:
 	$(PYTHON) -m pytest -q
 
+smoke-dashboard:
+	$(PYTHON) scripts/smoke_dashboard.py
+
+smoke-api:
+	$(PYTHON) scripts/smoke_api.py
+
+smoke-downstream:
+	$(PYTHON) scripts/smoke_downstream_sql.py
+
 quality: lint type-check test
+
+verify: lint type-check test smoke-dashboard smoke-api smoke-downstream package
 
 package:
 	$(PYTHON) -m build
@@ -67,3 +99,6 @@ docker-build: docker-build-app docker-build-api
 
 docker-smoke:
 	docker run --rm revenue-intelligence python -m src.pipeline run --log-level INFO
+
+clean:
+	$(PYTHON) -c "import shutil, pathlib; [shutil.rmtree(path, ignore_errors=True) for path in [pathlib.Path('.pytest_cache'), pathlib.Path('.ruff_cache'), pathlib.Path('.mypy_cache'), pathlib.Path('__pycache__')]]"

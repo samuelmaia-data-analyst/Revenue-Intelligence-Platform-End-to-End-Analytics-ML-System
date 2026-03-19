@@ -51,6 +51,15 @@ jobs:
       - name: Pytest
         run: python -m pytest -q
 
+      - name: Dashboard smoke test
+        run: python scripts/smoke_dashboard.py
+
+      - name: API smoke test
+        run: python scripts/smoke_api.py
+
+      - name: Downstream SQL smoke test
+        run: python scripts/smoke_downstream_sql.py
+
       - name: Build package
         run: python -m build
 

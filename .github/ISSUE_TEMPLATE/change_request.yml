@@ -47,3 +47,16 @@ body:
     attributes:
       label: Non-goals
       description: State what should explicitly not be added as part of this change.
+  - type: dropdown
+    id: system_boundary
+    attributes:
+      label: Main boundary touched
+      options:
+        - Batch core
+        - Streamlit app
+        - Warehouse and downstream consumption
+        - Contracts and governance
+        - CI, tooling, or repository automation
+        - Documentation and onboarding
+    validations:
+      required: true

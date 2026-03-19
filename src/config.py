@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, replace
+from datetime import date
 from pathlib import Path
 
 
@@ -30,12 +31,41 @@ def _resolve_int(name: str, default: int, minimum: int | None = None) -> int:
     return value
 
 
+def _resolve_float(
+    name: str,
+    default: float,
+    *,
+    minimum: float | None = None,
+    maximum: float | None = None,
+) -> float:
+    raw = os.getenv(name, str(default)).strip()
+    try:
+        value = float(raw)
+    except ValueError as exc:
+        raise RuntimeError(f"{name} must be a float.") from exc
+    if minimum is not None and value < minimum:
+        raise RuntimeError(f"{name} must be >= {minimum}.")
+    if maximum is not None and value > maximum:
+        raise RuntimeError(f"{name} must be <= {maximum}.")
+    return value
+
+
 def _resolve_path(root: Path, env_var: str, default: Path) -> Path:
     raw = os.getenv(env_var, str(default)).strip()
     candidate = Path(raw)
     if not candidate.is_absolute():
         candidate = (root / candidate).resolve()
     return candidate
+
+
+def _resolve_optional_date(name: str) -> date | None:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return None
+    try:
+        return date.fromisoformat(raw)
+    except ValueError as exc:
+        raise RuntimeError(f"{name} must use YYYY-MM-DD format.") from exc
 
 
 @dataclass(frozen=True)
@@ -65,6 +95,16 @@ class PipelineConfig:
     snapshot_retention_runs: int
     snapshot_retention_days: int
     failure_retention_days: int
+    retry_attempts: int = 1
+    retry_backoff_seconds: int = 0
+    quality_max_null_fraction: float = 0.20
+    alert_drift_feature_count_warn: int = 1
+    alert_duplicate_rows_warn: int = 0
+    alert_null_count_warn: int = 0
+    alert_brier_score_warn: float = 0.25
+    alert_webhook_url: str | None = None
+    backfill_start_date: date | None = None
+    backfill_end_date: date | None = None
 
     def ensure_directories(self) -> None:
         for directory in [
@@ -87,12 +127,23 @@ class PipelineConfig:
         data_dir: Path | None = None,
         seed: int | None = None,
         log_level: str | None = None,
+        backfill_start_date: date | None = None,
+        backfill_end_date: date | None = None,
     ) -> PipelineConfig:
+        resolved_start = (
+            self.backfill_start_date if backfill_start_date is None else backfill_start_date
+        )
+        resolved_end = self.backfill_end_date if backfill_end_date is None else backfill_end_date
+        if resolved_start and resolved_end and resolved_start > resolved_end:
+            raise RuntimeError("Backfill start date must be <= backfill end date.")
+
         if data_dir is None:
             return replace(
                 self,
                 seed=self.seed if seed is None else seed,
                 log_level=self.log_level if log_level is None else log_level.upper(),
+                backfill_start_date=resolved_start,
+                backfill_end_date=resolved_end,
             )
 
         return replace(
@@ -113,6 +164,8 @@ class PipelineConfig:
             data_dictionary_path=data_dir / "processed" / "data_dictionary.json",
             seed=self.seed if seed is None else seed,
             log_level=self.log_level if log_level is None else log_level.upper(),
+            backfill_start_date=resolved_start,
+            backfill_end_date=resolved_end,
         )
 
     @classmethod
@@ -123,6 +176,10 @@ class PipelineConfig:
         data_dir = _resolve_path(root, "RIP_DATA_DIR", root / "data")
         seed = _resolve_int("RIP_SEED", 42)
         log_level = os.getenv("RIP_LOG_LEVEL", "INFO").upper()
+        backfill_start_date = _resolve_optional_date("RIP_BACKFILL_START_DATE")
+        backfill_end_date = _resolve_optional_date("RIP_BACKFILL_END_DATE")
+        if backfill_start_date and backfill_end_date and backfill_start_date > backfill_end_date:
+            raise RuntimeError("RIP_BACKFILL_START_DATE must be <= RIP_BACKFILL_END_DATE.")
 
         return cls(
             project_root=root.resolve(),
@@ -154,4 +211,35 @@ class PipelineConfig:
             snapshot_retention_runs=_resolve_int("RIP_SNAPSHOT_RETENTION_RUNS", 10, minimum=1),
             snapshot_retention_days=_resolve_int("RIP_SNAPSHOT_RETENTION_DAYS", 30, minimum=1),
             failure_retention_days=_resolve_int("RIP_FAILURE_RETENTION_DAYS", 14, minimum=1),
+            retry_attempts=_resolve_int("RIP_RETRY_ATTEMPTS", 1, minimum=1),
+            retry_backoff_seconds=_resolve_int("RIP_RETRY_BACKOFF_SECONDS", 0, minimum=0),
+            quality_max_null_fraction=_resolve_float(
+                "RIP_QUALITY_MAX_NULL_FRACTION",
+                0.20,
+                minimum=0.0,
+                maximum=1.0,
+            ),
+            alert_drift_feature_count_warn=_resolve_int(
+                "RIP_ALERT_DRIFT_FEATURE_COUNT_WARN",
+                1,
+                minimum=0,
+            ),
+            alert_duplicate_rows_warn=_resolve_int(
+                "RIP_ALERT_DUPLICATE_ROWS_WARN",
+                0,
+                minimum=0,
+            ),
+            alert_null_count_warn=_resolve_int(
+                "RIP_ALERT_NULL_COUNT_WARN",
+                0,
+                minimum=0,
+            ),
+            alert_brier_score_warn=_resolve_float(
+                "RIP_ALERT_BRIER_SCORE_WARN",
+                0.25,
+                minimum=0.0,
+            ),
+            alert_webhook_url=os.getenv("RIP_ALERT_WEBHOOK_URL", "").strip() or None,
+            backfill_start_date=backfill_start_date,
+            backfill_end_date=backfill_end_date,
         )

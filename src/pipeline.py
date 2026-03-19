@@ -1,10 +1,19 @@
 import argparse
 import json
+from dataclasses import replace
+from datetime import date
 from pathlib import Path
 
 from src.config import PipelineConfig
 from src.governance import build_data_dictionary
 from src.orchestration import run_pipeline
+
+
+def _parse_cli_date(value: str) -> date:
+    try:
+        return date.fromisoformat(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("Date must use YYYY-MM-DD format.") from exc
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -19,6 +28,24 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Override data directory (default: <project_root>/data).",
     )
     run_cmd.add_argument("--seed", type=int, default=None, help="Override random seed.")
+    run_cmd.add_argument(
+        "--start-date",
+        type=_parse_cli_date,
+        default=None,
+        help="Optional inclusive backfill start date for order data (YYYY-MM-DD).",
+    )
+    run_cmd.add_argument(
+        "--end-date",
+        type=_parse_cli_date,
+        default=None,
+        help="Optional inclusive backfill end date for source data (YYYY-MM-DD).",
+    )
+    run_cmd.add_argument(
+        "--retry-attempts",
+        type=int,
+        default=None,
+        help="Override stage retry attempts for transient failures.",
+    )
     run_cmd.add_argument(
         "--log-level",
         type=str,
@@ -44,7 +71,17 @@ def _resolve_config(args: argparse.Namespace) -> PipelineConfig:
     data_dir = Path(args.data_dir) if getattr(args, "data_dir", None) else None
     seed = getattr(args, "seed", None)
     log_level = getattr(args, "log_level", None)
-    return cfg.with_overrides(data_dir=data_dir, seed=seed, log_level=log_level)
+    retry_attempts = getattr(args, "retry_attempts", None)
+    resolved = cfg.with_overrides(
+        data_dir=data_dir,
+        seed=seed,
+        log_level=log_level,
+        backfill_start_date=getattr(args, "start_date", None),
+        backfill_end_date=getattr(args, "end_date", None),
+    )
+    if retry_attempts is not None:
+        return replace(resolved, retry_attempts=retry_attempts)
+    return resolved
 
 
 def main() -> None:

@@ -57,3 +57,14 @@ body:
       description: Explain the operational, reliability, or maintenance impact.
     validations:
       required: true
+  - type: textarea
+    id: first_artifact
+    attributes:
+      label: First artifact inspected
+      description: Which manifest, log, report, or warehouse query was checked first?
+      placeholder: pipeline_manifest.json, quality_report.json, latest failure manifest, dashboard smoke output
+  - type: textarea
+    id: rollback
+    attributes:
+      label: Safe rollback or containment
+      description: If known, describe the safest short-term containment or rollback path.

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib import request
@@ -11,10 +10,10 @@ from src.io_utils import atomic_write_json
 
 def _default_thresholds() -> dict[str, float | int]:
     return {
-        "drift_feature_count_warn": float(os.getenv("RIP_ALERT_DRIFT_FEATURE_COUNT_WARN", "1")),
-        "duplicate_rows_warn": float(os.getenv("RIP_ALERT_DUPLICATE_ROWS_WARN", "0")),
-        "null_count_warn": float(os.getenv("RIP_ALERT_NULL_COUNT_WARN", "0")),
-        "brier_score_warn": float(os.getenv("RIP_ALERT_BRIER_SCORE_WARN", "0.25")),
+        "drift_feature_count_warn": 1,
+        "duplicate_rows_warn": 0,
+        "null_count_warn": 0,
+        "brier_score_warn": 0.25,
     }
 
 
@@ -85,8 +84,7 @@ def build_alert_report(
     return report
 
 
-def dispatch_alerts(report: dict) -> None:
-    webhook_url = os.getenv("RIP_ALERT_WEBHOOK_URL", "").strip()
+def dispatch_alerts(report: dict, webhook_url: str | None = None) -> None:
     if not webhook_url or report.get("alert_count", 0) == 0:
         return
 

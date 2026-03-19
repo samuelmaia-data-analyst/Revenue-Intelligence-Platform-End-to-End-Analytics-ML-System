@@ -2,14 +2,15 @@
 
 ## Working Standard
 
-Treat this repository as a small production-minded system.
+Treat this repository as a small, production-minded data system.
 
 That means:
 
 - optimize for clarity, reliability, and reproducibility
-- prefer removing ambiguity over adding features
-- keep documentation faithful to the implemented system
-- do not add enterprise-style complexity unless the repository can justify it
+- keep the batch pipeline as the system of record
+- prefer explicit contracts over implicit behavior
+- document real behavior, not desired future behavior
+- avoid adding complexity unless it clearly reduces operational risk
 
 ## Before You Change Code
 
@@ -17,32 +18,36 @@ Read these files first:
 
 - [README.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/README.md)
 - [docs/architecture.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/architecture.md)
+- [docs/runbook.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/runbook.md)
+- [docs/troubleshooting_matrix.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/troubleshooting_matrix.md)
 - [docs/repository_structure.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/repository_structure.md)
+- [docs/deprecation_policy.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/deprecation_policy.md)
 
 ## Contribution Principles
 
 - one official execution path: `python -m src.pipeline run`
-- optional interfaces must not become alternate orchestration centers
-- every meaningful change should reduce risk, improve maintainability, or strengthen operational credibility
-- avoid decorative refactors with no measurable benefit
+- optional interfaces must consume the batch core instead of becoming alternate orchestration centers
+- every meaningful change should reduce risk, improve maintainability, or improve reviewer trust
+- low-signal refactors should not displace higher-signal reliability or correctness work
 
-## Change Categories
+## High-Signal Changes
 
-### Acceptable high-signal changes
+Strong changes usually improve one or more of these:
 
-- reliability hardening
-- clearer contracts and validation
-- deterministic batch behavior
-- operational visibility and traceability
-- test coverage for important failure modes
-- documentation aligned with implemented behavior
+- runtime reliability
+- contract clarity
+- artifact validation
+- warehouse consumption correctness
+- observability and debuggability
+- documentation fidelity
+- regression protection
 
-### Low-signal changes to avoid
+Low-signal changes to avoid:
 
 - speculative abstractions
 - framework churn without operational payoff
-- broad renames with no architectural value
-- aspirational docs for behavior that does not exist
+- broad renames without structural improvement
+- aspirational documentation for features that do not exist
 
 ## Local Workflow
 
@@ -53,19 +58,23 @@ py -3.11 -m venv .venv
 .\.venv\Scripts\activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt -r requirements-dev.txt
-copy .env.example .env
+Copy-Item .env.example .env
 ```
 
-Run the official pipeline:
+Common commands:
+
+```powershell
+make verify
+make smoke-dashboard
+make pipeline
+```
+
+Equivalent direct commands:
 
 ```powershell
 python -m src.pipeline run
-```
-
-Generate governance artifacts only:
-
-```powershell
-python -m src.pipeline artifacts
+python scripts/smoke_dashboard.py
+python -m pytest -q
 ```
 
 ## Validation Expectations
@@ -78,6 +87,7 @@ python -m black --check .
 python -m isort --check-only .
 python -m mypy src services contracts main.py
 python -m pytest -q
+python scripts/smoke_dashboard.py
 python -m build
 ```
 
@@ -85,37 +95,41 @@ If your change affects the container path, also validate:
 
 ```powershell
 docker build -t revenue-intelligence .
-docker run --rm revenue-intelligence
+docker run --rm revenue-intelligence python -m src.pipeline run --log-level INFO
 ```
 
 ## Repository Boundaries
 
-Use these rules when placing new code:
+Placement rules:
 
-- `src/`: pipeline and domain logic
-- `services/`: runtime service interfaces
-- `contracts/`: governed schemas and compatibility shims
+- `src/`: batch pipeline and domain logic
+- `app/`: Streamlit consumption layer
+- `services/`: runtime-facing APIs and interfaces
+- `contracts/`: governed schemas and compatibility paths
 - `tests/`: behavioral and regression coverage
-- `docs/`: documentation for real repository behavior
+- `docs/`: documentation for implemented repository behavior
+- `scripts/`: smoke checks and lightweight automation
 
-Compatibility shims exist. Prefer current versioned paths over legacy wrappers:
+Canonical paths should be preferred over shims:
 
-- import contracts from `contracts.v1.data_contract`
-- use `services.api` as the API entrypoint
+- `contracts.v1.data_contract`
+- `services.api`
 
 ## Testing Standard
 
-Add tests when changing:
+Add or update tests when changing:
 
-- pipeline orchestration
+- orchestration behavior
 - manifests or snapshots
 - config resolution
-- warehouse persistence
+- warehouse persistence or consumption
 - governed schemas
 - CLI behavior
 - failure handling
+- retry, backfill, retention, freshness, or quality policy
+- dashboard data loading or smoke behavior
 
-If no test was added, the PR should explain why the existing coverage is sufficient.
+If no test is added, the PR should explain why current coverage is sufficient.
 
 ## Documentation Standard
 
@@ -126,24 +140,51 @@ At minimum, review:
 - `README.md`
 - `README.pt-BR.md`
 - `docs/architecture.md`
-- `docs/repository_structure.md`
+- `docs/runbook.md`
+- `docs/troubleshooting_matrix.md`
+- `docs/release_process.md`
 
 Do not document planned behavior as if it already exists.
 
-## Pull Requests
+## Pull Request Standard
 
-Use the PR template in:
+Use the template in:
 
 - [.github/pull_request_template.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/.github/pull_request_template.md)
 
-PRs should stay focused. If a change mixes reliability, UI, governance, and refactoring without a coherent reason, split it.
+PRs should stay focused. Split changes when they mix unrelated concerns without a shared operational reason.
+
+## Commit Convention
+
+Use lightweight conventional commits:
+
+- `feat:` for capability changes
+- `fix:` for defects
+- `refactor:` for internal code improvement without intentional behavior change
+- `test:` for test-only work
+- `docs:` for documentation-only changes
+- `chore:` for maintenance and tooling
+
+Good examples:
+
+- `feat: add processed artifact validation stage`
+- `fix: fail pipeline on invalid backfill window`
+- `refactor: extract dashboard view composition`
+- `test: add warehouse consumption regression coverage`
+- `docs: publish release and runbook updates`
+
+Bad examples:
+
+- `update stuff`
+- `final changes`
+- `improve project`
 
 ## Review Bar
 
 A change is not ready if:
 
-- it adds complexity without a clear operational payoff
-- it weakens the batch core as the system’s center of gravity
+- it increases complexity without clear operational payoff
+- it weakens the batch core as the center of gravity
+- it changes outputs without validation or documentation
 - it introduces undocumented runtime behavior
-- it changes outputs without corresponding validation
-- it makes the README less honest
+- it makes the repository easier to misunderstand

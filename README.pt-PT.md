@@ -1,46 +1,46 @@
 ﻿# Revenue Intelligence Platform
 
-Repositório de analytics de receita orientado a produção que transforma comportamento de clientes e pedidos em saídas batch governadas, tabelas para warehouse, artefatos executivos de decisão e um workspace Streamlit para ação comercial.
+Repositório de analytics de receita orientado para produção que transforma comportamento de clientes e encomendas em saídas batch governadas, tabelas para warehouse, artefactos executivos de decisão e um workspace Streamlit para acção comercial.
 
 Versões disponíveis:
 
 - [Internacional](README.md)
-- [Português de Portugal](README.pt-PT.md)
+- [Português do Brasil](README.pt-BR.md)
 
 ## Resumo Executivo
 
-Este repositório foi desenhado para responder às perguntas que um hiring manager, tech lead ou avaliador sênior costuma fazer sobre projetos de dados:
+Este repositório foi desenhado para responder às perguntas que um hiring manager, tech lead ou avaliador sénior costuma fazer sobre projectos de dados:
 
 - existe um caminho oficial de execução?
 - o pipeline é reprocessável com segurança?
 - os outputs são governados e validados?
 - há evidência operacional quando algo falha?
-- o dashboard consome artefatos confiáveis em vez de reimplementar a lógica crítica?
+- o dashboard consome artefactos confiáveis em vez de reimplementar a lógica crítica?
 
 Resposta curta: sim.
 
-## Por Que Este Repositório Existe
+## Porque Este Repositório Existe
 
-Muitos projetos de portfólio param em notebooks, scripts ad hoc ou um dashboard isolado. Este repositório é propositalmente mais operacional:
+Muitos projectos de portefólio ficam presos a notebooks, scripts ad hoc ou um dashboard isolado. Este repositório é intencionalmente mais operacional:
 
 - um entrypoint batch oficial
 - saídas determinísticas e reprocessáveis
 - manifests, logs, snapshots e retenção de execução
-- artefatos processados com validação e contratos
-- consumidores downstream que leem o core batch em vez de substituí-lo
+- artefactos processados com validação e contratos
+- consumidores downstream que leem o core batch em vez de o substituir
 
-O objetivo não é simular uma plataforma enterprise sem substância. O objetivo é demonstrar critério de engenharia em um repositório pequeno o suficiente para ser auditado de ponta a ponta.
+O objectivo não é simular uma plataforma enterprise sem substância. O objectivo é demonstrar critério de engenharia num repositório pequeno o suficiente para ser auditado de ponta a ponta.
 
 ## Valor de Negócio
 
-A plataforma converte comportamento de clientes em ativos que apoiam decisões comerciais e de retenção:
+A plataforma converte comportamento de clientes em activos que suportam decisões comerciais e de retenção:
 
 - risco de churn e propensão de próxima compra
 - unit economics por canal de aquisição
 - retenção por coorte
 - recomendações por cliente com impacto simulado
-- snapshots executivos de KPI e monitoramento
-- tabelas de warehouse prontas para SQL e consumo estilo dbt
+- snapshots executivos de KPI e monitorização
+- tabelas de warehouse prontas para SQL e consumo ao estilo dbt
 
 ## Caminho Oficial de Execução
 
@@ -48,9 +48,9 @@ A plataforma converte comportamento de clientes em ativos que apoiam decisões c
 python -m src.pipeline run
 ```
 
-O pipeline batch é a fonte oficial de verdade. O Streamlit, a API, o warehouse e o projeto dbt consomem as saídas produzidas por ele.
+O pipeline batch é a fonte oficial de verdade. O Streamlit, a API, o warehouse e o projecto dbt consomem os outputs produzidos por ele.
 
-## Arquitetura
+## Arquitectura
 
 ```mermaid
 flowchart LR
@@ -58,7 +58,7 @@ flowchart LR
     B --> C[Silver]
     C --> D[Features e scoring]
     D --> E[Analytics curado]
-    E --> F[Reporting e monitoramento]
+    E --> F[Reporting e monitorização]
     D --> G[Warehouse]
     F --> H[Streamlit]
     F --> I[API e consumidores dbt]
@@ -67,26 +67,26 @@ flowchart LR
 
 Características principais:
 
-- arquitetura batch-first com reprodutibilidade local
+- arquitectura batch-first com reprodutibilidade local
 - política explícita de runtime para retry, retenção, freshness e thresholds de qualidade
-- validação de artefatos processados antes da conclusão do pipeline
-- warehouse SQLite por padrão, com caminhos compatíveis para serviços e dbt
+- validação de artefactos processados antes da conclusão do pipeline
+- warehouse SQLite por omissão, com caminhos compatíveis para serviços e dbt
 
 ## Estrutura do Repositório
 
 ```text
 .
-|- .github/                workflows de CI, templates e governança do repositório
+|- .github/                workflows de CI, templates e governação do repositório
 |- app/                    camada de apresentação em Streamlit
 |  |- ui/                  primitives reutilizáveis e estilos
-|  |- views/               seções da página e composição do dashboard
-|  |- dashboard_data.py    carregamento cacheado e filtros
+|  |- views/               secções da página e composição do dashboard
+|  |- dashboard_data.py    carregamento com cache e filtros
 |  |- dashboard_i18n.py    dicionários EN, PT-BR e PT-PT
-|  |- dashboard_metrics.py helpers compartilhados de formatação e KPIs
-|- src/                    pipeline batch, modelagem, reporting e política operacional
+|  |- dashboard_metrics.py helpers partilhados de formatação e KPIs
+|- src/                    pipeline batch, modelação, reporting e política operacional
 |- contracts/              schemas governados versionados e shims de compatibilidade
 |- tests/                  cobertura comportamental, confiabilidade, contratos e warehouse
-|- docs/                   arquitetura, onboarding, runbooks, ADRs e release notes
+|- docs/                   arquitectura, onboarding, runbooks, ADRs e release notes
 |- scripts/                smoke tests e automações operacionais leves
 |- dbt/                    camada analítica downstream sobre os outputs do warehouse
 |- services/               interfaces de serviço voltadas a runtime
@@ -113,18 +113,18 @@ Referências principais:
 - execução idempotente e reprocessável
 - retry configurável por estágio
 - janela explícita de backfill na CLI e nos manifests
-- relatórios de freshness, qualidade e validação de artefatos processados
+- relatórios de freshness, qualidade e validação de artefactos processados
 - manifests, logs e snapshots para rastreabilidade
 - persistência em warehouse com validação de consumo downstream
 - dashboard Streamlit com smoke test no CI
 
 ## Workspace Streamlit
 
-O dashboard não é uma segunda fonte de verdade. Ele consome os artefatos processados e está organizado em:
+O dashboard não é uma segunda fonte de verdade. Consome os artefactos processados e está organizado em:
 
 - `app/ui` para primitives de layout e consistência visual
-- `app/views` para seções de negócio e fluxo de leitura
-- `app/dashboard_data.py` para acesso cacheado aos artefatos
+- `app/views` para secções de negócio e fluxo de leitura
+- `app/dashboard_data.py` para acesso com cache aos artefactos
 - `app/dashboard_i18n.py` para `EN`, `PT-BR` e `PT-PT`
 
 ## Setup Local
@@ -190,20 +190,20 @@ python -m build
 
 Camadas de automação:
 
-- `Makefile` para o fluxo local do desenvolvedor
+- `Makefile` para o fluxo local do developer
 - `.pre-commit-config.yaml` para gates rápidos antes do commit
 - `.github/workflows/ci.yml` para lint, testes, smoke e build
 
 ## Decisões Técnicas e Trade-offs
 
-- SQLite é o warehouse padrão porque reprodutibilidade local vale mais do que exigir infraestrutura externa.
-- O projeto é batch-first por escolha. Ele demonstra analytics engineering disciplinado sem fingir ser uma plataforma completa de streaming.
-- O Streamlit consome artefatos em vez de recalcular a lógica crítica, preservando um único caminho oficial de execução.
-- Compat shims existem, mas os caminhos canônicos seguem explícitos e documentados.
+- SQLite é o warehouse por omissão porque a reprodutibilidade local vale mais do que exigir infraestrutura externa.
+- O projecto é batch-first por escolha. Demonstra analytics engineering disciplinado sem fingir ser uma plataforma completa de streaming.
+- O Streamlit consome artefactos em vez de recalcular a lógica crítica, preservando um único caminho oficial de execução.
+- Compat shims existem, mas os caminhos canónicos continuam explícitos e documentados.
 
 ## Ordem Recomendada de Leitura
 
-Se o objetivo é avaliar profundidade técnica, leia nesta ordem:
+Se o objectivo é avaliar profundidade técnica, leia nesta ordem:
 
 1. este `README`
 2. [docs/architecture.md](docs/architecture.md)
@@ -215,18 +215,18 @@ Se o objetivo é avaliar profundidade técnica, leia nesta ordem:
 
 ## O Que Este Repositório Não É
 
-- não é uma coleção de notebooks
+- não é uma colecção de notebooks
 - não é um monorepo enterprise fictício
 - não é uma demo de streaming
 - não é um clone de plataforma de MLOps
 
-É um sistema batch orientado a produção, dimensionado de forma honesta para um portfólio sênior forte.
+É um sistema batch orientado para produção, dimensionado de forma honesta para um portefólio sénior forte.
 
 ## Roadmap
 
-Próximos passos de maior impacto:
+Próximos passos com maior impacto:
 
-1. expandir contratos e validação dos artefatos processados
+1. expandir contratos e validação dos artefactos processados
 2. aprofundar validação downstream de warehouse e dbt
 3. acumular mais release notes pequenas e coerentes
 4. adicionar uma estratégia leve de regressão visual para o dashboard

@@ -36,3 +36,13 @@ body:
     attributes:
       label: Suggested improvement
       description: Describe the documentation change that would close the gap.
+  - type: dropdown
+    id: reviewer_type
+    attributes:
+      label: Primary reader
+      options:
+        - New contributor
+        - Hiring reviewer
+        - Tech lead
+        - Operator or maintainer
+        - API or dashboard consumer

@@ -13,7 +13,12 @@ import pytest
 from src.config import PipelineConfig
 from src.exceptions import PipelineStageError
 from src.governance import build_data_dictionary
-from src.orchestration import _apply_retention, run_pipeline
+from src.orchestration import (
+    _apply_backfill_window,
+    _apply_retention,
+    _run_stage_with_retry,
+    run_pipeline,
+)
 from src.pipeline import main as pipeline_main
 
 
@@ -140,6 +145,47 @@ def test_pipeline_persists_queryable_sqlite_warehouse(tmp_path: Path) -> None:
     assert int(joined.loc[0, "joined_rows"]) > 0
 
 
+def test_warehouse_dimensions_remain_consistent_with_facts(tmp_path: Path) -> None:
+    cfg = _build_config(tmp_path)
+
+    run_pipeline(cfg)
+
+    with sqlite3.connect(cfg.warehouse_db_path) as connection:
+        referential = pd.read_sql_query(
+            """
+            SELECT
+                SUM(CASE WHEN dc.customer_id IS NULL THEN 1 ELSE 0 END) AS missing_customers,
+                SUM(CASE WHEN dd.date_key IS NULL THEN 1 ELSE 0 END) AS missing_dates,
+                SUM(CASE WHEN ch.channel_key IS NULL THEN 1 ELSE 0 END) AS missing_channels
+            FROM fact_orders fo
+            LEFT JOIN dim_customers dc ON fo.customer_id = dc.customer_id
+            LEFT JOIN dim_date dd ON fo.date_key = dd.date_key
+            LEFT JOIN dim_channel ch ON fo.channel_key = ch.channel_key
+            """,
+            connection,
+        )
+        aggregates = pd.read_sql_query(
+            """
+            SELECT
+                ch.channel,
+                COUNT(*) AS order_count,
+                ROUND(SUM(fo.order_amount), 2) AS revenue
+            FROM fact_orders fo
+            INNER JOIN dim_channel ch ON fo.channel_key = ch.channel_key
+            GROUP BY ch.channel
+            ORDER BY revenue DESC, ch.channel ASC
+            """,
+            connection,
+        )
+
+    assert int(referential.loc[0, "missing_customers"]) == 0
+    assert int(referential.loc[0, "missing_dates"]) == 0
+    assert int(referential.loc[0, "missing_channels"]) == 0
+    assert not aggregates.empty
+    assert (aggregates["order_count"] > 0).all()
+    assert (aggregates["revenue"] > 0).all()
+
+
 def test_pipeline_is_idempotent_for_curated_outputs(tmp_path: Path) -> None:
     cfg = _build_config(tmp_path)
 
@@ -153,6 +199,29 @@ def test_pipeline_is_idempotent_for_curated_outputs(tmp_path: Path) -> None:
 
     pd.testing.assert_frame_equal(first_recommendations, second_recommendations)
     pd.testing.assert_frame_equal(first_features, second_features)
+
+
+def test_pipeline_manifest_captures_runtime_evidence(tmp_path: Path) -> None:
+    cfg = _build_config(tmp_path)
+
+    manifest = run_pipeline(cfg)
+    artifact_validation = json.loads(
+        (cfg.processed_dir / "artifact_validation_report.json").read_text(encoding="utf-8")
+    )
+
+    assert manifest["reliability_policy"]["retry_attempts"] == cfg.retry_attempts
+    assert manifest["quality_snapshot"]["dataset_count"] >= 1
+    assert "artifact_validation_report.json" in manifest["outputs"]
+    assert "freshness_report.json" in manifest["outputs"]
+    assert manifest["backfill_window"] == {"start_date": None, "end_date": None}
+    assert artifact_validation["status"] == "ok"
+    assert any(
+        check["artifact"] == "quality_report.json" for check in artifact_validation["checks"]
+    )
+    assert any(
+        check["artifact"] == "raw_input_metadata.json"
+        for check in artifact_validation["checks"]
+    )
 
 
 def test_failure_manifest_is_written(tmp_path: Path) -> None:
@@ -261,6 +330,11 @@ def test_pipeline_config_reads_env_file(tmp_path: Path, monkeypatch: pytest.Monk
                 "RIP_SEED=123",
                 "RIP_LOG_LEVEL=debug",
                 "RIP_FRESHNESS_MAX_AGE_HOURS=12",
+                "RIP_RETRY_ATTEMPTS=3",
+                "RIP_RETRY_BACKOFF_SECONDS=0",
+                "RIP_QUALITY_MAX_NULL_FRACTION=0.15",
+                "RIP_BACKFILL_START_DATE=2025-01-01",
+                "RIP_BACKFILL_END_DATE=2025-03-31",
             ]
         ),
         encoding="utf-8",
@@ -270,6 +344,11 @@ def test_pipeline_config_reads_env_file(tmp_path: Path, monkeypatch: pytest.Monk
     monkeypatch.delenv("RIP_SEED", raising=False)
     monkeypatch.delenv("RIP_LOG_LEVEL", raising=False)
     monkeypatch.delenv("RIP_FRESHNESS_MAX_AGE_HOURS", raising=False)
+    monkeypatch.delenv("RIP_RETRY_ATTEMPTS", raising=False)
+    monkeypatch.delenv("RIP_RETRY_BACKOFF_SECONDS", raising=False)
+    monkeypatch.delenv("RIP_QUALITY_MAX_NULL_FRACTION", raising=False)
+    monkeypatch.delenv("RIP_BACKFILL_START_DATE", raising=False)
+    monkeypatch.delenv("RIP_BACKFILL_END_DATE", raising=False)
 
     cfg = PipelineConfig.from_env(tmp_path)
 
@@ -278,3 +357,58 @@ def test_pipeline_config_reads_env_file(tmp_path: Path, monkeypatch: pytest.Monk
     assert cfg.seed == 123
     assert cfg.log_level == "DEBUG"
     assert cfg.freshness_max_age_hours == 12
+    assert cfg.retry_attempts == 3
+    assert cfg.retry_backoff_seconds == 0
+    assert cfg.quality_max_null_fraction == 0.15
+    assert str(cfg.backfill_start_date) == "2025-01-01"
+    assert str(cfg.backfill_end_date) == "2025-03-31"
+
+
+def test_stage_runner_retries_transient_failures() -> None:
+    attempts = {"count": 0}
+
+    def flaky_stage() -> str:
+        attempts["count"] += 1
+        if attempts["count"] < 3:
+            raise RuntimeError("temporary issue")
+        return "ok"
+
+    result, elapsed = _run_stage_with_retry(
+        "test.stage",
+        flaky_stage,
+        attempts=3,
+        backoff_seconds=0,
+    )
+
+    assert result == "ok"
+    assert attempts["count"] == 3
+    assert elapsed >= 0
+
+
+def test_backfill_window_filters_orders_and_respects_customer_cutoff() -> None:
+    customers = pd.DataFrame(
+        {
+            "customer_id": [1, 2, 3],
+            "signup_date": pd.to_datetime(["2024-12-01", "2025-02-10", "2025-05-01"]),
+            "channel": ["Organic", "Paid Search", "Referral"],
+            "segment": ["SMB", "SMB", "Enterprise"],
+        }
+    )
+    orders = pd.DataFrame(
+        {
+            "order_id": ["o1", "o2", "o3", "o4"],
+            "customer_id": [1, 2, 2, 3],
+            "order_date": pd.to_datetime(["2024-12-15", "2025-01-20", "2025-04-15", "2025-05-10"]),
+            "order_value": [100, 200, 150, 900],
+        }
+    )
+
+    filtered_customers, filtered_orders = _apply_backfill_window(
+        customers,
+        orders,
+        start_date=pd.Timestamp("2025-01-01").date(),
+        end_date=pd.Timestamp("2025-04-30").date(),
+    )
+
+    assert filtered_customers["customer_id"].tolist() == [1, 2]
+    assert filtered_orders["order_id"].tolist() == ["o2", "o3"]

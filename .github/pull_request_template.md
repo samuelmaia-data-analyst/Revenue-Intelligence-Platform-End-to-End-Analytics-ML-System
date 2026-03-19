@@ -2,7 +2,15 @@
 
 - What changed:
 - Why this change is needed:
-- Which repository boundary or operational concern it touches:
+- Which runtime path, contract, or operational concern it touches:
+
+## Scope
+
+- Category: `feature` / `fix` / `refactor` / `test` / `docs` / `chore`
+- Official batch path affected: `yes` / `no`
+- Streamlit affected: `yes` / `no`
+- Warehouse behavior affected: `yes` / `no`
+- Contracts affected: `yes` / `no`
 
 ## Validation
 
@@ -11,31 +19,38 @@
 - [ ] `python -m isort --check-only .`
 - [ ] `python -m mypy src services contracts main.py`
 - [ ] `python -m pytest -q`
+- [ ] `python scripts/smoke_dashboard.py`
 - [ ] `python -m build`
+
+If any item above was intentionally not run, explain why:
+
+-
 
 ## Runtime Impact
 
-- Official batch path affected: `yes` / `no`
 - Output artifacts affected:
-- Contracts affected:
-- Warehouse behavior affected:
-- Container path affected:
+- Manifest or runbook impact:
+- Backfill or retry behavior impact:
+- Warehouse impact:
+- Dashboard impact:
 
 ## Documentation
 
 - [ ] `README.md` reviewed
-- [ ] `README.pt-BR.md` reviewed
-- [ ] `docs/architecture.md` reviewed
-- [ ] `docs/repository_structure.md` reviewed
+- [ ] `README.pt-BR.md` reviewed when needed
+- [ ] `docs/architecture.md` reviewed when needed
+- [ ] `docs/runbook.md` reviewed when needed
+- [ ] `docs/release_process.md` reviewed when needed
 - [ ] No aspirational documentation introduced
-
-## Risk Review
-
-- Main risk:
-- Rollback path:
-- Why the change is proportionate to this repository:
 
 ## Tests Added or Updated
 
-- New tests:
+- New or updated tests:
 - Why these tests are sufficient:
+- Residual risks:
+
+## Review Notes
+
+- Main risk:
+- Rollback path:
+- Why this change is proportionate for the repository:

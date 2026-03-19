@@ -65,6 +65,7 @@ def test_pipeline_generates_expected_contract_outputs(tmp_path: Path) -> None:
         "raw_input_metadata.json",
         "top_10_actions.csv",
         "quality_report.json",
+        "artifact_validation_report.json",
         "pipeline_manifest.json",
         "dim_customers.csv",
         "dim_date.csv",
