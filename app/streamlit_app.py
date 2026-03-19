@@ -4,6 +4,10 @@ import os
 import sys
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.append(str(PROJECT_ROOT))
+
 import streamlit as st
 
 from app.dashboard_data import filter_recommendations, load_processed_assets
@@ -23,10 +27,6 @@ from app.views.dashboard_views import (
     render_risk_tab,
     render_summary,
 )
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.append(str(PROJECT_ROOT))
 
 LANG_MODE = os.getenv("RIP_APP_LANG_MODE", "bilingual").strip().lower()
 if LANG_MODE not in {"bilingual", "international"}:
