@@ -357,6 +357,26 @@ def render_global_styles() -> None:
                 background: #ffffff !important;
                 color: {DEFAULT_THEME["text"]} !important;
             }}
+            div[data-baseweb="select"] > div {{
+                background: #ffffff !important;
+                border-color: {DEFAULT_THEME["border"]} !important;
+                color: {DEFAULT_THEME["text"]} !important;
+                box-shadow: none !important;
+            }}
+            div[data-baseweb="select"] > div:hover {{
+                border-color: {DEFAULT_THEME["primary"]} !important;
+            }}
+            div[data-baseweb="select"] span {{
+                color: {DEFAULT_THEME["text"]} !important;
+            }}
+            div[data-baseweb="select"] input {{
+                color: {DEFAULT_THEME["text"]} !important;
+                -webkit-text-fill-color: {DEFAULT_THEME["text"]} !important;
+            }}
+            div[data-baseweb="select"] svg {{
+                fill: {DEFAULT_THEME["text"]} !important;
+                color: {DEFAULT_THEME["text"]} !important;
+            }}
             div[data-baseweb="select"] * {{
                 color: {DEFAULT_THEME["text"]} !important;
             }}
