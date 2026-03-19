@@ -74,7 +74,8 @@ Detailed references:
 - Contract-aware CSV readers validate required columns and fail loudly on invalid states.
 - Pipeline outputs write companion `.metadata.json` files with stage, schema, row count, sources, and generation timestamp.
 - The CLI centralizes environment-based configuration and logging.
-- The Streamlit app now uses a multipage workspace for executive KPIs, customer segmentation, operational artifact health, and run-history comparison.
+- The CLI exposes `ridp check-health` to validate artifact freshness, required sidecars, and local serving/runtime readiness.
+- The Streamlit app now uses a multipage workspace for executive KPIs, customer segmentation, operational artifact health, run-history comparison, and shareable filtered views.
 - Tests cover end-to-end flow, contract failures, invalid timestamps, and model artifact generation.
 - Repository automation includes `Makefile`, `pre-commit`, GitHub Actions, issue templates, and PR template.
 
@@ -82,10 +83,16 @@ Detailed references:
 
 The Streamlit workspace is structured as a small analytics product rather than a single demo page:
 
-- `Executive Overview`: KPI deck, trend analysis, cohort retention, and business-readout summaries
-- `Customer Health`: customer segmentation, high-value risk detection, and searchable `customer_360`
+- `Executive Overview`: KPI deck, trend analysis, cohort retention, executive briefing, and cohort spotlight
+- `Customer Health`: customer segmentation, high-value risk detection, customer spotlight, and exportable filtered views
 - `Operations`: artifact freshness, metadata-backed dataset health, and operational notes
-- `Run History`: manifest comparison across pipeline runs and artifact-level traceability
+- `Run History`: manifest comparison across pipeline runs, run spotlight, and exportable comparison outputs
+
+The workspace now also supports:
+
+- persisted filters and selections across pages through session state and query params
+- downloadable snapshots of current analytical views
+- shareable view-state query strings for local-first walkthroughs and reviewer demos
 
 Screenshot slots are prepared under `docs/assets/dashboard/` for portfolio-ready captures:
 
@@ -278,6 +285,7 @@ available through a stable SQL serving layer.
 - CLI pipeline runs preserve per-stage snapshot artifacts for deterministic run review.
 - CLI pipeline runs are also registered in a lightweight SQLite operations store.
 - `ridp check-health` validates required gold artifacts, metadata sidecars, freshness SLA, and local serving/runtime readiness.
+- The dashboard supports persisted filters, shareable view-state query strings, and exportable analytical slices without requiring a backend.
 - Dashboard startup is deterministic through an official demo mode with bundled curated assets.
 
 ## Validation
@@ -318,5 +326,5 @@ Collaboration guidance lives in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 - add richer data quality assertions and anomaly checks
 - persist model artifacts in a more portable serialization format
-- expand dashboard drill-downs and operational status views
-- add batch execution snapshots and historical run comparisons
+- add browser-level dashboard smoke tests and visual regression protection
+- document a clearer `local -> hosted -> production` evolution path
