@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 
+from analytics.health_checks import evaluate_platform_health
 from models.churn_model import train_churn_model
 from models.revenue_forecasting import forecast_revenue
 from pipelines.bootstrap_sample_data import write_sample_raw_data
@@ -46,6 +47,16 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=3,
         help="Forecast horizon in months.",
+    )
+
+    health_parser = subparsers.add_parser(
+        "check-health",
+        help="Validate freshness and operational readiness of curated platform artifacts.",
+    )
+    health_parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Fail on warnings as well as hard failures.",
     )
 
     return parser
@@ -120,6 +131,27 @@ def main() -> None:
         LOGGER.info("Run manifest written to %s", manifest_path)
         return
 
+    if args.command == "check-health":
+        report = evaluate_platform_health(
+            dirs,
+            freshness_sla_hours=settings.freshness_sla_hours,
+        )
+        if report.checks.empty:
+            LOGGER.warning("No health checks were generated.")
+            return
+        for row in report.checks.to_dict(orient="records"):
+            LOGGER.info(
+                "health_check=%s | target=%s | status=%s | detail=%s",
+                row["check_name"],
+                row["target"],
+                row["status"],
+                row["detail"],
+            )
+        should_fail = not report.failed.empty or (args.strict and not report.warnings.empty)
+        if should_fail:
+            raise SystemExit(1)
+        return
+
     if args.command == "train-model":
         if args.model == "churn":
             train_churn_model(dirs.gold, dirs.models)
@@ -127,6 +159,9 @@ def main() -> None:
             return
         forecast_revenue(dirs.gold, dirs.models, periods=args.periods)
         LOGGER.info("Model training completed: revenue")
+        return
+
+    raise SystemExit(f"Unsupported command: {args.command}")
 
 
 if __name__ == "__main__":

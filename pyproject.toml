@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "End-to-end revenue intelligence data platform with pipelines, analytics, models, and dashboard."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = "MIT"
 authors = [{ name = "Samuel Maia" }]
 dependencies = [
     "altair>=5.0.0",
@@ -21,6 +21,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "build>=1.2.2",
     "black>=25.0.0",
     "mypy>=1.15.0",
     "pre-commit>=4.1.0",
@@ -58,3 +59,4 @@ python_version = "3.11"
 warn_unused_configs = true
 disallow_untyped_defs = true
 ignore_missing_imports = true
+exclude = '(^build/|^dist/)'

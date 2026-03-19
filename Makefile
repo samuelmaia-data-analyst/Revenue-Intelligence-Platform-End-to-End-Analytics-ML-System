@@ -19,6 +19,9 @@ bootstrap:
 pipeline:
 	$(PYTHON) -m ridp.cli run-pipeline all
 
+health:
+	$(PYTHON) -m ridp.cli check-health
+
 test:
 	$(PYTHON) -m pytest
 
@@ -26,6 +29,11 @@ lint:
 	$(PYTHON) -m ruff check .
 	$(PYTHON) -m black --check .
 	$(PYTHON) -m mypy .
+
+build:
+	$(PYTHON) -m build --sdist --wheel
+
+check: lint test build
 
 format:
 	$(PYTHON) -m ruff check . --fix

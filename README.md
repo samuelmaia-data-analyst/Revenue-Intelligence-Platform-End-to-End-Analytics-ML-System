@@ -147,6 +147,7 @@ RIDP_RUNS_DIR=data/run_manifests
 RIDP_RUN_ARTIFACTS_DIR=data/run_artifacts
 RIDP_RUN_HISTORY_DB=data/run_manifests/run_history.db
 RIDP_LOG_LEVEL=INFO
+RIDP_FRESHNESS_SLA_HOURS=24
 RIDP_DASHBOARD_DEMO_MODE=AUTO
 RIDP_DASHBOARD_DEMO_ASSETS_DIR=dashboard/demo_assets
 ```
@@ -169,6 +170,8 @@ ridp run-pipeline transformation
 ridp run-pipeline features
 ridp run-pipeline all
 ridp run-pipeline all --run-id portfolio-demo-001
+ridp check-health
+ridp check-health --strict
 ridp train-model churn
 ridp train-model revenue --periods 6
 ridp-dashboard
@@ -187,13 +190,18 @@ Make targets:
 make install
 make bootstrap
 make pipeline
+make health
 make lint
 make test
+make build
+make check
 make format
 make dashboard
 ```
 
 When `.venv` exists, `make` commands automatically prefer that interpreter over the global Python.
+`requirements.txt` is kept as a lightweight runtime compatibility artifact and should mirror the
+runtime dependencies declared in `pyproject.toml`.
 
 ## Data flow and outputs
 
@@ -243,6 +251,7 @@ available through a stable SQL serving layer.
 - CLI pipeline runs can be traced end-to-end through a shared `run_id`.
 - CLI pipeline runs preserve per-stage snapshot artifacts for deterministic run review.
 - CLI pipeline runs are also registered in a lightweight SQLite operations store.
+- `ridp check-health` validates required gold artifacts, metadata sidecars, freshness SLA, and local serving/runtime readiness.
 - Dashboard startup is deterministic through an official demo mode with bundled curated assets.
 
 ## Validation
@@ -258,6 +267,7 @@ CI runs on every push and pull request and executes:
 - `black --check .`
 - `mypy .`
 - `pytest`
+- `python -m build --sdist --wheel`
 
 ## Trade-offs
 

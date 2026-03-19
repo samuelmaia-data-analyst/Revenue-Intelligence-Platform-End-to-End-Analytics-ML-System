@@ -24,3 +24,5 @@ jobs:
         run: mypy .
       - name: Pytest
         run: pytest
+      - name: Build package
+        run: python -m build --sdist --wheel

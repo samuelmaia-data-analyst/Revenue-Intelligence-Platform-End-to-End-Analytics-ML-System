@@ -7,6 +7,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from analytics.health_checks import evaluate_platform_health
 from models.churn_model import train_churn_model
 from models.revenue_forecasting import forecast_revenue
 from pipelines.common import DataContractError
@@ -348,3 +349,75 @@ def test_cli_pipeline_run_writes_manifest_and_run_id(
     with sqlite3.connect(runs_dir / "run_history.db") as connection:
         sql_history = pd.read_sql_query("SELECT * FROM run_history", connection)
     assert sql_history.iloc[0]["run_id"] == "test-run-001"
+
+
+def test_health_check_reports_failures_and_warnings(tmp_path: Path) -> None:
+    gold_dir = tmp_path / "gold"
+    runs_dir = tmp_path / "runs"
+    gold_dir.mkdir()
+    runs_dir.mkdir()
+
+    _write_csv(
+        gold_dir / "business_kpis.csv",
+        [{"metric": "gmv_total", "value": 100.0}],
+    )
+    (gold_dir / "business_kpis.metadata.json").write_text(
+        json.dumps(
+            {
+                "dataset_name": "business_kpis.csv",
+                "row_count": 1,
+                "generated_at_utc": "2020-01-01T00:00:00+00:00",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    from ridp.config import DataDirectories
+
+    monkey_dirs = DataDirectories(
+        raw=tmp_path / "raw",
+        bronze=tmp_path / "bronze",
+        silver=tmp_path / "silver",
+        gold=gold_dir,
+        serving=tmp_path / "serving.db",
+        models=tmp_path / "models",
+        runs=runs_dir,
+        run_artifacts=tmp_path / "run_artifacts",
+        run_history_db=runs_dir / "run_history.db",
+    )
+    report = evaluate_platform_health(monkey_dirs, freshness_sla_hours=24)
+
+    assert not report.failed.empty
+    assert not report.warnings.empty
+    assert "required_artifact_present" in set(report.checks["check_name"])
+
+
+def test_cli_check_health_exits_non_zero_in_strict_mode(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    gold_dir = tmp_path / "gold"
+    gold_dir.mkdir()
+    _write_csv(
+        gold_dir / "business_kpis.csv",
+        [{"metric": "gmv_total", "value": 100.0}],
+    )
+    (gold_dir / "business_kpis.metadata.json").write_text(
+        json.dumps(
+            {
+                "dataset_name": "business_kpis.csv",
+                "row_count": 1,
+                "generated_at_utc": "2020-01-01T00:00:00+00:00",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setenv("RIDP_GOLD_DIR", str(gold_dir))
+    monkeypatch.setenv("RIDP_RUNS_DIR", str(tmp_path / "runs"))
+    monkeypatch.setenv("RIDP_RUN_HISTORY_DB", str(tmp_path / "runs" / "run_history.db"))
+    monkeypatch.setenv("RIDP_SERVING_DB", str(tmp_path / "serving.db"))
+    monkeypatch.setattr("sys.argv", ["ridp", "check-health", "--strict"])
+
+    with pytest.raises(SystemExit, match="1"):
+        main()

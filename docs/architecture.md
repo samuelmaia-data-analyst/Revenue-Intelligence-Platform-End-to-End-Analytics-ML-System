@@ -168,3 +168,13 @@ This repository does not currently include:
 - advanced feature store or model registry integration
 
 Those omissions are deliberate. The current scope focuses on demonstrating disciplined engineering fundamentals in a repository that remains easy to inspect during portfolio review.
+
+## Distribution posture
+
+The repository is packaged as an installable Python project through `pyproject.toml`.
+
+- runtime dependencies are declared in `pyproject.toml`
+- `requirements.txt` is maintained as a compatibility artifact for environments that still prefer a flat requirements file
+- CI validates that the project can build both `sdist` and `wheel` artifacts via `python -m build`
+
+This is a small but important signal that the project is meant to be distributed and validated as software, not only run ad hoc from source.

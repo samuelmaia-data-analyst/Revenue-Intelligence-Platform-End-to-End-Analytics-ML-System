@@ -52,10 +52,30 @@ After model training:
 ```bash
 make lint
 make test
+make health
 pre-commit install
 ```
 
 If `.venv` exists, the Makefile automatically uses that interpreter for local commands.
+
+## Health checks
+
+Use the CLI to validate whether the curated layer looks operationally healthy:
+
+```bash
+ridp check-health
+ridp check-health --strict
+```
+
+What it checks:
+
+- required gold artifacts exist
+- metadata sidecars exist
+- metadata row counts are non-empty
+- freshness respects `RIDP_FRESHNESS_SLA_HOURS`
+- local serving DB and run-history registry are present
+
+`--strict` returns a non-zero exit code on warnings as well as failures, which makes it suitable for CI or local release gates.
 
 ## Run traceability
 

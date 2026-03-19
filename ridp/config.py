@@ -24,6 +24,7 @@ class DataDirectories:
 class RuntimeSettings:
     directories: DataDirectories
     log_level: str
+    freshness_sla_hours: int
 
 
 @dataclass(frozen=True)
@@ -52,9 +53,12 @@ def get_data_directories() -> DataDirectories:
 
 
 def get_runtime_settings() -> RuntimeSettings:
+    sla_value = os.getenv("RIDP_FRESHNESS_SLA_HOURS", "24").strip()
+    freshness_sla_hours = int(sla_value) if sla_value.isdigit() and int(sla_value) > 0 else 24
     return RuntimeSettings(
         directories=get_data_directories(),
         log_level=os.getenv("RIDP_LOG_LEVEL", "INFO").strip().upper(),
+        freshness_sla_hours=freshness_sla_hours,
     )
 
 
