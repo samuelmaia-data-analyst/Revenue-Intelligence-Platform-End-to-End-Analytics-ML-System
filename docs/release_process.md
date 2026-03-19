@@ -32,6 +32,11 @@ python -m ruff check .
 python -m black --check .
 python -m isort --check-only .
 python scripts/smoke_dashboard.py
+python scripts/smoke_api.py
+python scripts/smoke_downstream_sql.py
+python scripts/smoke_processed_exports.py
+python scripts/smoke_partner_payload.py
+python scripts/smoke_dbt_sqlite.py
 python -m build
 ```
 

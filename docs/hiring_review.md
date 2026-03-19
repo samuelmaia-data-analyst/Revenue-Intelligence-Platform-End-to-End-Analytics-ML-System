@@ -2,25 +2,26 @@
 
 ## Current Level Signal
 
-Current repository signal: `Senior strong`, approaching `Staff` for portfolio context.
+Current repository signal: `Senior strong`, very close to the realistic ceiling for an individual portfolio repository.
 
 Why:
 
 - the system has one official runtime path
 - reliability policy is explicit and configurable
-- outputs are governed and validated
+- outputs are governed and validated, including secondary exports
 - the dashboard is part of the tested product path
-- documentation now explains architecture, operation and trade-offs coherently
+- downstream consumers now include warehouse SQL, dbt, API, processed exports, and a partner-facing payload
+- documentation explains architecture, operation, environments, and trade-offs coherently
 
 ## What Still Looks Intermediate
 
 These are the main factors that still prevent a near-perfect hiring signal:
 
-- top-level repository breadth is still slightly wider than the core narrative
-- warehouse integration coverage can go deeper
+- top-level repository breadth still requires a reviewer to read with some care
 - UI smoke coverage exists, but there is no richer interface regression strategy yet
-- dependency warnings still appear during the test suite
 - release history is still short, so operational maturity is more documented than historically proven
+- external environment evidence is still lighter than local and CI evidence
+- the project remains intentionally local-first, which is the right trade-off here but still limits full production signaling
 
 ## What Used To Weaken the Portfolio Most
 
@@ -34,17 +35,18 @@ These are the main factors that still prevent a near-perfect hiring signal:
 
 - clear batch-first system ownership
 - modular Streamlit structure
-- explicit runbook, troubleshooting matrix and ADRs
+- explicit runbook, troubleshooting matrix, incident playbooks, and ADRs
 - processed artifact validation integrated into orchestration
-- smoke-tested dashboard and release documentation
+- smoke-tested dashboard, API, downstream SQL, dbt, processed exports, and partner payload
+- release documentation that shows coherent evolution instead of one large rewrite
 
 ## Highest ROI Next Steps
 
-1. deepen warehouse integration tests around downstream analytical queries
-2. reduce test-suite warnings so validation output looks cleaner
-3. add one or two release notes tied to future contract or runtime changes
-4. optionally add a small visual regression or screenshot-based dashboard check
-5. tighten top-level repository narrative even further if non-core directories grow
+1. continue publishing small release notes tied to real contract or runtime changes
+2. add one more downstream consumer beyond the current local-first boundary only if it stays honest to the repo scope
+3. enrich incident docs with real examples from future changes, not fictional incidents
+4. optionally add a lightweight screenshot-based dashboard regression check
+5. keep top-level repository breadth disciplined as the project evolves
 
 ## Guidance on Mermaid
 
