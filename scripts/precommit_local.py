@@ -8,7 +8,7 @@ from pathlib import Path
 
 import yaml  # type: ignore[import-untyped]
 
-MERGE_MARKERS = ("<<<<<<<", "=======", ">>>>>>>")
+MERGE_MARKERS = ("<<<<<<< ", "=======", ">>>>>>> ")
 
 
 def _iter_files(paths: list[str]) -> list[Path]:
@@ -55,7 +55,8 @@ def check_merge_conflict(paths: list[str]) -> int:
     failed = False
     for path in _iter_files(paths):
         text = path.read_text(encoding="utf-8")
-        if any(marker in text for marker in MERGE_MARKERS):
+        lines = text.splitlines()
+        if any(line.startswith(marker) for line in lines for marker in MERGE_MARKERS):
             print(f"merge conflict markers found in {path}", file=sys.stderr)
             failed = True
     return 1 if failed else 0

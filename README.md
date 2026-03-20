@@ -1,5 +1,7 @@
 # Revenue Intelligence Data Platform
 
+[![CI](https://github.com/samuelmaia-analytics/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/actions/workflows/ci.yml/badge.svg)](https://github.com/samuelmaia-analytics/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/actions/workflows/ci.yml)
+
 End-to-end revenue intelligence platform over the Olist dataset. The project is organized as a production-minded local stack: contract-aware ingestion, layered transformations, model training entry points, a SQLite serving layer, and a Streamlit dashboard exposed through a single CLI surface.
 
 ## Executive Summary
