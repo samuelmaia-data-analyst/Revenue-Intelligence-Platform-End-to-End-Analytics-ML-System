@@ -156,7 +156,7 @@ The dashboard is not a second source of truth. It consumes processed artifacts g
 python -m venv .venv
 .venv\Scripts\activate
 python -m pip install --upgrade pip
-python -m pip install -r requirements.txt -r requirements-dev.txt
+python -m pip install -e .[dev]
 Copy-Item .env.example .env
 ```
 
@@ -215,7 +215,7 @@ python -m ruff check .
 python -m black --check .
 python -m isort --check-only .
 python -m mypy src services contracts main.py
-python -m pytest -q
+python -m pytest -q --cov=src --cov=services --cov=contracts --cov-report=term-missing
 python scripts/smoke_dashboard.py
 python scripts/smoke_api.py
 python scripts/smoke_downstream_sql.py

@@ -10,7 +10,7 @@ Get a new contributor from clone to a validated local run quickly, with minimal 
 py -3.11 -m venv .venv
 .\.venv\Scripts\activate
 python -m pip install --upgrade pip
-python -m pip install -r requirements.txt -r requirements-dev.txt
+python -m pip install -e .[dev]
 copy .env.example .env
 ```
 
@@ -49,7 +49,7 @@ python -m ruff check .
 python -m black --check .
 python -m isort --check-only .
 python -m mypy src services contracts main.py
-python -m pytest -q
+python -m pytest -q --cov=src --cov=services --cov=contracts --cov-report=term-missing
 python scripts/smoke_dashboard.py
 python scripts/smoke_api.py
 python scripts/smoke_downstream_sql.py
@@ -57,6 +57,17 @@ python scripts/smoke_processed_exports.py
 python scripts/smoke_partner_payload.py
 python scripts/smoke_dbt_sqlite.py
 python -m build
+```
+
+Clean package-install smoke:
+
+```powershell
+python -m venv .install-smoke-venv
+.\.install-smoke-venv\Scripts\activate
+python -m pip install --upgrade pip
+python -m pip install -e .[dev]
+python -m pip check
+python -m src.pipeline --help
 ```
 
 ## 4. Optional Interfaces

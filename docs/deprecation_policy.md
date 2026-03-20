@@ -19,6 +19,17 @@ Canonical paths should be preferred in new code:
 - `services.api`
 - `contracts.v1.data_contract`
 
+## Contract Compatibility Rule
+
+Governed data contracts should follow these rules:
+
+1. additive changes are preferred over breaking changes
+2. breaking schema changes should land in a versioned contract path
+3. downstream consumers should be migrated to the new canonical version before old shims are removed
+4. release notes should state whether a change is additive, behavior-changing, or compatibility-breaking
+
+For this repository, `contracts.v1.data_contract` is the canonical contract surface until a deliberate version increment is introduced.
+
 ## Deprecation Rule
 
 When a compatibility path exists:

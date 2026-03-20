@@ -36,10 +36,12 @@ def test_repository_contains_high_signal_operational_docs() -> None:
 def test_ci_workflow_enforces_core_quality_gates() -> None:
     workflow_text = (PROJECT_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     for expected_snippet in [
+        "python -m pip install -e .[dev]",
+        "python -m pip check",
         "python -m ruff check .",
         "python -m black --check .",
         "python -m isort --check-only .",
-        "python -m pytest -q",
+        "python -m pytest -q --cov=src --cov=services --cov=contracts --cov-report=term-missing --cov-report=xml",
         "python scripts/smoke_dashboard.py",
         "python scripts/ui_snapshot.py",
         "python scripts/smoke_api.py",
@@ -48,6 +50,7 @@ def test_ci_workflow_enforces_core_quality_gates() -> None:
         "python scripts/smoke_partner_payload.py",
         "python scripts/smoke_dbt_sqlite.py",
         "API container smoke test",
+        "Wheel install smoke test",
         "http://127.0.0.1:8000/health",
         "python -m build",
     ]:
@@ -141,7 +144,19 @@ def test_pyproject_declares_runtime_and_dev_dependency_paths() -> None:
     for expected_runtime in ["fastapi==0.115.12", "pydantic==2.11.2", "streamlit==1.43.1"]:
         assert expected_runtime in runtime_dependencies
 
-    for expected_dev in ["pytest==8.3.5", "mypy==1.11.2", "ruff==0.6.9"]:
+    for expected_dev in ["pytest==8.3.5", "pytest-cov==6.0.0", "mypy==1.11.2", "ruff==0.6.9"]:
         assert expected_dev in dev_dependencies
 
     assert "-r requirements.txt" in requirements_dev
+
+
+def test_onboarding_uses_package_install_and_install_smoke() -> None:
+    onboarding = (PROJECT_ROOT / "docs" / "onboarding.md").read_text(encoding="utf-8")
+
+    for expected_snippet in [
+        "python -m pip install -e .[dev]",
+        "python -m pytest -q --cov=src --cov=services --cov=contracts --cov-report=term-missing",
+        "python -m pip check",
+        "python -m src.pipeline --help",
+    ]:
+        assert expected_snippet in onboarding

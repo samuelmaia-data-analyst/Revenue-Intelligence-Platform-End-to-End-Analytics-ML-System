@@ -42,12 +42,28 @@ Purpose:
 Owner:
 - `.github/workflows/ci.yml`
 
+### Hosted reference environment
+
+Purpose:
+- demonstrate a realistic promotion path beyond local-only execution
+- run the same packaged application surface inside containers
+
+Current reference shape:
+- Streamlit container from `Dockerfile`
+- API container from `Dockerfile.api`
+- GitHub Actions as the canonical automated verification environment
+
+Rule:
+- hosted examples must keep `python -m src.pipeline run` as the canonical batch path
+- hosted surfaces may consume packaged artifacts, but should not fork orchestration logic
+
 ## Environment Rules
 
 1. `.venv` is the default runtime for application code.
 2. `.dbt-venv` exists only to isolate the `dbt` CLI.
 3. CI is the canonical reference for what must stay green.
 4. Local success is not enough if CI does not validate the same surface.
+5. The package install path `pip install -e .[dev]` is the preferred developer bootstrap.
 
 ## Typical Commands
 
