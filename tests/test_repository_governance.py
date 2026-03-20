@@ -1,3 +1,4 @@
+import tomllib
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -127,3 +128,20 @@ def test_issue_templates_use_merge_policy_labels() -> None:
     assert "- runtime" in bug_report
     assert "- runtime" in change_request
     assert "- docs" in documentation_request
+
+
+def test_pyproject_declares_runtime_and_dev_dependency_paths() -> None:
+    pyproject = tomllib.loads((PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    project = pyproject["project"]
+
+    runtime_dependencies = "\n".join(project["dependencies"])
+    dev_dependencies = "\n".join(project["optional-dependencies"]["dev"])
+    requirements_dev = (PROJECT_ROOT / "requirements-dev.txt").read_text(encoding="utf-8")
+
+    for expected_runtime in ["fastapi==0.115.12", "pydantic==2.11.2", "streamlit==1.43.1"]:
+        assert expected_runtime in runtime_dependencies
+
+    for expected_dev in ["pytest==8.3.5", "mypy==1.11.2", "ruff==0.6.9"]:
+        assert expected_dev in dev_dependencies
+
+    assert "-r requirements.txt" in requirements_dev

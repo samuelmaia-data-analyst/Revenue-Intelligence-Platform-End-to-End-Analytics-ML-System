@@ -1,16 +1,22 @@
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
 from src.io_utils import replace_sqlite_database
 
+CreateEngineFn = Callable[[str], Any]
+
 try:
-    from sqlalchemy import create_engine
+    from sqlalchemy import create_engine as _sqlalchemy_create_engine
 except ModuleNotFoundError:  # pragma: no cover - optional dependency
-    create_engine = None
+    create_engine: CreateEngineFn | None = None
+else:
+    create_engine = _sqlalchemy_create_engine
 
 
 def persist_frames_to_sqlite(frames: dict[str, pd.DataFrame], database_path: Path) -> list[str]:
