@@ -16,14 +16,14 @@ That means:
 
 Read these files first:
 
-- [README.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/README.md)
-- [docs/architecture.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/architecture.md)
-- [docs/runbook.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/runbook.md)
-- [docs/troubleshooting_matrix.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/troubleshooting_matrix.md)
-- [docs/repository_structure.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/repository_structure.md)
-- [docs/deprecation_policy.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/deprecation_policy.md)
-- [docs/merge_policy.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/merge_policy.md)
-- [docs/incident_playbooks.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/incident_playbooks.md)
+- [README.md](README.md)
+- [docs/architecture.md](docs/architecture.md)
+- [docs/runbook.md](docs/runbook.md)
+- [docs/troubleshooting_matrix.md](docs/troubleshooting_matrix.md)
+- [docs/repository_structure.md](docs/repository_structure.md)
+- [docs/deprecation_policy.md](docs/deprecation_policy.md)
+- [docs/merge_policy.md](docs/merge_policy.md)
+- [docs/incident_playbooks.md](docs/incident_playbooks.md)
 
 ## Contribution Principles
 
@@ -162,13 +162,13 @@ Do not document planned behavior as if it already exists.
 
 Use the template in:
 
-- [.github/pull_request_template.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/.github/pull_request_template.md)
+- [.github/pull_request_template.md](.github/pull_request_template.md)
 
 PRs should stay focused. Split changes when they mix unrelated concerns without a shared operational reason.
 
 Merge and labeling guidance lives in:
 
-- [docs/merge_policy.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/merge_policy.md)
+- [docs/merge_policy.md](docs/merge_policy.md)
 
 ## Commit Convention
 

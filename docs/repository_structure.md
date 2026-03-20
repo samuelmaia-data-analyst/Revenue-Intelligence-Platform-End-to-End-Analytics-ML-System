@@ -170,8 +170,8 @@ Use shims only where backward compatibility matters. Use the versioned path in n
 
 See also:
 
-- [deprecation_policy.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/deprecation_policy.md)
-- [runtime_surfaces.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/runtime_surfaces.md)
+- [deprecation_policy.md](deprecation_policy.md)
+- [runtime_surfaces.md](runtime_surfaces.md)
 
 ## Placement Rules
 

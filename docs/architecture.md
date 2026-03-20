@@ -8,8 +8,8 @@ The batch pipeline is the productized core. Everything else is downstream, optio
 
 See also:
 
-- [runtime_surfaces.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/runtime_surfaces.md)
-- [environments.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/environments.md)
+- [runtime_surfaces.md](runtime_surfaces.md)
+- [environments.md](environments.md)
 
 ## System Boundary
 
@@ -37,7 +37,7 @@ The official entrypoint is:
 python -m src.pipeline run
 ```
 
-That command resolves runtime policy from [`src/config.py`](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/config.py) and executes the orchestration flow in [`src/orchestration.py`](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/src/orchestration.py).
+That command resolves runtime policy from [`src/config.py`](../src/config.py) and executes the orchestration flow in [`src/orchestration.py`](../src/orchestration.py).
 
 ## Layered Flow
 
@@ -118,16 +118,16 @@ Current quality controls:
 
 Current governance controls:
 
-- versioned contracts in [`contracts/v1/data_contract.py`](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/contracts/v1/data_contract.py)
+- versioned contracts in [`contracts/v1/data_contract.py`](../contracts/v1/data_contract.py)
 - generated data dictionary
 - semantic metrics catalog generated from `metrics/semantic_metrics.json`
 - processed artifact validation for critical CSV and JSON outputs
 
 Decision records:
 
-- [ADR 0001 - Batch pipeline is the system of record](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/adr/0001-batch-first-system-of-record.md)
-- [ADR 0002 - SQLite is the default warehouse](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/adr/0002-sqlite-default-warehouse.md)
-- [ADR 0003 - Streamlit consumes processed artifacts](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/adr/0003-streamlit-consumes-artifacts.md)
+- [ADR 0001 - Batch pipeline is the system of record](adr/0001-batch-first-system-of-record.md)
+- [ADR 0002 - SQLite is the default warehouse](adr/0002-sqlite-default-warehouse.md)
+- [ADR 0003 - Streamlit consumes processed artifacts](adr/0003-streamlit-consumes-artifacts.md)
 
 ## Optional Interfaces
 
@@ -140,7 +140,7 @@ These modules are intentionally downstream of the batch core:
 
 They should consume generated outputs or the warehouse. They should not become alternate orchestration centers.
 
-Current explicit surfaces and their smoke ownership are documented in [runtime_surfaces.md](/C:/Users/samue/PycharmProjects/Revenue-Intelligence-Platform-End-to-End-Analytics-ML-System/docs/runtime_surfaces.md).
+Current explicit surfaces and their smoke ownership are documented in [runtime_surfaces.md](runtime_surfaces.md).
 
 ## Trade-offs
 
