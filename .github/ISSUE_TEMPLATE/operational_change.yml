@@ -1,0 +1,35 @@
+name: Operational Change
+description: Request changes to CI, release, tooling, templates, or repository automation.
+title: "[Ops]: "
+labels:
+  - chore
+  - operations
+body:
+  - type: textarea
+    id: change_request
+    attributes:
+      label: Requested Change
+      description: Describe the operational or automation change needed.
+    validations:
+      required: true
+  - type: textarea
+    id: current_gap
+    attributes:
+      label: Current Gap
+      description: What is missing or weak in the current workflow
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Implementation
+      description: Describe the preferred implementation or guardrail.
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation Strategy
+      description: How should the change be verified
+    validations:
+      required: true

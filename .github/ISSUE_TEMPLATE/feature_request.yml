@@ -1,0 +1,59 @@
+name: Feature Request
+description: Propose a product, platform, or workflow improvement.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for meaningful improvements to the platform, dashboard, pipelines, or developer workflow.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What limitation or missed opportunity are you trying to address
+      placeholder: Operators cannot quickly identify stale gold artifacts before launching the dashboard.
+    validations:
+      required: true
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the preferred approach.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe other options and why they are weaker.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope And Impact
+      description: Explain which modules, operators, or workflows are affected.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      description: Define the outcome that would make this request complete.
+      placeholder: |
+        - `ridp check-health` reports stale gold artifacts explicitly
+        - Dashboard operations page highlights the same status
+        - Tests cover the stale-artifact path
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmation
+      options:
+        - label: I verified that this request is not already covered by an open issue.
+          required: true
+        - label: I described the expected operator or engineering impact.
+          required: true

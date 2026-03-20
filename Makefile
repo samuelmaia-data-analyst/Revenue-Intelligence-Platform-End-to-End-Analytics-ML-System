@@ -1,3 +1,5 @@
+.PHONY: install bootstrap pipeline health test lint build check format precommit dashboard
+
 ifeq ($(OS),Windows_NT)
 VENV_PYTHON := .venv\Scripts\python.exe
 else
@@ -38,6 +40,9 @@ check: lint test build
 format:
 	$(PYTHON) -m ruff check . --fix
 	$(PYTHON) -m black .
+
+precommit:
+	$(PYTHON) -m pre_commit run --all-files
 
 dashboard:
 	ridp-dashboard

@@ -1,155 +1,77 @@
 # Revenue Intelligence Data Platform
 
-Production-oriented analytics engineering project over the Olist e-commerce dataset. The repository implements a small but disciplined data platform with `raw -> bronze -> silver -> gold` layers, contract-aware transformations, model training entry points, and a Streamlit serving layer behind a single CLI surface.
+End-to-end revenue intelligence platform over the Olist dataset. The project is organized as a production-minded local stack: contract-aware ingestion, layered transformations, model training entry points, a SQLite serving layer, and a Streamlit dashboard exposed through a single CLI surface.
 
-## At a glance
+## Executive Summary
 
-- Production-minded data platform over the Olist dataset with `raw -> bronze -> silver -> gold -> serving`
-- Contract-aware pipelines with explicit failure behavior, metadata sidecars, run manifests, snapshots, and SQLite run history
-- Multipage Streamlit workspace for executive KPIs, customer health, operations, and run traceability
-- Packaged CLI for bootstrap, pipeline execution, health checks, model training, and dashboard launch
-- Quality gates with `ruff`, `black`, `mypy`, `pytest`, and package build validation in CI
+This repository is built to demonstrate senior-level data platform execution rather than notebook-only analysis:
 
-## Table of contents
+- reproducible local setup with `pyproject.toml`, `Makefile`, and packaged CLIs
+- explicit `raw -> bronze -> silver -> gold -> serving` flow
+- failure-first data contracts for schema drift, invalid states, and empty critical outputs
+- operator-oriented run artifacts, metadata sidecars, manifests, and health checks
+- dashboard usability without hiding operational issues
+- automated quality gates for format, lint, typing, tests, and package build
 
-- [Why this project matters](#why-this-project-matters)
-- [Business problem](#business-problem)
-- [Architecture](#architecture)
-- [Technical highlights](#technical-highlights)
-- [Product preview](#product-preview)
-- [Repository structure](#repository-structure)
-- [Quickstart](#quickstart)
-- [Configuration](#configuration)
-- [Execution surfaces](#execution-surfaces)
-- [Data flow and outputs](#data-flow-and-outputs)
-- [Reliability and quality posture](#reliability-and-quality-posture)
-- [Validation](#validation)
-- [Trade-offs](#trade-offs)
-- [Recruiter / reviewer signal](#recruiter--reviewer-signal)
-- [Roadmap](#roadmap)
+## What The Platform Solves
 
-## Why this project matters
+Commercial teams need reliable answers to questions such as:
 
-This project is designed to demonstrate practical senior-level data engineering concerns, not just notebook analysis:
+- how revenue evolves over time
+- which customers are at risk of churn
+- how customer value and retention change across cohorts
+- whether the current business trajectory supports short-term revenue forecasts
 
-- reproducible local execution through a packaged CLI
-- explicit data contracts and fast failure on schema drift
-- separation between ingestion, transformation, feature engineering, analytics, models, and serving
-- operational traceability through logging, per-dataset metadata sidecars, and run manifests
-- lightweight SQL serving store for curated outputs and dashboard reads
-- automated quality gates with lint, typing, tests, and CI
+The platform converts raw Olist extracts into curated analytical assets, trainable features, lightweight model artifacts, and reviewable dashboard outputs.
 
-## Business problem
+## Core Capabilities
 
-Revenue teams need reliable answers to questions such as:
-
-- How much GMV is the business generating over time?
-- Which customers are becoming inactive or likely to churn?
-- How do retention and customer value evolve across cohorts?
-- Can the team forecast short-term revenue using curated marts instead of raw extracts?
-
-The platform turns raw CSV extracts from the Olist dataset into curated analytical assets, lightweight model outputs, and dashboard-ready tables.
+- Ingestion pipeline with explicit required-column validation
+- Bronze, silver, and gold datasets with companion `.metadata.json` sidecars
+- Feature generation for churn and revenue model training
+- Multipage Streamlit dashboard for KPI monitoring, customer health, operations, and run history
+- SQLite serving store for stable curated reads
+- Health checks for dataset freshness, metadata presence, and runtime readiness
+- CLI-first execution for bootstrap, pipelines, health checks, training, and dashboard launch
 
 ## Architecture
 
 ```text
-Raw CSV extracts
+Raw source CSVs
   -> ingestion pipeline
-  -> bronze tables + metadata
+  -> bronze artifacts
   -> transformation pipeline
-  -> silver marts + metadata
+  -> silver marts
   -> feature pipeline
-  -> gold datasets + metadata
-  -> analytics metrics / model training / dashboard
+  -> gold datasets
+  -> analytics / model training / dashboard / serving store
 ```
 
-Detailed references:
+Supporting references:
 
-- [Architecture](docs/architecture.md)
+- [Architecture notes](docs/architecture.md)
 - [Dataset source notes](docs/dataset_source.md)
-- [Runbook and onboarding](docs/runbook.md)
+- [Runbook](docs/runbook.md)
 
-## Technical highlights
-
-- Contract-aware CSV readers validate required columns and fail loudly on invalid states.
-- Pipeline outputs write companion `.metadata.json` files with stage, schema, row count, sources, and generation timestamp.
-- The CLI centralizes environment-based configuration and logging.
-- The CLI exposes `ridp check-health` to validate artifact freshness, required sidecars, and local serving/runtime readiness.
-- The Streamlit app now uses a multipage workspace for executive KPIs, customer segmentation, operational artifact health, run-history comparison, and shareable filtered views.
-- Tests cover end-to-end flow, contract failures, invalid timestamps, and model artifact generation.
-- Repository automation includes `Makefile`, `pre-commit`, GitHub Actions, issue templates, and PR template.
-
-## Product preview
-
-The Streamlit workspace is structured as a small analytics product rather than a single demo page:
-
-- `Executive Overview`: KPI deck, trend analysis, cohort retention, executive briefing, and cohort spotlight
-- `Customer Health`: customer segmentation, high-value risk detection, customer spotlight, and exportable filtered views
-- `Operations`: artifact freshness, metadata-backed dataset health, and operational notes
-- `Run History`: manifest comparison across pipeline runs, run spotlight, and exportable comparison outputs
-
-The workspace now also supports:
-
-- persisted filters and selections across pages through session state and query params
-- downloadable snapshots of current analytical views
-- shareable view-state query strings for local-first walkthroughs and reviewer demos
-
-Product screenshots are versioned under `docs/assets/dashboard/`:
-
-- `docs/assets/dashboard/overview.png`
-- `docs/assets/dashboard/customer-health.png`
-- `docs/assets/dashboard/operations.png`
-- `docs/assets/dashboard/run-history.png`
-
-### Executive Overview
-
-<img src="docs/assets/dashboard/overview.png" alt="Executive Overview" width="760" />
-
-### Customer Health
-
-<img src="docs/assets/dashboard/customer-health.png" alt="Customer Health" width="760" />
-
-### Operations
-
-<img src="docs/assets/dashboard/operations.png" alt="Operations" width="760" />
-
-### Run History
-
-<img src="docs/assets/dashboard/run-history.png" alt="Run History" width="760" />
-
-To refresh the screenshots locally:
-
-```bash
-set RIDP_DASHBOARD_DEMO_MODE=ON
-ridp-dashboard
-```
-
-Then capture the four pages above in a desktop viewport and replace the files in
-`docs/assets/dashboard/`.
-
-## Repository structure
+## Repository Layout
 
 ```text
-analytics/   KPI and retention metrics over gold outputs
-dashboard/   Streamlit application
-docs/        architecture, dataset notes, and runbook
+analytics/   KPI, retention, business metrics, and serving-store logic
+dashboard/   Streamlit application and multipage views
+docs/        architecture, runbook, commit convention, and dataset notes
 models/      churn and revenue forecasting training flows
-pipelines/   ingestion, transformation, feature engineering, shared contracts
-ridp/        runtime configuration, CLI, dashboard launcher
+pipelines/   ingestion, transformation, feature generation, shared contracts
+ridp/        runtime configuration, CLI entry points, dashboard launcher
 tests/       regression and contract-oriented tests
 ```
 
-## Stack
+## Technology Stack
 
 - Python 3.11+
-- pandas
-- scikit-learn
-- Streamlit
-- pytest
-- ruff
-- black
-- mypy
-- GitHub Actions
+- pandas, numpy, scikit-learn, SQLAlchemy
+- Streamlit and Altair
+- pytest, Ruff, Black, mypy
+- GitHub Actions and pre-commit
 
 ## Quickstart
 
@@ -159,16 +81,22 @@ python -m venv .venv
 python -m pip install --upgrade pip
 python -m pip install -e .[dev]
 copy .env.example .env
+pre-commit install
 make bootstrap
 make pipeline
+make dashboard
+```
+
+If you want to validate model entry points after generating curated data:
+
+```bash
 ridp train-model churn
 ridp train-model revenue --periods 3
-make dashboard
 ```
 
 ## Configuration
 
-Environment variables are optional and default to project-local paths:
+The platform is environment-driven and defaults to project-local paths.
 
 ```bash
 RIDP_RAW_DIR=data/raw
@@ -186,16 +114,15 @@ RIDP_DASHBOARD_DEMO_MODE=AUTO
 RIDP_DASHBOARD_DEMO_ASSETS_DIR=dashboard/demo_assets
 ```
 
-Dashboard demo behavior:
+Dashboard source modes:
 
-- `AUTO`: use real curated outputs when available, otherwise fall back to bundled demo assets
-- `ON`: force bundled demo assets for portfolio walkthroughs
-- `OFF`: require real pipeline outputs only
-- The Streamlit sidebar exposes the same behavior as `Workspace Source`, so reviewers can switch between `Auto`, `Live Data`, and `Demo Data` without editing environment variables.
+- `AUTO`: prefer live curated outputs, fall back to bundled demo assets
+- `ON`: force demo assets for walkthroughs and portfolio reviews
+- `OFF`: require real generated artifacts
 
-## Execution surfaces
+## CLI Surface
 
-Official commands:
+Primary commands:
 
 ```bash
 ridp bootstrap-sample-data
@@ -211,14 +138,7 @@ ridp train-model revenue --periods 6
 ridp-dashboard
 ```
 
-If you want a predictable portfolio walkthrough without bootstrapping data first:
-
-```bash
-set RIDP_DASHBOARD_DEMO_MODE=ON
-ridp-dashboard
-```
-
-Make targets:
+Preferred local shorthands:
 
 ```bash
 make install
@@ -230,27 +150,25 @@ make test
 make build
 make check
 make format
+make precommit
 make dashboard
 ```
 
-When `.venv` exists, `make` commands automatically prefer that interpreter over the global Python.
-`requirements.txt` is kept as a lightweight runtime compatibility artifact and should mirror the
-runtime dependencies declared in `pyproject.toml`.
+## Data Products
 
-## Data flow and outputs
+Bronze layer:
 
-`bronze`
+- normalized source columns
+- ingestion timestamps
+- source lineage fields
 
-- normalized source column names
-- ingestion timestamp and source file lineage
-
-`silver`
+Silver layer:
 
 - `fct_orders.csv`
 - `dim_customers.csv`
 - `fct_order_items.csv`
 
-`gold`
+Gold layer:
 
 - `kpi_daily_revenue.csv`
 - `kpi_monthly_revenue.csv`
@@ -258,76 +176,86 @@ runtime dependencies declared in `pyproject.toml`.
 - `churn_features.csv`
 - `business_kpis.csv`
 
-`serving`
+Serving layer:
 
-- `revenue_serving.db`
-- SQLite materialization of curated gold outputs for lightweight SQL reads
+- `data/serving/revenue_serving.db`
 
-Each generated dataset also emits a `.metadata.json` file with schema and lineage context.
+Operational artifacts:
 
-CLI-triggered pipeline runs also emit a manifest under `data/run_manifests/` with a shared
-`run_id`, execution timestamps, and the artifacts produced by each stage.
+- per-dataset `.metadata.json` sidecars
+- run manifests under `data/run_manifests/`
+- run snapshots under `data/run_artifacts/<run_id>/`
+- run catalog and SQLite run history for traceability
 
-Each CLI run also writes a compact stage snapshot under `data/run_artifacts/<run_id>/` and updates
-`data/run_manifests/run_catalog.csv` for a lightweight execution index. Small artifacts are copied
-in full; larger datasets keep copied metadata sidecars plus a compact pointer record instead of an
-unnecessary second CSV copy.
-The same run is also registered in `data/run_manifests/run_history.db`, making execution history
-queryable through SQLite.
-Gold outputs are also materialized into `data/serving/revenue_serving.db` so curated datasets are
-available through a stable SQL serving layer.
+## Reliability Posture
 
-## Reliability and quality posture
+- Missing inputs fail with actionable exceptions.
+- Required columns and contract-critical invalid states fail loudly.
+- Transformation does not silently tolerate invalid order timestamps.
+- KPI generation refuses to produce misleading outputs when critical business inputs are empty.
+- Pipeline runs are traceable through shared `run_id` values and persisted operational artifacts.
+- Dashboard flows support graceful fallbacks for expected demo scenarios without masking real operational failures.
 
-- Missing files raise `FileNotFoundError`.
-- Schema drift and nulls in contract-critical columns raise `DataContractError`.
-- Invalid order timestamps fail transformation explicitly.
-- Gold generation refuses to compute KPIs when there are no delivered orders.
-- Churn training degrades gracefully when the target is not trainable.
-- CLI pipeline runs can be traced end-to-end through a shared `run_id`.
-- CLI pipeline runs preserve per-stage run-review snapshots while avoiding redundant copies of large datasets.
-- CLI pipeline runs are also registered in a lightweight SQLite operations store.
-- `ridp check-health` validates required gold artifacts, metadata sidecars, freshness SLA, and local serving/runtime readiness.
-- The dashboard supports persisted filters, shareable view-state query strings, and exportable analytical slices without requiring a backend.
-- Dashboard startup is deterministic through an official demo mode with bundled curated assets.
+## Dashboard Preview
 
-## Validation
+Versioned screenshots live in `docs/assets/dashboard/`.
+
+### Executive Overview
+
+<img src="docs/assets/dashboard/overview.png" alt="Executive Overview" width="760" />
+
+### Customer Health
+
+<img src="docs/assets/dashboard/customer-health.png" alt="Customer Health" width="760" />
+
+### Operations
+
+<img src="docs/assets/dashboard/operations.png" alt="Operations" width="760" />
+
+### Run History
+
+<img src="docs/assets/dashboard/run-history.png" alt="Run History" width="760" />
+
+For a deterministic local walkthrough:
+
+```bash
+set RIDP_DASHBOARD_DEMO_MODE=ON
+ridp-dashboard
+```
+
+## Engineering Workflow
+
+Project collaboration is documented in [CONTRIBUTING.md](CONTRIBUTING.md). Commit message rules are documented in [docs/commit-convention.md](docs/commit-convention.md).
+
+Baseline validation:
 
 ```bash
 make lint
 make test
 ```
 
-CI runs on every push and pull request and executes:
+Release-ready validation:
 
-- `ruff check .`
-- `black --check .`
-- `mypy .`
-- `pytest`
-- `python -m build --sdist --wheel`
+```bash
+make check
+```
 
-## Trade-offs
+## Automation
 
-- Storage is local filesystem based, intentionally keeping orchestration simple for portfolio readability.
-- Forecasting and churn models are lightweight baselines, chosen to emphasize pipeline discipline and artifact management over model sophistication.
-- The project favors explicit pandas transformations over framework-heavy orchestration to keep the engineering signal easy to inspect.
+The repository includes:
 
-## Recruiter / reviewer signal
+- `pre-commit` hooks for fast local quality feedback
+- GitHub issue forms and PR templates to improve change quality
+- GitHub Actions CI for lint, typing, tests, and build validation
+- `Makefile` targets that mirror the expected local engineering workflow
 
-This repository is meant to communicate:
+## Contribution Standards
 
-- clear separation of concerns
-- operational thinking around contracts, failures, and reproducibility
-- pragmatic automation instead of notebook-only experimentation
-- code that is readable, testable, and maintainable by another engineer
-
-## Contributing
-
-Collaboration guidance lives in [CONTRIBUTING.md](CONTRIBUTING.md).
+Changes should stay focused, preserve CLI stability unless intentionally changed, and update tests or downstream consumers when schemas or artifacts move. Operator-visible behavior changes must be reflected in repository documentation.
 
 ## Roadmap
 
-- add richer data quality assertions and anomaly checks
-- persist model artifacts in a more portable serialization format
-- add browser-level dashboard smoke tests and visual regression protection
-- document a clearer `local -> hosted -> production` evolution path
+- richer anomaly detection and data quality assertions
+- stronger model evaluation reporting and artifact governance
+- browser-level dashboard smoke coverage
+- clearer evolution path from local portfolio stack to hosted deployment

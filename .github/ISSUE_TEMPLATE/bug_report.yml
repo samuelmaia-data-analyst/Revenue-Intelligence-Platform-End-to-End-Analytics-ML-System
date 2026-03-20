@@ -1,0 +1,77 @@
+name: Bug Report
+description: Report a defect, regression, or broken operator workflow.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form when the platform behaves incorrectly, a contract fails unexpectedly, or the documented workflow no longer works.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Describe the defect in one or two sentences.
+      placeholder: Running `make pipeline` fails during feature generation with a missing artifact error.
+    validations:
+      required: true
+  - type: textarea
+    id: current_behavior
+    attributes:
+      label: Current Behavior
+      description: What is happening now
+    validations:
+      required: true
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected Behavior
+      description: What should happen instead
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction Steps
+      description: Provide the exact steps, commands, and inputs needed to reproduce the issue.
+      placeholder: |
+        1. Create a fresh virtual environment
+        2. Run `make bootstrap`
+        3. Run `make pipeline`
+        4. Observe the failure in `pipelines/feature_pipeline.py`
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs Or Screenshots
+      description: Paste the relevant error output, stack trace, or screenshots.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Describe business, engineering, or operator impact.
+      placeholder: Blocks local onboarding because curated outputs cannot be generated.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version, and any relevant runtime details.
+      placeholder: Windows 11, Python 3.11.11, fresh `.venv`
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmation
+      options:
+        - label: I reviewed the existing documentation and issue tracker first.
+          required: true
+        - label: I included enough detail for someone else to reproduce the issue.
+          required: true
