@@ -36,6 +36,16 @@ make format
 make precommit
 ```
 
+If your shell does not provide `make`, use the Python task runner instead:
+
+```bash
+python -m ridp.dev_tasks install
+python -m ridp.dev_tasks lint
+python -m ridp.dev_tasks test
+python -m ridp.dev_tasks check
+python -m ridp.dev_tasks dashboard
+```
+
 ## Development Flow
 
 1. Create a focused branch for the change.
@@ -70,7 +80,7 @@ If you cannot run a required validation step, call that out explicitly in the pu
 
 - `README.md` is the operator-facing source of truth.
 - `pyproject.toml` is the source of truth for Python version, dependencies, and CLI entry points.
-- `Makefile` is the preferred shorthand for common local commands.
+- `Makefile` is the preferred shorthand for common local commands, with `ridp-dev` as the cross-platform Python fallback.
 - Pipeline outputs and schema changes must be reflected in downstream code and tests.
 - Do not silently swallow empty-data or missing-column conditions that should fail loudly.
 

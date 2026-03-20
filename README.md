@@ -82,9 +82,9 @@ python -m pip install --upgrade pip
 python -m pip install -e .[dev]
 copy .env.example .env
 pre-commit install
-make bootstrap
-make pipeline
-make dashboard
+python -m ridp.dev_tasks bootstrap
+python -m ridp.dev_tasks pipeline
+python -m ridp.dev_tasks dashboard
 ```
 
 If you want to validate model entry points after generating curated data:
@@ -152,6 +152,16 @@ make check
 make format
 make precommit
 make dashboard
+```
+
+Python-native fallback for environments without `make`:
+
+```bash
+python -m ridp.dev_tasks install
+python -m ridp.dev_tasks lint
+python -m ridp.dev_tasks test
+python -m ridp.dev_tasks check
+python -m ridp.dev_tasks dashboard
 ```
 
 ## Data Products
@@ -240,6 +250,14 @@ Release-ready validation:
 make check
 ```
 
+If `make` is not available in your shell, use:
+
+```bash
+python -m ridp.dev_tasks lint
+python -m ridp.dev_tasks test
+python -m ridp.dev_tasks check
+```
+
 ## Automation
 
 The repository includes:
@@ -247,7 +265,7 @@ The repository includes:
 - `pre-commit` hooks for fast local quality feedback
 - GitHub issue forms and PR templates to improve change quality
 - GitHub Actions CI for lint, typing, tests, and build validation
-- `Makefile` targets that mirror the expected local engineering workflow
+- `Makefile` targets plus `ridp-dev` / `python -m ridp.dev_tasks` for cross-platform local workflows
 
 ## Contribution Standards
 

@@ -32,6 +32,7 @@ dev = [
 [project.scripts]
 ridp = "ridp.cli:main"
 ridp-dashboard = "ridp.dashboard_launcher:main"
+ridp-dev = "ridp.dev_tasks:main"
 
 [tool.setuptools]
 include-package-data = true
