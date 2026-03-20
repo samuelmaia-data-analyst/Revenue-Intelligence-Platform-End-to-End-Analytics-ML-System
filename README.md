@@ -267,6 +267,8 @@ The repository includes:
 - GitHub Actions CI for lint, typing, tests, and build validation
 - `Makefile` targets plus `ridp-dev` / `python -m ridp.dev_tasks` for cross-platform local workflows
 
+The `pre-commit` configuration is local-only and does not require fetching hook repositories from GitHub.
+
 ## Contribution Standards
 
 Changes should stay focused, preserve CLI stability unless intentionally changed, and update tests or downstream consumers when schemas or artifacts move. Operator-visible behavior changes must be reflected in repository documentation.

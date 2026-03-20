@@ -21,6 +21,8 @@ copy .env.example .env
 pre-commit install
 ```
 
+The repository uses a local-only `pre-commit` configuration, so hook execution does not depend on downloading remote hook repositories.
+
 Preferred commands:
 
 ```bash

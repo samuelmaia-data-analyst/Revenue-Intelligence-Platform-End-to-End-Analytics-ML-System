@@ -4,32 +4,45 @@ default_stages:
   - pre-commit
 
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+  - repo: local
     hooks:
-      - id: end-of-file-fixer
-      - id: trailing-whitespace
+      - id: trim-trailing-whitespace
+        name: trim trailing whitespace
+        entry: python scripts/precommit_local.py trim-trailing-whitespace
+        language: system
+        types: [text]
+      - id: fix-end-of-file
+        name: fix end of file
+        entry: python scripts/precommit_local.py fix-end-of-file
+        language: system
+        types: [text]
       - id: check-merge-conflict
+        name: check merge conflict
+        entry: python scripts/precommit_local.py check-merge-conflict
+        language: system
+        types: [text]
       - id: check-yaml
+        name: check yaml
+        entry: python scripts/precommit_local.py check-yaml
+        language: system
+        files: \.(yml|yaml)$
       - id: check-toml
-
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.0
-    hooks:
+        name: check toml
+        entry: python scripts/precommit_local.py check-toml
+        language: system
+        files: \.toml$
       - id: ruff
-        args: ["--fix"]
-
-  - repo: https://github.com/psf/black
-    rev: 25.1.0
-    hooks:
+        name: ruff
+        entry: python scripts/precommit_local.py ruff-fix
+        language: system
+        types_or: [python, pyi]
       - id: black
-
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.15.0
-    hooks:
+        name: black
+        entry: python scripts/precommit_local.py black
+        language: system
+        types_or: [python, pyi]
       - id: mypy
-        additional_dependencies:
-          - pandas
-          - scikit-learn
-          - sqlalchemy
-          - streamlit
+        name: mypy
+        entry: python scripts/precommit_local.py mypy
+        language: system
+        pass_filenames: false
