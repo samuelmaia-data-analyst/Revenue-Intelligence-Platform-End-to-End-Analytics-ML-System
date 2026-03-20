@@ -19,6 +19,16 @@ Este repositório foi desenhado para responder às perguntas que um hiring manag
 
 Resposta curta: sim.
 
+## Leitura Rápida Para Reviewer
+
+Em menos de 30 segundos, alguém a avaliar o repositório deve conseguir ver que ele tem:
+
+- um caminho oficial de execução batch
+- outputs governados com contratos e validação
+- evidência operacional via manifests, snapshots e relatórios de qualidade
+- consumo downstream por Streamlit, API, SQL e dbt
+- CI que vai além de testes unitários e cobre smoke e build
+
 ## Porque Este Repositório Existe
 
 Muitos projectos de portefólio ficam presos a notebooks, scripts ad hoc ou um dashboard isolado. Este repositório é intencionalmente mais operacional:
@@ -41,6 +51,8 @@ A plataforma converte comportamento de clientes em activos que suportam decisõe
 - recomendações por cliente com impacto simulado
 - snapshots executivos de KPI e monitorização
 - tabelas de warehouse prontas para SQL e consumo ao estilo dbt
+
+Para um avaliador técnico, o sinal prático é directo: este não é um showcase de notebooks disfarçado de plataforma. É um sistema de dados pequeno, mas disciplinado, com ownership claro de runtime e responsabilidade sobre consumidores downstream.
 
 ## Caminho Oficial de Execução
 
@@ -83,19 +95,22 @@ Características principais:
 |  |- dashboard_data.py    carregamento com cache e filtros
 |  |- dashboard_i18n.py    dicionários EN, PT-BR e PT-PT
 |  |- dashboard_metrics.py helpers partilhados de formatação e KPIs
-|- src/                    pipeline batch, modelação, reporting e política operacional
+|- src/                    pipeline batch, modelação, reporting, warehouse e política operacional
 |- contracts/              schemas governados versionados e shims de compatibilidade
-|- tests/                  cobertura comportamental, confiabilidade, contratos e warehouse
+|- services/               interfaces de serviço voltadas para runtime
+|- api/                    shim de compatibilidade para imports da API
+|- tests/                  cobertura comportamental, confiabilidade, contratos, API e warehouse
 |- docs/                   arquitectura, onboarding, runbooks, ADRs e release notes
 |- scripts/                smoke tests e automações operacionais leves
 |- dbt/                    camada analítica downstream sobre os outputs do warehouse
-|- services/               interfaces de serviço voltadas a runtime
 |- orchestration/          exemplos de scheduler e wrappers de deploy
 |- metrics/                definições de métricas semânticas consumidas pelo pipeline
 |- sql/                    DDL do warehouse e assets SQL downstream
 |- data/                   outputs locais de runtime, manifests, snapshots e warehouse
 |- notebooks/              exploração isolada, fora do caminho oficial de execução
-|- api/                    shim de compatibilidade para imports da API
+|- main.py                 wrapper mínimo de entrada Python
+|- Dockerfile*             builds de contentor para Streamlit e API
+|- CHANGELOG.md            histórico de evolução orientado a releases
 ```
 
 Referências principais:

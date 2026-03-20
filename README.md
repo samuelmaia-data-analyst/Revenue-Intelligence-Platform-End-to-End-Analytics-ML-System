@@ -19,6 +19,16 @@ This repository is designed to answer the questions a hiring manager, tech lead,
 
 Short answer: yes.
 
+## Reviewer Snapshot
+
+In less than 30 seconds, a reviewer should be able to see that this repository has:
+
+- one official batch runtime path
+- governed outputs with contracts and validation
+- operational evidence through manifests, snapshots, and quality reports
+- downstream consumption through Streamlit, API, SQL, and dbt
+- CI coverage that goes beyond unit tests into smoke and build validation
+
 ## Why This Repository Exists
 
 Most data portfolio projects stop at notebooks, ad hoc scripts, or a standalone dashboard. This repository is intentionally narrower and more operational:
@@ -41,6 +51,8 @@ The platform converts customer behavior data into assets that support commercial
 - customer-level recommendations with simulated impact
 - executive KPI snapshots and monitoring outputs
 - warehouse tables ready for SQL and dbt-style consumption
+
+For a hiring reviewer, the practical signal is simple: this is not a notebook showcase dressed up as a platform. It is a small but disciplined data system with explicit runtime ownership and downstream accountability.
 
 ## Official Runtime Path
 
@@ -83,19 +95,22 @@ Key characteristics:
 |  |- dashboard_data.py    cached artifact loading and filtering
 |  |- dashboard_i18n.py    EN, PT-BR, and PT-PT language dictionaries
 |  |- dashboard_metrics.py shared formatting and KPI helpers
-|- src/                    batch pipeline, modeling, reporting, and runtime policy
+|- src/                    batch pipeline, modeling, reporting, warehouse, and runtime policy
 |- contracts/              versioned governed schemas and compatibility shims
-|- tests/                  behavioral, reliability, contract, and warehouse coverage
+|- services/               runtime-facing service interfaces
+|- api/                    compatibility shim for API imports
+|- tests/                  behavioral, reliability, contract, API, and warehouse coverage
 |- docs/                   architecture, onboarding, runbooks, ADRs, and release notes
 |- scripts/                smoke tests and lightweight operational automation
 |- dbt/                    downstream analytical layer on top of warehouse outputs
-|- services/               runtime-facing service interfaces
 |- orchestration/          scheduler examples and deployment wrappers
 |- metrics/                semantic metric definitions consumed by the pipeline
 |- sql/                    warehouse DDL and downstream SQL assets
 |- data/                   local runtime outputs, manifests, snapshots, and warehouse
 |- notebooks/              isolated exploration, kept out of the official runtime path
-|- api/                    compatibility shim for API imports
+|- main.py                 minimal Python entrypoint wrapper
+|- Dockerfile*             container builds for Streamlit and API surfaces
+|- CHANGELOG.md            release-oriented evolution log
 ```
 
 Primary references:
