@@ -1,6 +1,6 @@
 # Documentation Map
 
-This repository keeps documentation intentionally small and operational. Each document exists to help a reviewer or collaborator answer a concrete question quickly.
+This repository keeps documentation intentionally scoped and operational. Each document exists to help a reviewer or collaborator answer a concrete question quickly.
 
 ## Core Documents
 

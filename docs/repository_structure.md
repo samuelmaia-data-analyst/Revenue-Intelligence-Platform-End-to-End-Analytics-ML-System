@@ -32,6 +32,9 @@ If a directory does none of those, it probably does not belong at the top level.
 |- sql/                Warehouse DDL and downstream SQL examples
 |- src/                Batch pipeline and domain logic
 |- tests/              Behavioral and regression coverage
+|- main.py             Minimal Python entrypoint wrapper
+|- Dockerfile*         Container builds for Streamlit and API surfaces
+|- CHANGELOG.md        Release-oriented evolution log
 ```
 
 ## Relationship Map
@@ -124,6 +127,7 @@ Important subdirectories:
 - `manifests/`
 - `runs/`
 - `snapshots/`
+- `logs/` when local runtime logging is emitted to disk
 
 Rule:
 Treat `data/` as execution output. Do not use it as a permanent home for source code or documentation.
